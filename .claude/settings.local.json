@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:gist.github.com)",
+      "Bash(gh gist:*)",
+      "WebFetch(domain:gist.githubusercontent.com)"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "kitty.cat.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ExampleClientMixin",
+		"gui.GuiGraphicsAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

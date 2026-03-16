@@ -1,0 +1,89 @@
+package kitty.cat.features.visual
+
+import kitty.cat.KittycatClient.mc
+import kitty.cat.gui.categories.Categories
+import kitty.cat.gui.clickgui.ClickGui as ClickGuiScreen
+import kitty.cat.gui.features.Feature
+import kitty.cat.gui.features.settings.KeybindSetting
+import org.lwjgl.glfw.GLFW
+
+object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
+    private const val DEFAULT_BASE_RED = 176
+    private const val DEFAULT_BASE_GREEN = 176
+    private const val DEFAULT_BASE_BLUE = 190
+    private const val DEFAULT_BASE_ALPHA = 40
+
+    private const val DEFAULT_ACCENT_RED = 70
+    private const val DEFAULT_ACCENT_GREEN = 70
+    private const val DEFAULT_ACCENT_BLUE = 70
+    private const val DEFAULT_ACCENT_ALPHA = 255
+
+    val keybind = keybindSetting("Open Gui", GLFW.GLFW_KEY_RIGHT_SHIFT)
+    val baseColor = colorSetting(
+        name = "Base Color",
+        red = DEFAULT_BASE_RED,
+        green = DEFAULT_BASE_GREEN,
+        blue = DEFAULT_BASE_BLUE,
+        alpha = DEFAULT_BASE_ALPHA
+    )
+    val accentColor = colorSetting(
+        name = "Accent Color",
+        red = DEFAULT_ACCENT_RED,
+        green = DEFAULT_ACCENT_GREEN,
+        blue = DEFAULT_ACCENT_BLUE,
+        alpha = DEFAULT_ACCENT_ALPHA
+    )
+    val resetColors = actionSetting("Reset Colors") {
+        baseColor.setRgba(
+            red = DEFAULT_BASE_RED,
+            green = DEFAULT_BASE_GREEN,
+            blue = DEFAULT_BASE_BLUE,
+            alpha = DEFAULT_BASE_ALPHA
+        )
+        accentColor.setRgba(
+            red = DEFAULT_ACCENT_RED,
+            green = DEFAULT_ACCENT_GREEN,
+            blue = DEFAULT_ACCENT_BLUE,
+            alpha = DEFAULT_ACCENT_ALPHA
+        )
+    }
+
+    private fun canUseGuiScreens(): Boolean {
+        return runCatching {
+            mc.window.screenWidth > 0 && mc.window.screenHeight > 0
+        }.getOrDefault(false)
+    }
+
+    fun openGui() {
+        if (!enabled) {
+            setEnabled(true)
+            return
+        }
+
+        if (!canUseGuiScreens()) return
+
+        if (mc.screen !is ClickGuiScreen) {
+            mc.setScreen(ClickGuiScreen())
+        }
+    }
+
+    override fun onEnable() {
+        if (!canUseGuiScreens()) {
+            // Config load can call this before Minecraft has initialized the window/input stack.
+            setEnabled(false)
+            return
+        }
+        mc.setScreen(ClickGuiScreen())
+    }
+
+    override fun onDisable() {
+        if (!canUseGuiScreens()) return
+        if (mc.screen is ClickGuiScreen) {
+            mc.setScreen(null)
+        }
+    }
+
+    override fun onKeybindPressed(setting: KeybindSetting) {
+        openGui()
+    }
+}

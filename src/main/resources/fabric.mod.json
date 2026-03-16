@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "kittycat",
+  "version": "${version}",
+  "name": "Kittycat",
+  "description": "Kittycat client mod",
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "kitty.cat.KittycatClient"
+      }
+    ]
+  },
+  "mixins": [
+    {
+      "config": "kittycat.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*",
+    "fabric-language-kotlin": ">=1.13.9+kotlin.2.3.10"
+  }
+}
