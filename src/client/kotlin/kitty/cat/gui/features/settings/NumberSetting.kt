@@ -2,6 +2,7 @@ package kitty.cat.gui.features.settings
 
 import kitty.cat.config.ConfigManager
 import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.math.roundToInt
 
 class NumberSetting(
@@ -70,13 +71,27 @@ class NumberSetting(
         if (step <= 0.0) return clamped
 
         val snapped = ((clamped - min) / step).roundToInt() * step + min
-        return snapped.coerceIn(min, max)
+        val scale = decimalPlaces(step).coerceIn(0, 6)
+        val rounded = BigDecimal.valueOf(snapped).setScale(scale, RoundingMode.HALF_UP).toDouble()
+        return rounded.coerceIn(min, max)
     }
 
     private fun formatValue(raw: Double): String {
-        if (isWhole(raw)) return raw.toInt().toString()
-        return BigDecimal.valueOf(raw).stripTrailingZeros().toPlainString()
+        val scale = if (step > 0.0) {
+            decimalPlaces(step)
+        } else {
+            maxOf(decimalPlaces(min), decimalPlaces(max))
+        }.coerceIn(0, 6)
+
+        val rounded = BigDecimal.valueOf(raw)
+            .setScale(scale, RoundingMode.HALF_UP)
+            .stripTrailingZeros()
+        return rounded.toPlainString()
     }
 
     private fun isWhole(value: Double): Boolean = value % 1.0 == 0.0
+
+    private fun decimalPlaces(value: Double): Int {
+        return BigDecimal.valueOf(value).stripTrailingZeros().scale().coerceAtLeast(0)
+    }
 }

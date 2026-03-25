@@ -5,6 +5,8 @@ import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.clickgui.ClickGui as ClickGuiScreen
 import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
+import kitty.cat.render.nanovg.NVGFont
+import kitty.cat.render.nanovg.NVGRenderer
 import org.lwjgl.glfw.GLFW
 
 object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
@@ -18,7 +20,15 @@ object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
     private const val DEFAULT_ACCENT_BLUE = 70
     private const val DEFAULT_ACCENT_ALPHA = 255
 
+    private val availableFontModes = NVGRenderer.availableFontModes()
+
     val keybind = keybindSetting("Open Gui", GLFW.GLFW_KEY_RIGHT_SHIFT)
+    val fontMode = selectorSetting(
+        name = "Font Mode",
+        options = availableFontModes,
+        defaultSelected = listOf(availableFontModes.first()),
+        allowMultiple = false
+    )
     val baseColor = colorSetting(
         name = "Base Color",
         red = DEFAULT_BASE_RED,
@@ -47,6 +57,9 @@ object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
             alpha = DEFAULT_ACCENT_ALPHA
         )
     }
+
+    val selectedFont: NVGFont
+        get() = NVGRenderer.fontForMode(fontMode.selectedSingle)
 
     private fun canUseGuiScreens(): Boolean {
         return runCatching {
