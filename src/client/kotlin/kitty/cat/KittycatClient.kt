@@ -2,11 +2,13 @@ package kitty.cat
 
 import com.mojang.blaze3d.platform.InputConstants
 import kitty.cat.config.ConfigManager
+import kitty.cat.features.visual.ArrowTracers
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
+import kitty.cat.utils.Pipelines
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
@@ -34,6 +36,7 @@ object KittycatClient : ClientModInitializer {
 	var openGui = false
 
 	override fun onInitializeClient() {
+
 		SpecialGuiElementRegistry.register { ctx -> NVGPIPRenderer(ctx.vertexConsumers()) }
 
 		ConfigManager.initialize(featureList)
@@ -82,5 +85,7 @@ object KittycatClient : ClientModInitializer {
 					)
 			)
 		}
+
+		ArrowTracers.register()
 	}
 }

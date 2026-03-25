@@ -1772,8 +1772,16 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
+        val font = ClickGuiFeature.selectedFont
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
-            NVGRenderer.text(text, x * scale, (y + TEXT_BASELINE_OFFSET) * scale, size * scale, color)
+            NVGRenderer.text(
+                text = text,
+                x = x * scale,
+                y = (y + TEXT_BASELINE_OFFSET) * scale,
+                size = size * scale,
+                color = color,
+                font = font
+            )
         }
     }
 
@@ -1788,8 +1796,16 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
+        val font = ClickGuiFeature.selectedFont
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
-            NVGRenderer.textCentered(text, cx * scale, (y + TEXT_BASELINE_OFFSET) * scale, size * scale, color)
+            NVGRenderer.textCentered(
+                text = text,
+                cx = cx * scale,
+                y = (y + TEXT_BASELINE_OFFSET) * scale,
+                size = size * scale,
+                color = color,
+                font = font
+            )
         }
     }
 

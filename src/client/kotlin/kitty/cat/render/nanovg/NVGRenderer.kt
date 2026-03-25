@@ -4,7 +4,10 @@ import net.minecraft.client.Minecraft
 import org.lwjgl.nanovg.NVGColor
 import org.lwjgl.nanovg.NanoVG.*
 import org.lwjgl.nanovg.NanoVGGL3.*
+import java.net.JarURLConnection
 import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.math.round
 
 object NVGRenderer {
@@ -16,13 +19,16 @@ object NVGRenderer {
     var vg = -1L
         private set
 
-    val defaultFont: NVGFont by lazy {
-        NVGFont(
-            "OnestRegular",
-            NVGRenderer::class.java.getResourceAsStream("/assets/kittycat/font/onest_regular.ttf")
-                ?: error("Could not load font: onest_regular.ttf")
-        )
+    private val availableFontsByMode: LinkedHashMap<String, NVGFont> by lazy { discoverFonts() }
+
+    fun availableFontModes(): List<String> = availableFontsByMode.keys.toList()
+
+    fun fontForMode(mode: String): NVGFont {
+        return availableFontsByMode[mode] ?: defaultFont
     }
+
+    val defaultFont: NVGFont
+        get() = availableFontsByMode.values.first()
 
     fun ensureInit() {
         if (vg != -1L) return
@@ -128,6 +134,121 @@ object NVGRenderer {
             FontEntry(nvgCreateFontMem(vg, font.name, buffer, false), buffer)
         }.id
     }
+
+    private fun discoverFonts(): LinkedHashMap<String, NVGFont> {
+        val resourcePaths = linkedSetOf<String>()
+        collectFontResourcesInFolder("assets/kittycat/font", resourcePaths)
+        collectFontResourcesInFolder("font", resourcePaths)
+
+        if (resourcePaths.isEmpty()) {
+            listOf(
+                "assets/kittycat/font/onest_regular.ttf",
+                "font/WinkySans-Regular.ttf"
+            ).forEach { path ->
+                if (findFontResource(path) != null) {
+                    resourcePaths += path
+                }
+            }
+        }
+
+        val discovered = LinkedHashMap<String, NVGFont>()
+        resourcePaths.sorted().forEach { resourcePath ->
+            val stream = findFontResource(resourcePath) ?: return@forEach
+            val mode = toModeName(resourcePath)
+            if (mode in discovered) return@forEach
+            val internalName = mode.replace(" ", "")
+            discovered[mode] = NVGFont(internalName, stream)
+        }
+
+        if (discovered.isNotEmpty()) return discovered
+
+        val fallback = requireFontResource(
+            "assets/kittycat/font/onest_regular.ttf",
+            "font/WinkySans-Regular.ttf"
+        )
+        discovered["Default"] = NVGFont("Default", fallback)
+        return discovered
+    }
+
+    private fun collectFontResourcesInFolder(folderPath: String, out: MutableSet<String>) {
+        val normalized = folderPath.trim('/')
+        val resources = NVGRenderer::class.java.classLoader.getResources(normalized)
+        while (resources.hasMoreElements()) {
+            val url = resources.nextElement()
+            when (url.protocol.lowercase()) {
+                "file" -> collectFontFilesFromDirectoryUrl(url, normalized, out)
+                "jar" -> collectFontFilesFromJarUrl(url, normalized, out)
+            }
+        }
+    }
+
+    private fun collectFontFilesFromDirectoryUrl(
+        url: java.net.URL,
+        normalizedFolder: String,
+        out: MutableSet<String>
+    ) {
+        val directoryPath = runCatching { Paths.get(url.toURI()) }.getOrNull() ?: return
+        if (!Files.isDirectory(directoryPath)) return
+
+        val files = runCatching { Files.list(directoryPath) }.getOrNull() ?: return
+        try {
+            val iterator = files.iterator()
+            while (iterator.hasNext()) {
+                val path = iterator.next()
+                if (!Files.isRegularFile(path)) continue
+                val fileName = path.fileName?.toString() ?: continue
+                if (!isFontFileName(fileName)) continue
+                out += "$normalizedFolder/$fileName"
+            }
+        } finally {
+            files.close()
+        }
+    }
+
+    private fun collectFontFilesFromJarUrl(
+        url: java.net.URL,
+        normalizedFolder: String,
+        out: MutableSet<String>
+    ) {
+        val connection = runCatching { url.openConnection() as? JarURLConnection }.getOrNull() ?: return
+        val jarFile = connection.jarFile
+        val prefix = (connection.entryName?.trim('/') ?: normalizedFolder) + "/"
+
+        val entries = jarFile.entries()
+        while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            if (entry.isDirectory || !entry.name.startsWith(prefix)) continue
+            val localName = entry.name.removePrefix(prefix)
+            if ('/' in localName || !isFontFileName(localName)) continue
+            out += entry.name
+        }
+    }
+
+    private fun toModeName(resourcePath: String): String {
+        val fileName = resourcePath.substringAfterLast('/').substringBeforeLast('.')
+        val normalized = fileName.replace('_', ' ').replace('-', ' ')
+        val words = normalized.split(' ').filter { it.isNotBlank() }
+        return words.joinToString(" ") { word ->
+            word.lowercase().replaceFirstChar { ch ->
+                if (ch.isLowerCase()) ch.titlecase() else ch.toString()
+            }
+        }.ifBlank { "Font" }
+    }
+
+    private fun isFontFileName(fileName: String): Boolean {
+        val lower = fileName.lowercase()
+        return lower.endsWith(".ttf") || lower.endsWith(".otf")
+    }
+
+    private fun requireFontResource(vararg paths: String) =
+        findFontResource(*paths) ?: error("Could not load font: ${paths.joinToString(" or ")}")
+
+    private fun findFontResource(vararg paths: String) =
+        paths.asSequence().mapNotNull { path ->
+            val normalized = path.trimStart('/')
+            NVGRenderer::class.java.classLoader.getResourceAsStream(normalized)
+                ?: NVGRenderer::class.java.getResourceAsStream("/$normalized")
+        }.firstOrNull()
 
     private data class FontEntry(val id: Int, val buffer: ByteBuffer)
 }
