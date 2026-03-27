@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.rendertype.RenderType
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
+import java.nio.ByteBuffer
 import java.util.OptionalDouble
 import java.util.OptionalInt
 
@@ -115,7 +116,16 @@ object ShaderedRenderer {
         if (drawState.vertexCount() == 0) { built.close(); allocator3D = null; return }
 
         val byteBuffer = built.vertexBuffer()
-        val vertexBuf: GpuBuffer = pipeline.vertexFormat.uploadImmediateVertexBuffer(byteBuffer)
+        val copy = ByteBuffer.allocateDirect(byteBuffer.remaining()).also {
+            it.put(byteBuffer)
+            it.flip()
+            byteBuffer.rewind()
+        }
+        val vertexBuf: GpuBuffer = RenderSystem.getDevice().createBuffer(
+            { "kitty trail vertex buffer" },
+            40,
+            copy
+        )
 
         val shapeIndexBuffer = RenderSystem.getSequentialBuffer(drawState.mode())
         val indexBuf: GpuBuffer = shapeIndexBuffer.getBuffer(drawState.indexCount())
@@ -146,6 +156,8 @@ object ShaderedRenderer {
                 pass.setVertexBuffer(0, vertexBuf)
                 pass.setIndexBuffer(indexBuf, indexType)
                 pass.drawIndexed(0, drawState.indexCount(), 1, 0)
+            }.also {
+                vertexBuf.close()
             }
 
         built.close()
