@@ -36,7 +36,6 @@ object KittycatClient : ClientModInitializer {
 	var openGui = false
 
 	override fun onInitializeClient() {
-
 		SpecialGuiElementRegistry.register { ctx -> NVGPIPRenderer(ctx.vertexConsumers()) }
 
 		ConfigManager.initialize(featureList)
@@ -72,6 +71,10 @@ object KittycatClient : ClientModInitializer {
 					}
 				}
 			}
+		}
+
+		ClientLifecycleEvents.CLIENT_STARTED.register {
+			Pipelines.init()
 		}
 
 		ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
