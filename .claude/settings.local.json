@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:gist.github.com)",
       "Bash(gh gist:*)",
-      "WebFetch(domain:gist.githubusercontent.com)"
+      "WebFetch(domain:gist.githubusercontent.com)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
