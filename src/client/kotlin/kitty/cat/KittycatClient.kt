@@ -8,7 +8,6 @@ import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
-import kitty.cat.utils.Pipelines
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
@@ -71,10 +70,6 @@ object KittycatClient : ClientModInitializer {
 					}
 				}
 			}
-		}
-
-		ClientLifecycleEvents.CLIENT_STARTED.register {
-			Pipelines.init()
 		}
 
 		ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->

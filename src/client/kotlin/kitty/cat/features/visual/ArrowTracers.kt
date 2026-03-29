@@ -1,8 +1,8 @@
 package kitty.cat.features.visual
+
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
-import kitty.cat.utils.Pipelines
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.client.Minecraft
@@ -11,7 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.phys.Vec3
-import org.joml.Vector3f
+import kotlin.math.sqrt
 
 object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
 
@@ -31,13 +31,6 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
         defaultValue = 0.6,
         step = 0.1
     )
-    private val glowIntensity = numberSetting(
-        name = "Glow Intensity",
-        min = 0.0,
-        max = 4.0,
-        defaultValue = 1.0,
-        step = 0.05
-    )
 
     private val trackedArrowIds = mutableSetOf<Int>()
     private val lastPositions = mutableMapOf<Int, Vec3>()
@@ -50,12 +43,13 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
+            val toRemove = mutableSetOf<Int>()
+
             trackedArrowIds.forEach {
                 val end = mc.level?.getEntity(it)?.position()
 
                 if (end == null) {
-                    trackedArrowIds.remove(it)
-                    lastPositions.remove(it)
+                    toRemove.add(it)
                     return@forEach
                 }
 
@@ -70,16 +64,31 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
                 }
             }
 
-            segments.entries.removeIf { (_, time) -> System.currentTimeMillis() - time > duration.value }
+            toRemove.forEach {
+                trackedArrowIds.remove(it)
+                lastPositions.remove(it)
+            }
+
+            segments.entries.removeIf { (_, time) ->
+                System.currentTimeMillis() - time > duration.value
+            }
         }
 
         WorldRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled) return@register
+            if (segments.isEmpty()) return@register
+
             val cam = ctx.worldState().cameraRenderState.pos
             val consumers = ctx.consumers() ?: return@register
-            val buf = consumers.getBuffer(Pipelines.TRAIL_GLOW_RENDER_TYPE)
-            val pose = ctx.matrices().last() ?: return@register
+            val buf = consumers.getBuffer(RenderTypes.linesTranslucent())
+            val pose = ctx.matrices().last()
 
-            segments.forEach { (seg, _) ->
+            val r = color.red
+            val g = color.green
+            val b = color.blue
+            val a = color.alpha
+
+            segments.forEach { (seg, time) ->
                 val sx = (seg.start.x - cam.x).toFloat()
                 val sy = (seg.start.y - cam.y).toFloat()
                 val sz = (seg.start.z - cam.z).toFloat()
@@ -87,38 +96,23 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
                 val ey = (seg.end.y - cam.y).toFloat()
                 val ez = (seg.end.z - cam.z).toFloat()
 
-                val dir = Vector3f(ex - sx, ey - sy, ez - sz).normalize()
-                val mid = Vector3f((sx + ex) * 0.5f, (sy + ey) * 0.5f, (sz + ez) * 0.5f)
-                val toCamera = Vector3f(-mid.x, -mid.y, -mid.z).normalize()
-                val basePerp = dir.cross(toCamera, Vector3f()).normalize()
+                val dx = ex - sx
+                val dy = ey - sy
+                val dz = ez - sz
+                val len = sqrt((dx*dx + dy*dy + dz*dz).toDouble()).toFloat()
+                val nx = dx / len
+                val ny = dy / len
+                val nz = dz / len
 
-                val r = color.red
-                val g = color.green
-                val b = color.blue
-                val a = color.alpha
+                buf.addVertex(pose, sx, sy, sz)
+                    .setColor(r, g, b, a)
+                    .setNormal(nx, ny, nz)
+                    .setLineWidth(lineWidth.value.toFloat())
 
-                val coreHalf = lineWidth.value.toFloat() * 0.02f
-                val glowHalf = coreHalf * (1.5f + glowIntensity.value.toFloat() * 1.5f)
-                val corePerp = Vector3f(basePerp).mul(coreHalf)
-                val glowPerp = Vector3f(basePerp).mul(glowHalf)
-
-                // core — full alpha, full bright
-                buf.addVertex(pose, sx + corePerp.x, sy + corePerp.y, sz + corePerp.z).setUv(0f, 1f).setColor(r, g, b, a)
-                buf.addVertex(pose, ex + corePerp.x, ey + corePerp.y, ez + corePerp.z).setUv(1f, 1f).setColor(r, g, b, a)
-                buf.addVertex(pose, ex - corePerp.x, ey - corePerp.y, ez - corePerp.z).setUv(1f, 1f).setColor(r, g, b, a)
-                buf.addVertex(pose, sx - corePerp.x, sy - corePerp.y, sz - corePerp.z).setUv(0f, 1f).setColor(r, g, b, a)
-
-                // left glow
-                buf.addVertex(pose, sx + glowPerp.x, sy + glowPerp.y, sz + glowPerp.z).setUv(0f, 0f).setColor(r, g, b, a)
-                buf.addVertex(pose, ex + glowPerp.x, ey + glowPerp.y, ez + glowPerp.z).setUv(1f, 0f).setColor(r, g, b, a)
-                buf.addVertex(pose, ex + corePerp.x, ey + corePerp.y, ez + corePerp.z).setUv(1f, 1f).setColor(r, g, b, a)
-                buf.addVertex(pose, sx + corePerp.x, sy + corePerp.y, sz + corePerp.z).setUv(0f, 1f).setColor(r, g, b, a)
-
-                // right glow
-                buf.addVertex(pose, sx - corePerp.x, sy - corePerp.y, sz - corePerp.z).setUv(0f, 1f).setColor(r, g, b, a)
-                buf.addVertex(pose, ex - corePerp.x, ey - corePerp.y, ez - corePerp.z).setUv(1f, 1f).setColor(r, g, b, a)
-                buf.addVertex(pose, ex - glowPerp.x, ey - glowPerp.y, ez - glowPerp.z).setUv(1f, 0f).setColor(r, g, b, a)
-                buf.addVertex(pose, sx - glowPerp.x, sy - glowPerp.y, sz - glowPerp.z).setUv(0f, 0f).setColor(r, g, b, a)
+                buf.addVertex(pose, ex, ey, ez)
+                    .setColor(r, g, b, a)
+                    .setNormal(nx, ny, nz)
+                    .setLineWidth(lineWidth.value.toFloat())
             }
         }
     }
