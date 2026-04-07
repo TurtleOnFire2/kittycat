@@ -2,6 +2,7 @@ package kitty.cat
 
 import com.mojang.blaze3d.platform.InputConstants
 import kitty.cat.config.ConfigManager
+import kitty.cat.features.dungeons.AutoLB
 import kitty.cat.features.visual.ArrowTracers
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.clickgui.ClickGui
@@ -85,5 +86,6 @@ object KittycatClient : ClientModInitializer {
 		}
 
 		ArrowTracers.register()
+		AutoLB.register()
 	}
 }

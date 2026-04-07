@@ -4,7 +4,8 @@
       "WebFetch(domain:gist.github.com)",
       "Bash(gh gist:*)",
       "WebFetch(domain:gist.githubusercontent.com)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(\"C:/Users/ijonl/IdeaProjects/kittycat-1.21.11/.github/workflows/build.yml\":*)"
     ]
   }
 }
