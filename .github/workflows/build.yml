@@ -27,5 +27,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kittycat
-          path: build/libs/*-dev.jar
+          path: build/libs/kittycat-*.jar
           if-no-files-found: error
