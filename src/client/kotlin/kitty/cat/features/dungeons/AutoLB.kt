@@ -6,7 +6,6 @@ import kitty.cat.gui.features.Feature
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
-import net.minecraft.network.chat.Component
 
 object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
 
@@ -45,6 +44,5 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
             if (text.contains("[BOSS] Goldor: Who dares trespass into my domain")) p3 = true
             if (text.contains("The Core entrance is opening!")) p3 = false
         }
-
     }
 }
