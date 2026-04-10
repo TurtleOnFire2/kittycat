@@ -6,12 +6,15 @@ import kitty.cat.gui.features.Feature
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
+import net.minecraft.network.chat.Component
+import net.minecraft.world.item.BowItem
 
 object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
 
     val ticks = numberSetting("Ticks", 1.0, 20.0, 11.0, "t", 1.0)
     val rechargeDelay = numberSetting("Recharge delay", 1.0, 5.0, 2.0, "t", 1.0)
 
+    var useTime = 0
     var delay = -1.0
 
     var p3 = false
@@ -23,8 +26,6 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
             if (mc.player == null) return@register
 
             delay--
-
-            val useTime = mc.player!!.ticksUsingItem
 
             if (!mc.player!!.mainHandItem.hoverName.string.lowercase().contains("last breath")) return@register
 
@@ -43,6 +44,14 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
             val text = message.string
             if (text.contains("[BOSS] Goldor: Who dares trespass into my domain")) p3 = true
             if (text.contains("The Core entrance is opening!")) p3 = false
+        }
+    }
+
+    fun serverTick() {
+        if (mc.player?.isUsingItem == true) {
+            useTime++
+        } else {
+            useTime = 0
         }
     }
 }
