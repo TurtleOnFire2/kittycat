@@ -56,7 +56,13 @@ dependencies {
 		include("org.lwjgl:lwjgl-nanovg:3.3.3:natives-$os")
 	}
 
-	implementation("org.reflections:reflections:0.10.2")
+	val includeImplementation = fun(str: String) {
+		implementation(str)
+		include(str)
+	}
+
+	includeImplementation("org.reflections:reflections:0.10.2")
+	includeImplementation("org.javassist:javassist:3.29.2-GA")
 }
 
 tasks.processResources {
