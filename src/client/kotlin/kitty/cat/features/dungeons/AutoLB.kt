@@ -40,7 +40,7 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
             p3 = false
         }
 
-        ClientReceiveMessageEvents.CHAT.register { message, _, _, _, _ ->
+        ClientReceiveMessageEvents.GAME.register { message, _ ->
             val text = message.string
             if (text.contains("[BOSS] Goldor: Who dares trespass into my domain")) p3 = true
             if (text.contains("The Core entrance is opening!")) p3 = false
