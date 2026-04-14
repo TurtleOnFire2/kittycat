@@ -39,12 +39,11 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
         ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { _, _ ->
             p3 = false
         }
+    }
 
-        ClientReceiveMessageEvents.GAME.register { message, _ ->
-            val text = message.string
-            if (text.contains("[BOSS] Goldor: Who dares trespass into my domain")) p3 = true
-            if (text.contains("The Core entrance is opening!")) p3 = false
-        }
+    fun handleChat(unformatted: String) {
+        if (unformatted.contains("[BOSS] Goldor: Who dares trespass into my domain")) p3 = true
+        if (unformatted.contains("The Core entrance is opening!")) p3 = false
     }
 
     fun serverTick() {

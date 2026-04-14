@@ -57,15 +57,17 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
             }
         }
         ClientReceiveMessageEvents.GAME.register { message, overlay ->
-            if (!enabled) return@register
 
-            val str = message.string
-
-            val match = pestSpawnRegex.find(str)?.groupValues
-            val plot = match?.get(1) ?: return@register
-
-            if (autoSetSpawn.value) mc.player!!.connection.sendCommand("sethome")
-            if (autoWarp.value) mc.player!!.connection.sendCommand("tptoplot $plot")
         }
+    }
+
+    fun handleChat(unformatted: String) {
+        if (!enabled) return
+
+        val match = pestSpawnRegex.find(unformatted)?.groupValues
+        val plot = match?.get(1) ?: return
+
+        if (autoSetSpawn.value) mc.player!!.connection.sendCommand("sethome")
+        if (autoWarp.value) mc.player!!.connection.sendCommand("tptoplot $plot")
     }
 }

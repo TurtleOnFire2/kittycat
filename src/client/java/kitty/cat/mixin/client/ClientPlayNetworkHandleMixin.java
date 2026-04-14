@@ -1,11 +1,16 @@
 package kitty.cat.mixin.client;
 
+import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.huds.BestiaryHud;
+import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,5 +31,17 @@ public class ClientPlayNetworkHandleMixin {
     @Inject(method = "handlePlayerInfoUpdate", at = @At("TAIL"))
     void handleInfoUpdate(ClientboundPlayerInfoUpdatePacket packet, CallbackInfo ci) {
         BestiaryHud.INSTANCE.handleTabChange(packet);
+    }
+
+    @Inject(method = "handleSystemChat(Lnet/minecraft/network/protocol/game/ClientboundSystemChatPacket;)V", at = @At("HEAD"))
+    void handleSystemChat(ClientboundSystemChatPacket packet, CallbackInfo ci) {
+        if (!Minecraft.getInstance().packetProcessor().isSameThread()) return;
+
+        var component = packet.content();
+        var message = component.getString();
+        var unformatted = ChatFormatting.stripFormatting(message);
+
+        Pests.INSTANCE.handleChat(unformatted);
+        AutoLB.INSTANCE.handleChat(unformatted);
     }
 }
