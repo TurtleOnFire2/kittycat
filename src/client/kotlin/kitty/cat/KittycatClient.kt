@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import kitty.cat.config.ConfigManager
 import kitty.cat.features.dungeons.AutoLB
 import kitty.cat.features.huds.BestiaryHud
+import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.visual.ArrowTracers
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
@@ -118,6 +119,12 @@ object KittycatClient : ClientModInitializer {
 							1
 						}
 					)
+					.then(
+						literal("macros").executes {
+							ChatMacros.openGui = true
+							1
+						}
+					)
 			)
 		}
 
@@ -126,5 +133,6 @@ object KittycatClient : ClientModInitializer {
 		Pests.register()
 		Hud.register()
 		BestiaryHud.register()
+		ChatMacros.register()
 	}
 }

@@ -9,6 +9,7 @@ import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.gui.features.settings.NumberSetting
 import kitty.cat.gui.features.settings.SelectorSetting
 import kitty.cat.gui.features.settings.Setting
+import kitty.cat.gui.features.settings.StringSetting
 
 abstract class Feature {
     internal val name: String
@@ -39,6 +40,9 @@ abstract class Feature {
     private val _actionSettings = mutableListOf<ActionSetting>()
     val actionSettings: List<ActionSetting>
         get() = _actionSettings
+    private val _stringSettings = mutableListOf<StringSetting>()
+    val stringSettings: List<StringSetting>
+        get() = _stringSettings
 
     constructor(name: String, description: String, category: Categories.Category) {
         this.name = name
@@ -137,6 +141,17 @@ abstract class Feature {
     protected fun actionSetting(name: String, action: () -> Unit): ActionSetting {
         val setting = ActionSetting(name = name, action = action)
         _actionSettings += setting
+        _settings += setting
+        return setting
+    }
+
+    protected fun stringSetting(
+        name: String,
+        defaultValue: String = "",
+        maxLength: Int = 120
+    ): StringSetting {
+        val setting = StringSetting(name = name, defaultValue = defaultValue, maxLength = maxLength)
+        _stringSettings += setting
         _settings += setting
         return setting
     }

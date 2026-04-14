@@ -95,6 +95,12 @@ object ConfigManager {
                 }
                 featureObject.add("keybinds", keybinds)
 
+                val strings = JsonObject()
+                feature.stringSettings.forEach { setting ->
+                    strings.addProperty(setting.name, setting.value)
+                }
+                featureObject.add("strings", strings)
+
                 featuresObject.add(featureId(feature), featureObject)
             }
             root.add("features", featuresObject)
@@ -166,6 +172,11 @@ object ConfigManager {
             feature.keybindSettings.forEach { setting ->
                 keybinds?.intOrNull(setting.name)?.let { setting.setKeyCode(it) }
             }
+
+            val strings = featureObject.objectOrNull("strings")
+            feature.stringSettings.forEach { setting ->
+                strings?.stringOrNull(setting.name)?.let { setting.setValue(it) }
+            }
         }
     }
 
@@ -207,6 +218,11 @@ object ConfigManager {
         val element = this.get(key) ?: return null
         if (!element.isJsonPrimitive) return null
         return runCatching { element.asInt }.getOrNull()
+    }
+
+    private fun JsonObject.stringOrNull(key: String): String? {
+        val element = this.get(key) ?: return null
+        return element.stringOrNull()
     }
 
     private fun JsonElement.stringOrNull(): String? {

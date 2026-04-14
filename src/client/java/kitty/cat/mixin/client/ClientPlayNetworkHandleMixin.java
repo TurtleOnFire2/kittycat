@@ -2,6 +2,7 @@ package kitty.cat.mixin.client;
 
 import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.huds.BestiaryHud;
+import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
 import net.minecraft.ChatFormatting;
@@ -43,5 +44,6 @@ public class ClientPlayNetworkHandleMixin {
 
         Pests.INSTANCE.handleChat(unformatted);
         AutoLB.INSTANCE.handleChat(unformatted);
+        ChatMacros.INSTANCE.handleChat(unformatted);
     }
 }

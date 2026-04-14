@@ -10,15 +10,15 @@ import kitty.cat.render.nanovg.NVGRenderer
 import org.lwjgl.glfw.GLFW
 
 object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
-    private const val DEFAULT_BASE_RED = 176
-    private const val DEFAULT_BASE_GREEN = 176
-    private const val DEFAULT_BASE_BLUE = 190
-    private const val DEFAULT_BASE_ALPHA = 40
+    private const val DEFAULT_BASE_RED = 20
+    private const val DEFAULT_BASE_GREEN = 8
+    private const val DEFAULT_BASE_BLUE = 15
+    private const val DEFAULT_BASE_ALPHA = 168
 
-    private const val DEFAULT_ACCENT_RED = 70
-    private const val DEFAULT_ACCENT_GREEN = 70
-    private const val DEFAULT_ACCENT_BLUE = 70
-    private const val DEFAULT_ACCENT_ALPHA = 255
+    private const val DEFAULT_ACCENT_RED = 204
+    private const val DEFAULT_ACCENT_GREEN = 84
+    private const val DEFAULT_ACCENT_BLUE = 116
+    private const val DEFAULT_ACCENT_ALPHA = 220
 
     private val availableFontModes = NVGRenderer.availableFontModes()
 
