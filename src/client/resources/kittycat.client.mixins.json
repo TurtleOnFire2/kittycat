@@ -5,6 +5,8 @@
   "client": [
     "ClientPlayNetworkHandleMixin",
     "ExampleClientMixin",
+    "GameRendererMixin",
+    "MinecraftMixin",
     "gui.GuiGraphicsAccessor"
   ],
   "injectors": {
