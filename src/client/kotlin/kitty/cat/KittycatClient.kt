@@ -3,6 +3,7 @@ package kitty.cat
 import com.mojang.blaze3d.platform.InputConstants
 import kitty.cat.config.ConfigManager
 import kitty.cat.features.dungeons.AutoLB
+import kitty.cat.features.dungeons.Deathbow
 import kitty.cat.features.huds.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
@@ -13,6 +14,7 @@ import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
+import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
@@ -134,5 +136,6 @@ object KittycatClient : ClientModInitializer {
 		Hud.register()
 		BestiaryHud.register()
 		ChatMacros.register()
+		Schedule.register()
 	}
 }

@@ -15,7 +15,7 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
 
     fun register() {
         ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { _, _ ->
-            bestiaries.clear()
+            if (BestiaryHud.resetOnWorldChange.value) bestiaries.clear()
         }
         ClientTickEvents.END_CLIENT_TICK.register {
             bestiaries.values.forEach { b ->

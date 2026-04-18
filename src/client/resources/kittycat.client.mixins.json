@@ -6,6 +6,8 @@
     "ClientPlayNetworkHandleMixin",
     "ExampleClientMixin",
     "GameRendererMixin",
+    "ItemInHandRendererMixin",
+    "LayerRenderStateMixin",
     "MinecraftMixin",
     "gui.GuiGraphicsAccessor"
   ],
@@ -13,6 +15,7 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "BowItemMixin",
     "ConnectionMixin"
   ]
 }

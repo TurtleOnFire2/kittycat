@@ -139,7 +139,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         const val FEATURE_SWITCH_HEIGHT = 12
         const val FEATURE_SWITCH_RIGHT_PADDING = 2
         const val FEATURE_SWITCH_KNOB_MARGIN = 2
-        const val FEATURE_SWITCH_Y_OFFSET = 2
+        const val BOOLEAN_SETTING_SWITCH_Y_OFFSET = 0
 
         const val FEATURE_ACTION_BUTTON_WIDTH = 34
         const val FEATURE_ACTION_BUTTON_HEIGHT = 12
@@ -622,7 +622,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private fun booleanSwitchRect(layout: SettingLayout): Rect {
         return Rect(
             x = layout.x + layout.width - FEATURE_SWITCH_RIGHT_PADDING - FEATURE_SWITCH_WIDTH,
-            y = layout.y + (FEATURE_SETTING_ROW_HEIGHT - FEATURE_SWITCH_HEIGHT) / 2 + FEATURE_SWITCH_Y_OFFSET,
+            y = layout.y + (FEATURE_SETTING_ROW_HEIGHT - FEATURE_SWITCH_HEIGHT) / 2 + BOOLEAN_SETTING_SWITCH_Y_OFFSET,
             width = FEATURE_SWITCH_WIDTH,
             height = FEATURE_SWITCH_HEIGHT
         )

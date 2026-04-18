@@ -52,6 +52,7 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
             this.allowedStaticRenderConditions = allowedStaticRenderConditions
 
             components.add(this)
+            load(this)
         }
 
         internal fun position(context: GuiGraphics): Pair<Int, Int> =
@@ -107,7 +108,7 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
         writer.close()
     }
 
-    private fun load(component: Component) {
+    internal fun load(component: Component) {
         val file = configPath.resolve(component.identifier)
         if (!file.exists()) return
         val reader = file.bufferedReader()
@@ -132,7 +133,6 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
     }
 
     fun register() {
-        components.forEach(::load)
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("kittycat", "hud"), Renderer)
     }
 
