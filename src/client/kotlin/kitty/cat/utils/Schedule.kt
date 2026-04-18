@@ -12,11 +12,13 @@ object Schedule {
         ClientTickEvents.START_CLIENT_TICK.register { tickClient() }
     }
 
+    /*
+    schedule(0) {} runs on the next tick.
+    schedule(1) {} runs on the one after.
+     */
+
     fun schedule(ticks: Int, server: Boolean = false, callback: () -> Unit = {}) {
-        if (ticks < 1) {
-            callback.invoke()
-            return
-        }
+        require(ticks >= 0) { "ticks cannot be negative" }
         if (server) {
             scheduledServer.add(Task(ticks, callback))
         } else {
@@ -29,7 +31,7 @@ object Schedule {
         val iter = list.iterator()
         while (iter.hasNext()) {
             val t = iter.next()
-            if (--t.ticks <= 0) {
+            if (t.ticks-- <= 0) {
                 due += t
                 iter.remove()
             }
