@@ -27,6 +27,14 @@ object Schedule {
         }
     }
 
+    fun schedule(ticks: Double, server: Boolean = false, callback: () -> Unit = {}) {
+        schedule(ticks.toInt(), server) { callback() }
+    }
+
+    fun schedule(ticks: Float, server: Boolean = false, callback: () -> Unit = {}) {
+        schedule(ticks.toInt(), server) { callback() }
+    }
+
     private fun tick(list: MutableList<Task>) {
         val due = mutableListOf<Task>()
         val iter = list.iterator()
