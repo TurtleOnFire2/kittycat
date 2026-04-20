@@ -47,6 +47,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
     val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
+    val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
     val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
     val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
     val tickOffset = numberSetting("Tick offset", min = 0.0, max = 10.0, 0.0, step = 1.0, description = "Tick offset. 50 = 1t")
@@ -69,8 +70,10 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
             maxor = false
 
-            if (mc.player!!.inventory.selectedSlot == swapSlot.value.toInt() - 1) return
-            mc.player!!.inventory.selectedSlot = swapSlot.value.toInt() - 1
+            schedule(swapDelay.value) {
+                if (mc.player!!.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
+                mc.player!!.inventory.selectedSlot = swapSlot.value.toInt() - 1
+            }
         }
 
         if (storm && stormTicks > 685 - tickOffset.value) {
