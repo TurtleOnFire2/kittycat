@@ -27,7 +27,7 @@ object Storm: Feature("Storm", "", Categories.Category.DUNGEONS) {
 
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
-            ctx.drawFilled(aimPos.aabb(0.2), Color.CYAN, false)
+            if (storm) ctx.drawFilled(aimPos.aabb(0.2), Color.CYAN, false)
             if (!aiming || mc.player == null) return@register
 
             val pos = Vec3(mc.player!!.renderPos.x,mc.player!!.eyePosition.y, mc.player!!.renderPos.z)
@@ -106,6 +106,8 @@ object Storm: Feature("Storm", "", Categories.Category.DUNGEONS) {
         } else if (unformatted.contains("[BOSS] Goldor: Who dares trespass into my domain")) {
             storm = false
         } else if (unformatted.contains("⚠ Storm is enraged! ⚠") && leftClickWithTerm.value) {
+            aiming = false
+            mc.options.keyUp.isDown = false
             mc.options.keyAttack.isDown = false
         }
     }
