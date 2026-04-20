@@ -6,7 +6,8 @@ class SelectorSetting(
     override val name: String,
     options: List<String>,
     defaultSelected: List<String> = emptyList(),
-    val allowMultiple: Boolean = false
+    val allowMultiple: Boolean = false,
+    override val description: String = ""
 ) : Setting {
     val options: List<String> = options.distinct()
     var dropdownOpen: Boolean = false

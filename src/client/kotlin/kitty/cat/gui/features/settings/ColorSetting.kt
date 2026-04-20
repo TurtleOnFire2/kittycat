@@ -9,7 +9,8 @@ class ColorSetting(
     red: Int = 255,
     green: Int = 255,
     blue: Int = 255,
-    alpha: Int = 255
+    alpha: Int = 255,
+    override val description: String = ""
 ) : Setting {
     var red: Int = red.coerceIn(0, 255)
         private set
