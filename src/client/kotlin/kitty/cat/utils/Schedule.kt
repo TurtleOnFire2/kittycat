@@ -12,13 +12,14 @@ object Schedule {
         ClientTickEvents.START_CLIENT_TICK.register { tickClient() }
     }
 
+
     /*
     schedule(0) {} runs on the next tick.
     schedule(1) {} runs on the one after.
      */
 
     fun schedule(ticks: Int, server: Boolean = false, callback: () -> Unit = {}) {
-        require(ticks >= 0) { "ticks cannot be negative" }
+        if (ticks < 0) return
         if (server) {
             scheduledServer.add(Task(ticks, callback))
         } else {

@@ -1,7 +1,7 @@
 package kitty.cat.mixin.client;
 
 import kitty.cat.features.dungeons.AutoLB;
-import kitty.cat.features.dungeons.Deathbow;
+import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
 import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.Pests;
@@ -46,6 +46,6 @@ public class ClientPlayNetworkHandleMixin {
         Pests.INSTANCE.handleChat(unformatted);
         AutoLB.INSTANCE.handleChat(unformatted);
         ChatMacros.INSTANCE.handleChat(unformatted);
-        Deathbow.INSTANCE.handleChat(unformatted);
+        Storm.INSTANCE.handleChat(unformatted);
     }
 }
