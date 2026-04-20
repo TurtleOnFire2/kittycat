@@ -3,7 +3,7 @@ package kitty.cat
 import com.mojang.blaze3d.platform.InputConstants
 import kitty.cat.config.ConfigManager
 import kitty.cat.features.dungeons.AutoLB
-import kitty.cat.features.dungeons.Deathbow
+import kitty.cat.features.dungeons.Storm
 import kitty.cat.features.huds.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
@@ -137,5 +137,6 @@ object KittycatClient : ClientModInitializer {
 		BestiaryHud.register()
 		ChatMacros.register()
 		Schedule.register()
+		Storm.register()
 	}
 }

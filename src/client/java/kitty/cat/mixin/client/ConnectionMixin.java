@@ -2,7 +2,7 @@ package kitty.cat.mixin.client;
 
 import io.netty.channel.ChannelHandlerContext;
 import kitty.cat.features.dungeons.AutoLB;
-import kitty.cat.features.dungeons.Deathbow;
+import kitty.cat.features.dungeons.Storm;
 import kitty.cat.utils.Schedule;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
@@ -20,7 +20,7 @@ public class ConnectionMixin {
         if (packet instanceof ClientboundPingPacket common) {
             if (common.getId() == 0) return;
             AutoLB.INSTANCE.serverTick();
-            Deathbow.INSTANCE.serverTick();
+            Storm.INSTANCE.serverTick();
             Schedule.INSTANCE.tickServer();
         }
     }

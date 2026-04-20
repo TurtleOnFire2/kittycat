@@ -1,7 +1,7 @@
 package kitty.cat.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import kitty.cat.features.dungeons.Deathbow;
+import kitty.cat.features.dungeons.Storm;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,11 +18,11 @@ public class ItemInHandRendererMixin {
 
     @Inject(method = "renderItem", at = @At("HEAD"))
     private void kittycat$tintBegin(LivingEntity livingEntity, ItemStack itemStack, ItemDisplayContext itemDisplayContext, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, CallbackInfo ci) {
-        Deathbow.INSTANCE.setTintActive(true);
+        Storm.INSTANCE.setTintActive(true);
     }
 
     @Inject(method = "renderItem", at = @At("RETURN"))
     private void kittycat$tintEnd(CallbackInfo ci) {
-        Deathbow.INSTANCE.setTintActive(false);
+        Storm.INSTANCE.setTintActive(false);
     }
 }

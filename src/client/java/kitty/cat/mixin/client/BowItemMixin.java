@@ -1,6 +1,6 @@
 package kitty.cat.mixin.client;
 
-import kitty.cat.features.dungeons.Deathbow;
+import kitty.cat.features.dungeons.Storm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
@@ -14,6 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class BowItemMixin {
     @Inject(method = "Lnet/minecraft/world/item/BowItem;releaseUsing(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;I)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;awardStat(Lnet/minecraft/stats/Stat;)V"))
     void releaseBow(ItemStack itemStack, Level level, LivingEntity livingEntity, int i, CallbackInfoReturnable<Boolean> cir) {
-        Deathbow.INSTANCE.bowReleased(itemStack, livingEntity);
+        Storm.INSTANCE.bowReleased(itemStack, livingEntity);
     }
 }

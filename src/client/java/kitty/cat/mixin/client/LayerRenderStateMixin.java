@@ -1,6 +1,6 @@
 package kitty.cat.mixin.client;
 
-import kitty.cat.features.dungeons.Deathbow;
+import kitty.cat.features.dungeons.Storm;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,12 +17,12 @@ public class LayerRenderStateMixin {
             index = 5
     )
     private int[] kittycat$tintHeldItem(int[] tints) {
-        if (!Deathbow.tintBow()) return tints;
+        if (!Storm.tintBow()) return tints;
         int n = Math.max(tints.length, 8); // cover items with no explicit tint layers
         int[] out = new int[n];
         for (int idx = 0; idx < n; idx++) {
             int argb = idx < tints.length ? tints[idx] : -1; // -1 = white, full multiplier
-            out[idx] = Deathbow.tintArgb(argb);
+            out[idx] = Storm.tintArgb(argb);
         }
         return out;
     }
