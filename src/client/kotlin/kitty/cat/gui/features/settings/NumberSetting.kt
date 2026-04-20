@@ -11,7 +11,8 @@ class NumberSetting(
     max: Double,
     defaultValue: Double,
     val unit: String = "",
-    val step: Double = 0.0
+    val step: Double = 0.0,
+    override val description: String = ""
 ) : Setting {
     val min: Double = minOf(min, max)
     val max: Double = maxOf(min, max)

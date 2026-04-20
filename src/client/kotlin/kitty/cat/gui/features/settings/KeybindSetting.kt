@@ -5,7 +5,8 @@ import org.lwjgl.glfw.GLFW
 
 class KeybindSetting(
     override val name: String,
-    defaultKeyCode: Int = UNBOUND
+    defaultKeyCode: Int = UNBOUND,
+    override val description: String = ""
 ) : Setting {
     var keyCode: Int = normalize(defaultKeyCode)
         private set

@@ -4,7 +4,8 @@ import kitty.cat.config.ConfigManager
 
 class BooleanSetting(
     override val name: String,
-    defaultValue: Boolean
+    defaultValue: Boolean,
+    override val description: String = ""
 ) : Setting {
     var value: Boolean = defaultValue
         set(newValue) {

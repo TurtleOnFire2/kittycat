@@ -161,6 +161,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         const val CATEGORY_SCROLL_COOLDOWN_TICKS = 2
 
+        const val HOVER_TOOLTIP_DELAY_MS = 600L
+        const val TOOLTIP_PADDING_H = 4
+        const val TOOLTIP_PADDING_V = 4
+        const val TOOLTIP_TEXT_SIZE = 9f
+
         const val DEFAULT_BASE_RED = 20
         const val DEFAULT_BASE_GREEN = 8
         const val DEFAULT_BASE_BLUE = 15
@@ -174,6 +179,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var offsetX = 0
     private var offsetY = 0
     private var draggingPanel = false
+
+    private var hoveredFeature: Feature? = null
+    private var featureHoverStartMs: Long = 0L
+    private var hoveredSetting: Setting? = null
+    private var settingHoverStartMs: Long = 0L
 
     private var draggingNumberSetting: NumberSetting? = null
     private var draggingHueSetting: ColorSetting? = null
@@ -223,6 +233,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTicks: Float) {
+        val nowMs = System.currentTimeMillis()
         val panelX = panelOriginX()
         val panelY = panelOriginY()
         val panelWidth = panelWidth()
@@ -333,7 +344,50 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
         guiGraphics.disableScissor()
 
+        // Update hover tracking for feature headers and settings
+        val mouseXD = mouseX.toDouble()
+        val mouseYD = mouseY.toDouble()
+        var newHoveredFeature: Feature? = null
+        var newHoveredSetting: Setting? = null
+        val mouseInFeatureClip = clipRect.contains(mouseXD, mouseYD)
+
+        featureLayouts.forEach { layout ->
+            if (layout.isHeaderHovered(mouseXD, mouseYD) && mouseInFeatureClip) {
+                newHoveredFeature = layout.feature
+            }
+            if (layout.expanded && mouseInFeatureClip) {
+                layout.settingLayouts.forEach { sl ->
+                    if (sl.contains(mouseXD, mouseYD)) {
+                        newHoveredSetting = sl.setting
+                    }
+                }
+            }
+        }
+
+        if (newHoveredFeature != hoveredFeature) {
+            hoveredFeature = newHoveredFeature
+            featureHoverStartMs = nowMs
+        }
+        if (newHoveredSetting != hoveredSetting) {
+            hoveredSetting = newHoveredSetting
+            settingHoverStartMs = nowMs
+        }
+
         renderColorPickerOverlay(guiGraphics, sw, sh, scale)
+
+        // Render hover tooltip (on top of everything)
+        val currentSetting = hoveredSetting
+        val currentFeature = hoveredFeature
+        when {
+            currentSetting != null && currentSetting.description.isNotEmpty() &&
+                nowMs - settingHoverStartMs >= HOVER_TOOLTIP_DELAY_MS -> {
+                renderTooltip(guiGraphics, sw, sh, scale, currentSetting.description, mouseX, mouseY)
+            }
+            currentFeature != null && currentFeature.description.isNotEmpty() &&
+                nowMs - featureHoverStartMs >= HOVER_TOOLTIP_DELAY_MS -> {
+                renderTooltip(guiGraphics, sw, sh, scale, currentFeature.description, mouseX, mouseY)
+            }
+        }
 
         super.render(guiGraphics, mouseX, mouseY, partialTicks)
     }
@@ -1783,6 +1837,30 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             is SelectorSetting -> FEATURE_SETTING_ROW_HEIGHT
             else -> FEATURE_SETTING_ROW_HEIGHT
         }
+    }
+
+    private fun renderTooltip(guiGraphics: GuiGraphics, sw: Int, sh: Int, scale: Float, text: String, mouseX: Int, mouseY: Int) {
+        val font = ClickGuiFeature.selectedFont
+        val measuredWidth = NVGRenderer.textWidth(text, TOOLTIP_TEXT_SIZE * scale, font) / scale
+        val boxWidth = measuredWidth.toInt() + TOOLTIP_PADDING_H * 2
+        val boxHeight = TOOLTIP_TEXT_SIZE.toInt() + TOOLTIP_PADDING_V * 2
+
+        val tx = mouseX + 10
+        var ty = mouseY - boxHeight - 6
+
+        val panelBottom = panelOriginY() + panelHeight()
+        if (ty < panelOriginY()) ty = mouseY + 14
+        if (ty + boxHeight > panelBottom) ty = panelBottom - boxHeight - 4
+
+        GuiUtils.renderRoundedRectangle(guiGraphics, tx, ty, boxWidth, boxHeight, 3, fieldFillColor(230))
+        GuiUtils.renderRoundedOutline(guiGraphics, tx, ty, boxWidth, boxHeight, 3, 1, accentDimColor())
+        drawText(
+            guiGraphics, sw, sh, scale, text,
+            (tx + TOOLTIP_PADDING_H).toFloat(),
+            (ty + TOOLTIP_PADDING_V).toFloat(),
+            TOOLTIP_TEXT_SIZE,
+            textPrimaryColor()
+        )
     }
 
     private fun renderFeatureHeader(guiGraphics: GuiGraphics, sw: Int, sh: Int, scale: Float, layout: FeatureLayout) {

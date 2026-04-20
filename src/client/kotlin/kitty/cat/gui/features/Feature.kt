@@ -67,15 +67,15 @@ abstract class Feature {
         toggle()
     }
 
-    protected fun booleanSetting(name: String, defaultValue: Boolean = false): BooleanSetting {
-        val setting = BooleanSetting(name, defaultValue)
+    protected fun booleanSetting(name: String, defaultValue: Boolean = false, description: String = ""): BooleanSetting {
+        val setting = BooleanSetting(name, defaultValue, description)
         _booleanSettings += setting
         _settings += setting
         return setting
     }
 
-    protected fun keybindSetting(name: String, defaultKeyCode: Int = KeybindSetting.UNBOUND): KeybindSetting {
-        val setting = KeybindSetting(name = name, defaultKeyCode = defaultKeyCode)
+    protected fun keybindSetting(name: String, defaultKeyCode: Int = KeybindSetting.UNBOUND, description: String = ""): KeybindSetting {
+        val setting = KeybindSetting(name = name, defaultKeyCode = defaultKeyCode, description = description)
         _keybindSettings += setting
         _settings += setting
         return setting
@@ -87,7 +87,8 @@ abstract class Feature {
         max: Double,
         defaultValue: Double,
         unit: String = "",
-        step: Double = 0.0
+        step: Double = 0.0,
+        description: String = ""
     ): NumberSetting {
         val setting = NumberSetting(
             name = name,
@@ -95,7 +96,8 @@ abstract class Feature {
             max = max,
             defaultValue = defaultValue,
             unit = unit,
-            step = step
+            step = step,
+            description = description
         )
         _numberSettings += setting
         _settings += setting
@@ -106,13 +108,15 @@ abstract class Feature {
         name: String,
         options: List<String>,
         defaultSelected: List<String> = emptyList(),
-        allowMultiple: Boolean = false
+        allowMultiple: Boolean = false,
+        description: String = ""
     ): SelectorSetting {
         val setting = SelectorSetting(
             name = name,
             options = options,
             defaultSelected = defaultSelected,
-            allowMultiple = allowMultiple
+            allowMultiple = allowMultiple,
+            description = description
         )
         _selectorSettings += setting
         _settings += setting
@@ -124,22 +128,24 @@ abstract class Feature {
         red: Int = 255,
         green: Int = 255,
         blue: Int = 255,
-        alpha: Int = 255
+        alpha: Int = 255,
+        description: String = ""
     ): ColorSetting {
         val setting = ColorSetting(
             name = name,
             red = red,
             green = green,
             blue = blue,
-            alpha = alpha
+            alpha = alpha,
+            description = description
         )
         _colorSettings += setting
         _settings += setting
         return setting
     }
 
-    protected fun actionSetting(name: String, action: () -> Unit): ActionSetting {
-        val setting = ActionSetting(name = name, action = action)
+    protected fun actionSetting(name: String, description: String = "", action: () -> Unit): ActionSetting {
+        val setting = ActionSetting(name = name, description = description, action = action)
         _actionSettings += setting
         _settings += setting
         return setting
@@ -148,9 +154,10 @@ abstract class Feature {
     protected fun stringSetting(
         name: String,
         defaultValue: String = "",
-        maxLength: Int = 120
+        maxLength: Int = 120,
+        description: String = ""
     ): StringSetting {
-        val setting = StringSetting(name = name, defaultValue = defaultValue, maxLength = maxLength)
+        val setting = StringSetting(name = name, defaultValue = defaultValue, maxLength = maxLength, description = description)
         _stringSettings += setting
         _settings += setting
         return setting
