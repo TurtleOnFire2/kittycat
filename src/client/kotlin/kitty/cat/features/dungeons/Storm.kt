@@ -100,9 +100,8 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         if (!enabled) return
         if (unformatted.contains("[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!")) {
             maxor = true
-        } else if (unformatted.contains("YOU TRICKED ME!")) {
-            maxor = false
         } else if (unformatted.contains("[BOSS] Storm: Pathetic Maxor, just like expected.")) {
+            maxor = false
             storm = true
             stormTicks = 0
         } else if (unformatted.contains("[BOSS] Goldor: Who dares trespass into my domain")) {
