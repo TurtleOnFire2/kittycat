@@ -12,6 +12,7 @@ import kitty.cat.utils.renderPos
 import kitty.cat.utils.rotate
 import me.cheater.legitcatmod.utils.drawFilled
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.LivingEntity
@@ -21,10 +22,6 @@ import net.minecraft.world.phys.Vec3
 import java.awt.Color
 
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
-
-    val aimPos = Vec3(100.0, 181.0, 64.0)
-    var aiming = false
-
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
             if (storm) ctx.drawFilled(aimPos.aabb(0.2), Color.CYAN, false)
@@ -43,6 +40,11 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 }
             }
         }
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { minecraft, level ->
+            maxor = false
+            storm = false
+            aiming = false
+        }
     }
 
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
@@ -58,10 +60,11 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     var maxor = false
     var storm = false
-
-    var stormTicks = 0
-
+    var aiming = false
     var useTime = 0
+    var stormTicks = 0
+    val aimPos = Vec3(100.0, 181.0, 64.0)
+
 
     fun bowReleased(item: ItemStack, entity: LivingEntity) {
         if (entity != mc.player || !enabled) return
