@@ -1,6 +1,7 @@
 package kitty.cat
 
 import com.mojang.blaze3d.platform.InputConstants
+import com.mojang.brigadier.arguments.StringArgumentType
 import kitty.cat.config.ConfigManager
 import kitty.cat.features.dungeons.AutoLB
 import kitty.cat.features.dungeons.Storm
@@ -8,14 +9,17 @@ import kitty.cat.features.huds.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.visual.ArrowTracers
+import kitty.cat.features.visual.CustomESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
+import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -24,9 +28,13 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.ClickEvent
 import net.minecraft.resources.Identifier
 import org.lwjgl.glfw.GLFW
 import org.reflections.Reflections
+import kotlin.collections.remove
+import kotlin.text.clear
+import kotlin.text.contains
 
 object KittycatClient : ClientModInitializer {
 	private val keybindPressedState = mutableMapOf<KeybindSetting, Boolean>()
@@ -116,16 +124,91 @@ object KittycatClient : ClientModInitializer {
 						}
 					)
 					.then(
-						literal("resetsession").executes {
-							BestiaryHud.resetSession()
-							1
-						}
-					)
-					.then(
 						literal("macros").executes {
 							ChatMacros.openGui = true
 							1
 						}
+					)
+					.executes {
+						openGui = true
+						1
+					}
+			)
+			dispatcher.register(
+				literal("cesp")
+					.then(
+						literal("add")
+							.then(
+								argument("name", StringArgumentType.greedyString())
+									.executes { ctx ->
+										val name = StringArgumentType.getString(ctx, "name")
+										val color = if (CustomESP.tracerList.contains(name)) "§2" else "§c"
+										Chat.sendWithClickable("Added $name to CESP",
+											Chat.Clickable("§c[Remove]", ClickEvent.RunCommand("/cesp remove $name")),
+											Chat.Clickable("$color[Tracer]", ClickEvent.RunCommand("/cesp tracer $name"))
+										)
+										CustomESP.entityList.add(name)
+										CustomESP.saveConfig()
+										1
+									}
+							)
+					)
+					.then(
+						literal("remove")
+							.then(
+								argument("name", StringArgumentType.greedyString())
+									.executes { ctx ->
+										val name = StringArgumentType.getString(ctx, "name")
+										Chat.send("Removed $name from CESP")
+										CustomESP.entityList.remove(name)
+										CustomESP.tracerList.remove(name)
+										CustomESP.saveConfig()
+										1
+									}
+							)
+					)
+					.then(
+						literal("clear").executes {
+							Chat.send("Cleared CESP")
+							CustomESP.entityList.clear()
+							CustomESP.tracerList.clear()
+							CustomESP.saveConfig()
+							1
+						}
+					)
+					.then(
+						literal("list").executes {
+							CustomESP.entityList.forEach {
+								val color = if (CustomESP.tracerList.contains(it)) "§2" else "§c"
+								Chat.sendWithClickable(it,
+									Chat.Clickable("§c[Remove]", ClickEvent.RunCommand("/cesp remove $it")),
+									Chat.Clickable("$color[Tracer]", ClickEvent.RunCommand("/cesp tracer $it"))
+								)
+							}
+							1
+						}
+					)
+					.then(
+						literal("tracer")
+							.then(
+								argument("name", StringArgumentType.greedyString())
+									.executes { ctx ->
+										val name = StringArgumentType.getString(ctx, "name")
+										if (CustomESP.tracerList.contains(name)) {
+											CustomESP.tracerList.remove(name)
+										} else {
+											CustomESP.tracerList.add(name)
+										}
+										val color = if (CustomESP.tracerList.contains(name)) "§2" else "§c"
+										Chat.sendWithClickable("$name",
+											Chat.Clickable("§c[Remove]", ClickEvent.RunCommand("/cesp remove $name")),
+											Chat.Clickable("$color[Tracer]", ClickEvent.RunCommand("/cesp tracer $name"))
+										)
+										CustomESP.saveConfig()
+										1
+									}
+							)
+
 					)
 			)
 		}
@@ -138,5 +221,6 @@ object KittycatClient : ClientModInitializer {
 		ChatMacros.register()
 		Schedule.register()
 		Storm.register()
+		CustomESP.register()
 	}
 }

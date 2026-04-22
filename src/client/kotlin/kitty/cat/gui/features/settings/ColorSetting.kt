@@ -1,6 +1,7 @@
 package kitty.cat.gui.features.settings
 
 import kitty.cat.config.ConfigManager
+import java.awt.Color
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -28,7 +29,10 @@ class ColorSetting(
     var brightness: Float = 1f
         private set
 
+    var color: Color = Color(red, green, blue, alpha)
+
     init {
+        updateColor()
         syncHsBFromRgb()
     }
 
@@ -43,6 +47,7 @@ class ColorSetting(
         this.green = nextGreen
         this.blue = nextBlue
         this.alpha = nextAlpha
+
         syncHsBFromRgb()
         ConfigManager.markDirty()
     }
@@ -77,6 +82,7 @@ class ColorSetting(
         val nextAlpha = (position.coerceIn(0f, 1f) * 255f).roundToInt().coerceIn(0, 255)
         if (alpha == nextAlpha) return
         alpha = nextAlpha
+        updateColor()
         ConfigManager.markDirty()
     }
 
@@ -119,6 +125,7 @@ class ColorSetting(
         }
 
         hue = normalizeHue(hue)
+        updateColor()
     }
 
     private fun syncRgbFromHsB() {
@@ -139,10 +146,15 @@ class ColorSetting(
         red = ((rPrime + m) * 255f).roundToInt().coerceIn(0, 255)
         green = ((gPrime + m) * 255f).roundToInt().coerceIn(0, 255)
         blue = ((bPrime + m) * 255f).roundToInt().coerceIn(0, 255)
+        updateColor()
     }
 
     private fun normalizeHue(hue: Float): Float {
         val mod = hue % 360f
         return if (mod < 0f) mod + 360f else mod
+    }
+
+    private fun updateColor() {
+        this.color = Color(red, green, blue, alpha)
     }
 }

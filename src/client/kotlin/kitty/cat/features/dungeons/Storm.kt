@@ -22,6 +22,24 @@ import net.minecraft.world.phys.Vec3
 import java.awt.Color
 
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
+    val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
+    val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
+    val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
+    val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
+    val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
+    val tickOffset = numberSetting("Tick offset", min = 0.0, max = 10.0, 0.0, step = 1.0, description = "Tick offset. 50 = 1t")
+    val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath")
+    val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
+    val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
+    val leftClickWithTerm = booleanSetting("Left click with term after")
+
+    var maxor = false
+    var storm = false
+    var aiming = false
+    var useTime = 0
+    var stormTicks = 0
+    val aimPos = Vec3(100.0, 181.0, 64.0)
+
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
             if (storm) ctx.drawFilled(aimPos.aabb(0.2), Color.CYAN, false)
@@ -46,25 +64,6 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             aiming = false
         }
     }
-
-    val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
-    val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
-    val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
-    val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
-    val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
-    val tickOffset = numberSetting("Tick offset", min = 0.0, max = 10.0, 0.0, step = 1.0, description = "Tick offset. 50 = 1t")
-    val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath")
-    val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
-    val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
-    val leftClickWithTerm = booleanSetting("Left click with term after")
-
-    var maxor = false
-    var storm = false
-    var aiming = false
-    var useTime = 0
-    var stormTicks = 0
-    val aimPos = Vec3(100.0, 181.0, 64.0)
-
 
     fun bowReleased(item: ItemStack, entity: LivingEntity) {
         if (entity != mc.player || !enabled) return
