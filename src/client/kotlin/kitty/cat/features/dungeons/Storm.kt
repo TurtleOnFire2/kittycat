@@ -6,6 +6,7 @@ import kitty.cat.gui.features.Feature
 import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
+import kitty.cat.utils.clickSlot
 import kitty.cat.utils.getLook
 import kitty.cat.utils.normalizeYaw
 import kitty.cat.utils.renderPos
@@ -14,26 +15,37 @@ import me.cheater.legitcatmod.utils.drawFilled
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.BowItem
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
+import kotlin.math.abs
+import kotlin.math.max
 
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
     val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
     val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
     val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
+    val autoSwapArmor = booleanSetting("Auto swap armor")
+    val clickDelay = numberSetting("Click delay", min = 0.0, max = 10.0, 1.0, step = 1.0)
+    val swapWardrobeSlot = numberSetting("Wardrobe slot", 1.0, 9.0, 1.0, step = 1.0)
     val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
     val tickOffset = numberSetting("Tick offset", min = 0.0, max = 10.0, 0.0, step = 1.0, description = "Tick offset. 50 = 1t")
     val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath")
+    val waypointOffset = numberSetting("Waypoint offset", min = -2.0, max = 2.0, 0.0, step = 0.1)
     val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
     val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
     val leftClickWithTerm = booleanSetting("Left click with term after")
 
+    private val wardrobeRegex = Regex("Wardrobe \\((\\d)/(\\d)\\)")
+
     var maxor = false
+    var swapping = false
     var storm = false
     var aiming = false
     var useTime = 0
@@ -42,12 +54,9 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
-            if (storm) ctx.drawFilled(aimPos.aabb(0.2), Color.CYAN, false)
+            if (storm) ctx.drawFilled(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, false)
             if (!aiming || mc.player == null) return@register
-
-            val pos = Vec3(mc.player!!.renderPos.x,mc.player!!.eyePosition.y, mc.player!!.renderPos.z)
-
-            rotate(aimPos.getLook(pos).first, aimPos.getLook(pos).second)
+            rotate(getLook().first, getLook().second)
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->
             if (mc.player == null) return@register
@@ -62,6 +71,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             maxor = false
             storm = false
             aiming = false
+            swapping = false
         }
     }
 
@@ -70,7 +80,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         if (maxor) {
             if (!item.hoverName.string.contains("Death Bow") || !autoSwapCritItem.value) return
 
-            maxor = false
+            schedule(2) { maxor = false }
 
             schedule(swapDelay.value) {
                 if (mc.player!!.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
@@ -103,6 +113,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         if (unformatted.contains("[BOSS] Maxor: WELL! WELL! WELL! LOOK WHO'S HERE!")) {
             maxor = true
         } else if (unformatted.contains("[BOSS] Storm: Pathetic Maxor, just like expected.")) {
+            swapping = false
             maxor = false
             storm = true
             stormTicks = 0
@@ -115,18 +126,41 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         }
     }
 
+    fun handleScreen(packet: ClientboundOpenScreenPacket) {
+        if (!wardrobeRegex.matches(packet.title.string) || !swapping) return
+        swapping = false
+
+        schedule(clickDelay.value, true) {
+            val sc = mc.screen as? AbstractContainerScreen<*> ?: return@schedule
+            if (!wardrobeRegex.matches(sc.title.string)) return@schedule
+
+            mc.player!!.clickSlot(sc.menu.containerId, swapWardrobeSlot.value.toInt() + 35)
+            schedule(0) {
+                if (mc.player?.containerMenu != null) {
+                    mc.player!!.closeContainer()
+                }
+            }
+        }
+    }
+
     fun serverTick() {
         if (mc.player == null || !enabled) return
 
         if (mc.player!!.mainHandItem.hoverName.string.contains("Death Bow") && mc.player!!.isUsingItem) {
             useTime++
         } else {
+            if (useTime >= 20 && autoSwapArmor.value && maxor) {
+                mc.connection?.sendCommand("wd")
+                swapping = true
+            }
             useTime = 0
         }
 
         if (storm && ++stormTicks >= 690 - tickOffset.value) {
             if (autoWalkForward.value) { mc.options.keyUp.isDown = true }
-            if (autoTrack.value && normalizeYaw(mc.player!!.yRot) in -137.0..-127.0 && mc.player!!.xRot in -34.0..-30.0) { aiming = true }
+
+            val (yaw, pitch) = getLook()
+            if (autoTrack.value && abs(normalizeYaw(mc.player!!.yRot) - yaw) < 5.0 && abs(mc.player!!.xRot - pitch) < 2.0) { aiming = true }
 
             if (mc.player!!.mainHandItem.hoverName.string.contains("Last Breath") && mc.player!!.isUsingItem && autoReleaseLB.value) {
                 mc.options.keyUse.isDown = false
@@ -137,7 +171,8 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         }
     }
 
-
+    private fun getLook(): Pair<Float, Float> =
+        aimPos.add(waypointOffset.value, 0.0, 0.0).getLook(Vec3(mc.player!!.renderPos.x,mc.player!!.eyePosition.y, mc.player!!.renderPos.z))
 
     var tintActive = false
 

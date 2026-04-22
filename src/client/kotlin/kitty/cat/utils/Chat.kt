@@ -11,7 +11,7 @@ object Chat {
 
     fun send(string: Any) {
         try {
-            val msg = string as String
+            val msg = string.toString()
             mc.player?.displayClientMessage(Component.literal(PREFIX).append(Component.literal(msg)), false)
         } catch (e: Exception) {}
     }
