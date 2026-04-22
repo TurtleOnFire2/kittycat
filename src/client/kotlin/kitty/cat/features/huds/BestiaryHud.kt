@@ -106,7 +106,7 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
     }
 
     override fun bounds(): Pair<Double, Double> {
-        return Pair(100.0, 10.0)
+        return Pair(mc.font.width("Golden Goblin 9: §b97/100 §7(97%) §6[15] §a1,200/h").toDouble(), mc.font.lineHeight.toDouble())
     }
 }
 
