@@ -3,6 +3,8 @@ package kitty.cat.utils
 import kitty.cat.KittycatClient.mc
 import net.minecraft.ChatFormatting
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.inventory.ClickType
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
@@ -69,4 +71,8 @@ fun Vec3.round(decimals: Int): Vec3 {
         round(y * factor) / factor,
         round(z * factor) / factor
     )
+}
+
+fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
+    mc.gameMode?.handleInventoryMouseClick(containerId, slotIndex, button, clickType, this)
 }

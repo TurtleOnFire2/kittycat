@@ -9,10 +9,7 @@ import kitty.cat.features.visual.ArrowTracers;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
-import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
-import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
+import net.minecraft.network.protocol.game.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -47,5 +44,10 @@ public class ClientPlayNetworkHandleMixin {
         AutoLB.INSTANCE.handleChat(unformatted);
         ChatMacros.INSTANCE.handleChat(unformatted);
         Storm.INSTANCE.handleChat(unformatted);
+    }
+
+    @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)
+    void handleOpenScreen(ClientboundOpenScreenPacket clientboundOpenScreenPacket, CallbackInfo ci) {
+        Storm.INSTANCE.handleScreen(clientboundOpenScreenPacket);
     }
 }
