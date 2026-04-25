@@ -17,11 +17,11 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
     var useTime = 0
     var delay = -1.0
 
-    var p3 = false
+    var stop = false
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register {
-            if (!enabled || p3) return@register
+            if (!enabled || stop) return@register
 
             if (mc.player == null) return@register
 
@@ -37,13 +37,14 @@ object AutoLB : Feature("Auto LB", "", Categories.Category.DUNGEONS) {
             }
         }
         ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { _, _ ->
-            p3 = false
+            stop = false
         }
     }
 
     fun handleChat(unformatted: String) {
-        if (unformatted.contains("[BOSS] Goldor: Who dares trespass into my domain")) p3 = true
-        if (unformatted.contains("The Core entrance is opening!")) p3 = false
+        if (unformatted.contains("[BOSS] Goldor: Who dares trespass into my domain")) stop = true
+        if (unformatted.contains("[BOSS] Storm: Pathetic Maxor, just like expected.")) stop = true
+        if (unformatted.contains("The Core entrance is opening!")) stop = false
     }
 
     fun serverTick() {
