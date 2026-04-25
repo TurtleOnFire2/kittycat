@@ -42,7 +42,7 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
 
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
-            if (!pestEsp.value) return@register
+            if (!pestEsp.value || !enabled) return@register
             mc.level?.entitiesForRendering()?.forEach {
                 if (it !is ArmorStand) return@forEach
                 val head = it.getItemBySlot(EquipmentSlot.HEAD)
@@ -55,9 +55,6 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
                     ctx.drawLineFromCursor(it.eyePosition, Color(255, 0, 0, 100), 3.0f)
                 }
             }
-        }
-        ClientReceiveMessageEvents.GAME.register { message, overlay ->
-
         }
     }
 
