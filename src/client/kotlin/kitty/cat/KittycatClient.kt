@@ -9,6 +9,7 @@ import kitty.cat.features.huds.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.visual.ArrowTracers
+import kitty.cat.features.visual.BestiaryESP
 import kitty.cat.features.visual.CustomESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
@@ -126,6 +127,12 @@ object KittycatClient : ClientModInitializer {
 							1
 						}
 					)
+					.then(
+						literal("be").executes {
+							BestiaryESP.openGui = true
+							1
+						}
+					)
 					.executes {
 						openGui = true
 						1
@@ -207,6 +214,36 @@ object KittycatClient : ClientModInitializer {
 							)
 
 					)
+					.then(
+						literal("textures")
+							.executes { ctx ->
+								CustomESP.getAllTextureStrings("")
+								1
+							}
+							.then(
+								argument("name", StringArgumentType.greedyString())
+									.executes { ctx ->
+										val name = StringArgumentType.getString(ctx, "name")
+										CustomESP.getAllTextureStrings(name)
+										1
+									}
+							)
+					)
+					.then(
+						literal("mob")
+							.executes { ctx ->
+								CustomESP.getMobString("")
+								1
+							}
+							.then(
+								argument("name", StringArgumentType.greedyString())
+									.executes { ctx ->
+										val name = StringArgumentType.getString(ctx, "name")
+										CustomESP.getMobString(name)
+										1
+									}
+							)
+					)
 			)
 		}
 
@@ -219,5 +256,6 @@ object KittycatClient : ClientModInitializer {
 		Schedule.register()
 		Storm.register()
 		CustomESP.register()
+		BestiaryESP.register()
 	}
 }

@@ -2,27 +2,42 @@ package kitty.cat.features.visual
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.mojang.authlib.GameProfile
+import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
+import kitty.cat.utils.Chat
 import kitty.cat.utils.name
 import kitty.cat.utils.round
 import me.cheater.legitcatmod.utils.drawFilled
 import me.cheater.legitcatmod.utils.drawLineFromCursor
+import me.cheater.legitcatmod.utils.drawString
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
+import net.minecraft.network.chat.ClickEvent
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.player.Player
+import org.apache.commons.codec.binary.Base64.decodeBase64
 import java.nio.file.Files
+import java.util.Locale
+import java.util.Locale.getDefault
+import kotlin.io.encoding.Base64
 import kotlin.io.path.createFile
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.exists
 
 object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     val color = colorSetting("Color")
+    val debug = booleanSetting("Debug", false)
+    val skipArmorStands = booleanSetting("Skip ArmorStands", false)
 
     private val configPath = FabricLoader.getInstance().configDir.resolve("kittycat/custom_esp.json")
     private val gson: Gson = GsonBuilder()
@@ -68,6 +83,21 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
             }
         }
         WorldRenderEvents.END_MAIN.register { ctx ->
+            if (debug.value) {
+                mc.level?.entitiesForRendering()?.forEach { e ->
+                    if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach
+
+                    val h = e.bbHeight
+
+                    ctx.drawString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0), -1)
+                    ctx.drawString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0), -1)
+                    ctx.drawString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0), -1)
+                    if (e !is LivingEntity) return@forEach
+                    ctx.drawString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0), -1)
+                    ctx.drawString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0), -1)
+                }
+            }
+
             entities.forEach{
                 ctx.drawFilled(it.boundingBox, color.color, false)
             }
@@ -85,6 +115,55 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
             is Player -> entity.uuid.version() == 2 && entity != Minecraft.getInstance().player
             else -> true
         }
+
+    fun getEntityTextureString(entity: Entity): String? {
+        val player = entity as? Player ?: return null
+
+        val encoded = player.gameProfile.properties["textures"].firstOrNull()?.value
+        if (encoded != null) {
+            val json = String(java.util.Base64.getDecoder().decode(encoded))
+            val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+            return obj["textures"]?.asJsonObject
+                ?.get("SKIN")?.asJsonObject
+                ?.get("url")?.asString
+        }
+
+        return null
+    }
+
+    fun getAllTextureStrings(str: String) {
+        mc.level?.entitiesForRendering()?.forEach { e ->
+            val texture = getEntityTextureString(e) ?: return@forEach
+            val name = e.name.string ?: return@forEach
+
+            if (!name.contains(str)) return@forEach
+
+            Chat.sendWithClickable(
+                "${e.name.string}: ",
+                Chat.Clickable(texture.replace("http://textures.minecraft.net/texture/", ""), ClickEvent.CopyToClipboard(texture))
+                )
+        }
+    }
+
+    fun getMobString(str: String) {
+        mc.level?.entitiesForRendering()?.forEach { e ->
+            if (e !is LivingEntity) return@forEach
+            val name = e.name.string ?: return@forEach
+
+            if (!name.contains(str)) return@forEach
+
+            val texture = (getEntityTextureString(e) ?: "null").replace("http://textures.minecraft.net/texture/", "")
+            val maxHealth = e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString() ?: "null"
+            val mobType = e.type.toString().replace("entity.minecraft.", "").uppercase(getDefault()) ?: "null"
+
+            val string = "Mob(\"\", \"$name\", $texture, listOf(${maxHealth}f), EntityType.$mobType),"
+
+            Chat.sendWithClickable(
+                "${e.name.string}: ",
+                Chat.Clickable(string, ClickEvent.CopyToClipboard(string))
+            )
+        }
+    }
 
     private data class ConfigData(
         val entityList: List<String> = emptyList(),
