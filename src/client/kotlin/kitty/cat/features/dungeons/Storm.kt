@@ -88,7 +88,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             }
         }
 
-        if (storm && stormTicks > 685 - tickOffset.value) {
+        if (storm && stormTicks > 685 - tickOffset.value && inArea()) {
             if (!item.hoverName.string.contains("Last Breath") || !autoSwapTerm.value) return
             storm = false
 
@@ -157,6 +157,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         }
 
         if (storm && ++stormTicks >= 690 - tickOffset.value) {
+            if (!inArea()) return
             if (autoWalkForward.value) { mc.options.keyUp.isDown = true }
 
             val (yaw, pitch) = getLook()
@@ -169,6 +170,11 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 stormTicks = 0
             }
         }
+    }
+
+    private fun inArea(): Boolean {
+        val pos = mc.player?.position() ?: return false
+        return (pos.x in 86.0..90.00 && pos.y == 169.0 && pos.z in 70.0..78.0)
     }
 
     private fun getLook(): Pair<Float, Float> =

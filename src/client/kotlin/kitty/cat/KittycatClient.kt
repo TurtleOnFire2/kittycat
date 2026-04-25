@@ -32,9 +32,6 @@ import net.minecraft.network.chat.ClickEvent
 import net.minecraft.resources.Identifier
 import org.lwjgl.glfw.GLFW
 import org.reflections.Reflections
-import kotlin.collections.remove
-import kotlin.text.clear
-import kotlin.text.contains
 
 object KittycatClient : ClientModInitializer {
 	private val keybindPressedState = mutableMapOf<KeybindSetting, Boolean>()
