@@ -23,21 +23,13 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
     fun register() {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (mc.player == null || !active || !enabled || !cauldronTriggerbot.value) return@register
-            val item = mc.player!!.mainHandItem.hoverName.string
 
-            var cauldron: BlockPos? = null
-
-            Relic.entries.find { it.id == item }?.let {
-                cauldron = it.cauldronPos
-            }
-
-            cauldron ?: return@register
+            val cauldron = Relic.entries.find { it.hoverName == mc.player!!.mainHandItem.hoverName.string }?.cauldronPos ?: return@register
 
             val hr = mc.hitResult as? BlockHitResult ?: return@register
 
             if (hr.blockPos == cauldron || hr.blockPos == cauldron.below()) {
                 mc.options.keyUse.clickCount++
-                active = false
             }
         }
         WorldRenderEvents.END_MAIN.register { ctx ->
@@ -53,14 +45,15 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
     }
 
     fun handleChat(unformatted: String) {
-        if (unformatted.contains(mc.player?.name?.string!!) && unformatted.contains("picked the Corrupted") && enabled) {
+        if (!enabled) return
+        if (unformatted.contains(mc.player?.name?.string!!) && unformatted.contains("picked the Corrupted")) {
             active = true
         } else if (unformatted.contains("[BOSS] Necron: All this, for nothing...")) {
             render = true
         }
     }
 
-    private enum class Relic(val id: String, val cauldronPos: BlockPos, val aabb: AABB) {
+    private enum class Relic(val hoverName: String, val cauldronPos: BlockPos, val aabb: AABB) {
         Green("Corrupted Green Relic", BlockPos(49, 7, 44), AABB(20.914, 6.726, 94.914, 21.086, 6.898, 95.086)),
         Purple("Corrupted Purple Relic", BlockPos(54, 7, 41), AABB(56.914, 8.726, 132.914, 57.086, 8.898, 133.086)),
         Blue("Corrupted Blue Relic", BlockPos(59, 7, 44), AABB(91.914, 6.726, 94.914, 92.086, 6.898, 95.086)),
