@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import com.mojang.brigadier.arguments.StringArgumentType
 import kitty.cat.config.ConfigManager
 import kitty.cat.features.dungeons.AutoLB
+import kitty.cat.features.dungeons.Relics
 import kitty.cat.features.dungeons.Storm
 import kitty.cat.features.huds.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
@@ -257,5 +258,6 @@ object KittycatClient : ClientModInitializer {
 		Storm.register()
 		CustomESP.register()
 		BestiaryESP.register()
+		Relics.register()
 	}
 }

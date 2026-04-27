@@ -1,6 +1,7 @@
 package kitty.cat.mixin.client;
 
 import kitty.cat.features.dungeons.AutoLB;
+import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
 import kitty.cat.features.misc.ChatMacros;
@@ -44,6 +45,7 @@ public class ClientPlayNetworkHandleMixin {
         AutoLB.INSTANCE.handleChat(unformatted);
         ChatMacros.INSTANCE.handleChat(unformatted);
         Storm.INSTANCE.handleChat(unformatted);
+        Relics.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)

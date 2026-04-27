@@ -73,6 +73,15 @@ fun Vec3.round(decimals: Int): Vec3 {
     )
 }
 
+fun Player.lookRay(range: Double = 3.0): Pair<Vec3, Vec3> {
+    return eyePosition to eyePosition.add(lookAngle.scale(range))
+}
+
+fun AABB.canInteract(range: Double = 3.0): Boolean {
+    val (start, end) = mc.player?.lookRay(range) ?: return false
+    return clip(start, end).isPresent
+}
+
 fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
     mc.gameMode?.handleInventoryMouseClick(containerId, slotIndex, button, clickType, this)
 }
