@@ -21,6 +21,7 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	maven(url = "https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
 }
 
 loom {
@@ -31,6 +32,18 @@ loom {
 			sourceSet(sourceSets.main.get())
 			sourceSet(sourceSets.getByName("client"))
 		}
+	}
+
+	accessWidenerPath = file("src/client/resources/kittycat.accesswidener")
+
+	runConfigs.named("client") {
+		isIdeConfigGenerated = true
+		vmArgs.addAll(
+			arrayOf(
+				"-Ddevauth.enabled=true",
+				"-Ddevauth.account=main"
+			)
+		)
 	}
 }
 
@@ -49,6 +62,8 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
 	modImplementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
+
+	modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.2")
 
 	// NanoVG for custom font rendering
 	modImplementation("org.lwjgl:lwjgl-nanovg:3.3.3")

@@ -60,7 +60,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->
             if (mc.player == null) return@register
-            if (mc.player!!.xRot < -60f) {
+            if (mc.player!!.xRot < -60f && storm) {
                 if (autoWalkForward.value) mc.options.keyUp.isDown = false
                 schedule(5) {
                     aiming = false
