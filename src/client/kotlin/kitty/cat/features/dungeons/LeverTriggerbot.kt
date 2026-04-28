@@ -3,10 +3,18 @@ package kitty.cat.features.dungeons
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
+import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
+import kitty.cat.utils.add
+import kitty.cat.utils.canInteract
+import me.cheater.legitcatmod.utils.drawLineBox
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
+import java.awt.Color
 
 object LeverTriggerbot: Feature("Lever Triggerbot", "", Categories.Category.DUNGEONS) {
     val forGate = booleanSetting("For gate levers")
@@ -36,18 +44,23 @@ object LeverTriggerbot: Feature("Lever Triggerbot", "", Categories.Category.DUNG
 
     fun register() {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
-            if (!enabled || mc.screen != null) return@register
+            if (!enabled || client.screen != null || client.player == null) return@register
 
-            val hr = mc.hitResult as? BlockHitResult ?: return@register
+            val hr = client.hitResult as? BlockHitResult ?: return@register
+
+            val shape = client.level?.getBlockState(hr.blockPos)?.getShape(client.level!!, hr.blockPos) ?: return@register
+
+            if (shape.isEmpty || !shape.bounds().add(hr.blockPos).canInteract(4.5)) return@register
 
             if (forGate.value && gateLevers.contains(hr.blockPos) && !clicked.contains(hr.blockPos)) {
-                mc.options.keyUse.clickCount++
+                client.options.keyUse.clickCount++
+
                 clicked.add(hr.blockPos)
                 schedule(20) {
                     clicked.remove(hr.blockPos)
                 }
             } else if (forDevice.value && deviceLevers.contains(hr.blockPos) && !clicked.contains(hr.blockPos)) {
-                mc.options.keyUse.clickCount++
+                client.options.keyUse.clickCount++
                 clicked.add(hr.blockPos)
                 schedule(20) {
                     clicked.remove(hr.blockPos)

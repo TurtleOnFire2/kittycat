@@ -2,6 +2,7 @@ package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
 import net.minecraft.ChatFormatting
+import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.ClickType
@@ -80,6 +81,10 @@ fun Player.lookRay(range: Double = 3.0): Pair<Vec3, Vec3> {
 fun AABB.canInteract(range: Double = 3.0): Boolean {
     val (start, end) = mc.player?.lookRay(range) ?: return false
     return clip(start, end).isPresent
+}
+
+fun AABB.add(blockPos: BlockPos): AABB {
+    return AABB(minX + blockPos.x, minY + blockPos.y, minZ + blockPos.z, maxX + blockPos.x, maxY + blockPos.y, maxZ + blockPos.z)
 }
 
 fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
