@@ -1,10 +1,8 @@
-package me.cheater.legitcatmod.utils
+package kitty.cat.utils
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import kitty.cat.KittycatClient.mc
-import kitty.cat.utils.RenderLayers
-import kitty.cat.utils.renderPos
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
@@ -16,6 +14,7 @@ import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 object PrimitiveRenderer {
 
@@ -320,7 +319,7 @@ fun WorldRenderContext.drawString(
     val dx = pos.x - camPos.x
     val dy = pos.y - camPos.y
     val dz = pos.z - camPos.z
-    val dist = kotlin.math.sqrt(dx * dx + dy * dy + dz * dz).toFloat().coerceAtLeast(0.01f)
+    val dist = sqrt(dx * dx + dy * dy + dz * dz).toFloat().coerceAtLeast(0.01f)
 
     val distFactor = (dist * 0.02f).coerceIn(0.5f, 25f)
     val finalScale = scale * distFactor

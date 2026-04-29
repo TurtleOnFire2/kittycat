@@ -1,20 +1,13 @@
 package kitty.cat.features.dungeons
 
-import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
-import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.add
 import kitty.cat.utils.canInteract
-import me.cheater.legitcatmod.utils.drawLineBox
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.core.BlockPos
-import net.minecraft.world.level.BlockGetter
-import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
-import java.awt.Color
 
 object LeverTriggerbot: Feature("Lever Triggerbot", "", Categories.Category.DUNGEONS) {
     val forGate = booleanSetting("For gate levers")

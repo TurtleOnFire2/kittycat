@@ -8,10 +8,10 @@ import kitty.cat.gui.features.Feature
 import kitty.cat.utils.Chat
 import kitty.cat.utils.name
 import kitty.cat.utils.round
-import me.cheater.legitcatmod.utils.drawFilled
-import me.cheater.legitcatmod.utils.drawLineBox
-import me.cheater.legitcatmod.utils.drawLineFromCursor
-import me.cheater.legitcatmod.utils.drawString
+import kitty.cat.utils.drawFilled
+import kitty.cat.utils.drawLineBox
+import kitty.cat.utils.drawLineFromCursor
+import kitty.cat.utils.drawString
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.fabricmc.loader.api.FabricLoader

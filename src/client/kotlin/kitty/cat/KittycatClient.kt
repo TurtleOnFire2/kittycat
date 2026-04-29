@@ -21,6 +21,7 @@ import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
+import kitty.cat.utils.LocationUtils
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
@@ -34,6 +35,7 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.resources.Identifier
+import net.minecraft.world.phys.AABB
 import org.lwjgl.glfw.GLFW
 import org.reflections.Reflections
 
@@ -263,5 +265,6 @@ object KittycatClient : ClientModInitializer {
 		Relics.register()
 		Terminals.register()
 		LeverTriggerbot.register()
+		LocationUtils.register()
 	}
 }
