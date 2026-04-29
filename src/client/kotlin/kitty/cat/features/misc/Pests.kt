@@ -3,15 +3,13 @@ package kitty.cat.features.misc
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
-import me.cheater.legitcatmod.utils.drawLineFromCursor
-import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents
+import kitty.cat.utils.drawLineFromCursor
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.item.PlayerHeadItem
 import java.awt.Color
-import kotlin.collections.get
 
 object Pests: Feature("Pests", "", Categories.Category.MISC) {
 

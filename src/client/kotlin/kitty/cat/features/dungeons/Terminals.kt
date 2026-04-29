@@ -4,7 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
 import kitty.cat.utils.canInteract
-import me.cheater.legitcatmod.utils.drawLineBox
+import kitty.cat.utils.drawLineBox
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.world.entity.decoration.ArmorStand

@@ -7,6 +7,7 @@ import kitty.cat.features.huds.BestiaryHud;
 import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
+import kitty.cat.utils.LocationUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -46,6 +47,7 @@ public class ClientPlayNetworkHandleMixin {
         ChatMacros.INSTANCE.handleChat(unformatted);
         Storm.INSTANCE.handleChat(unformatted);
         Relics.INSTANCE.handleChat(unformatted);
+        LocationUtils.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)

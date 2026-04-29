@@ -8,8 +8,8 @@ import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
 import kitty.cat.utils.Mob
 import kitty.cat.utils.allMobs
-import me.cheater.legitcatmod.utils.drawFilled
-import me.cheater.legitcatmod.utils.drawLineFromCursor
+import kitty.cat.utils.drawFilled
+import kitty.cat.utils.drawLineFromCursor
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.fabricmc.loader.api.FabricLoader

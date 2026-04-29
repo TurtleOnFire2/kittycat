@@ -3,7 +3,6 @@ package kitty.cat.features.dungeons
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
-import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
 import kitty.cat.utils.clickSlot
@@ -11,12 +10,11 @@ import kitty.cat.utils.getLook
 import kitty.cat.utils.normalizeYaw
 import kitty.cat.utils.renderPos
 import kitty.cat.utils.rotate
-import me.cheater.legitcatmod.utils.drawFilled
+import kitty.cat.utils.drawFilled
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
-import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.BowItem
@@ -24,7 +22,6 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import kotlin.math.abs
-import kotlin.math.max
 
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
@@ -60,7 +57,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->
             if (mc.player == null) return@register
-            if (mc.player!!.xRot < -60f && storm) {
+            if (mc.player!!.xRot < -60f && inArea()) {
                 if (autoWalkForward.value) mc.options.keyUp.isDown = false
                 schedule(5) {
                     aiming = false
@@ -174,7 +171,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     private fun inArea(): Boolean {
         val pos = mc.player?.position() ?: return false
-        return (pos.x in 86.0..90.00 && pos.y == 169.0 && pos.z in 70.0..78.0)
+        return (pos.x in 86.0..110.00 && pos.y == 169.0 && pos.z in 60.0..78.0)
     }
 
     private fun getLook(): Pair<Float, Float> =

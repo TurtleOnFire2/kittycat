@@ -87,6 +87,17 @@ fun AABB.add(blockPos: BlockPos): AABB {
     return AABB(minX + blockPos.x, minY + blockPos.y, minZ + blockPos.z, maxX + blockPos.x, maxY + blockPos.y, maxZ + blockPos.z)
 }
 
+fun Vec3.intersects(aabb: AABB): Boolean {
+    return x in aabb.minX..aabb.maxX && y in aabb.minY..aabb.maxY && z in aabb.minZ..aabb.maxZ
+}
+
+fun Vec3.aabb(snap: Double, width: Double, height: Double): AABB {
+    val x = if (snap == 0.0) x else round(x / snap) * snap
+    val y = if (snap == 0.0) y else round(y / snap) * snap
+    val z = if (snap == 0.0) z else round(z / snap) * snap
+    return AABB(x - width, y - height, z - width, x + width, y + height, z + width)
+}
+
 fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
     mc.gameMode?.handleInventoryMouseClick(containerId, slotIndex, button, clickType, this)
 }
