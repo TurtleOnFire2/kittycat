@@ -47,7 +47,7 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
 
     fun handleChat(unformatted: String) {
         if (!enabled) return
-        if (unformatted.contains(mc.player?.name?.string!!) && unformatted.contains("picked the Corrupted")) {
+        if (unformatted.contains(mc.player?.name?.string ?: return) && unformatted.contains("picked the Corrupted")) {
             active = true
         } else if (unformatted.contains("[BOSS] Necron: All this, for nothing...")) {
             render = true
