@@ -116,7 +116,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             stormTicks = 0
         } else if (unformatted.contains("[BOSS] Goldor: Who dares trespass into my domain")) {
             storm = false
-        } else if (unformatted.contains("⚠ Storm is enraged! ⚠") && leftClickWithTerm.value) {
+        } else if (unformatted.contains("⚠ Storm is enraged! ⚠") && leftClickWithTerm.value && inArea()) {
             aiming = false
             mc.options.keyUp.isDown = false
             mc.options.keyAttack.isDown = false
