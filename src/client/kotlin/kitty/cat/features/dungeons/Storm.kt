@@ -3,6 +3,7 @@ package kitty.cat.features.dungeons
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
+import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
 import kitty.cat.utils.clickSlot
@@ -38,6 +39,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
     val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
     val leftClickWithTerm = booleanSetting("Left click with term after")
+    val autoSneakYellow = booleanSetting("Auto sneak at yellow edge")
 
     private val wardrobeRegex = Regex("Wardrobe \\((\\d)/(\\d)\\)")
 
@@ -48,11 +50,20 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     var useTime = 0
     var stormTicks = 0
     val aimPos = Vec3(100.0, 181.0, 64.0)
+    var unSneak = false
 
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
+            if (mc.player == null) return@register
+            if (storm && mc.player!!.x in 33.0..35.0 && mc.player!!.y == 169.0 && mc.player!!.z in 63.0..70.0 && autoSneakYellow.value) {
+                mc.options.keyShift.isDown = true
+                unSneak = true
+            } else if (unSneak) {
+                mc.options.keyShift.isDown = false
+                unSneak = false
+            }
             if (storm) ctx.drawFilled(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, false)
-            if (!aiming || mc.player == null) return@register
+            if (!aiming) return@register
             rotate(getLook().first, getLook().second)
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->

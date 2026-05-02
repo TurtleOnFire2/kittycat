@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
 import java.awt.Color
 
 object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.DUNGEONS) {
@@ -27,6 +28,8 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
             val cauldron = Relic.entries.find { it.hoverName == mc.player!!.mainHandItem.hoverName.string }?.cauldronPos ?: return@register
 
             val hr = mc.hitResult as? BlockHitResult ?: return@register
+
+            if (hr.type == HitResult.Type.MISS) return@register
 
             if (hr.blockPos == cauldron || hr.blockPos == cauldron.below()) {
                 mc.options.keyUse.clickCount++
