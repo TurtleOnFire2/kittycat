@@ -25,7 +25,7 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (mc.player == null || !active || !enabled || !cauldronTriggerbot.value) return@register
 
-            val cauldron = Relic.entries.find { it.hoverName == mc.player!!.mainHandItem.hoverName.string }?.cauldronPos ?: return@register
+            val cauldron = Relic.entries.find { it.hoverName == mc.player?.mainHandItem?.hoverName?.string }?.cauldronPos ?: return@register
 
             val hr = mc.hitResult as? BlockHitResult ?: return@register
 

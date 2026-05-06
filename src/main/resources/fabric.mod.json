@@ -6,6 +6,7 @@
   "description": "Kittycat client mod",
   "license": "MIT",
   "environment": "client",
+  "accessWidener": "kittycat.accesswidener",
   "entrypoints": {
     "client": [
       {
