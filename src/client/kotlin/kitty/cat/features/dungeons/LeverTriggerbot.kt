@@ -41,7 +41,7 @@ object LeverTriggerbot: Feature("Lever Triggerbot", "", Categories.Category.DUNG
 
             val hr = client.hitResult as? BlockHitResult ?: return@register
 
-            val shape = client.level?.getBlockState(hr.blockPos)?.getShape(client.level!!, hr.blockPos) ?: return@register
+            val shape = client.level?.getBlockState(hr.blockPos)?.getShape(client.level ?: return@register, hr.blockPos) ?: return@register
 
             if (shape.isEmpty || !shape.bounds().add(hr.blockPos).canInteract(4.5)) return@register
 
