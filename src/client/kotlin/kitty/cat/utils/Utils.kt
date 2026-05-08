@@ -3,11 +3,15 @@ package kitty.cat.utils
 import kitty.cat.KittycatClient.mc
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
+import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.ClickType
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.atan2
 import kotlin.math.pow
 import kotlin.math.round
@@ -100,4 +104,8 @@ fun Vec3.aabb(snap: Double, width: Double, height: Double): AABB {
 
 fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
     mc.gameMode?.handleInventoryMouseClick(containerId, slotIndex, button, clickType, this)
+}
+
+fun ItemStack.uuid(): String? {
+    return getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getString("id").getOrNull()
 }

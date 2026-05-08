@@ -12,12 +12,16 @@ import kitty.cat.utils.normalizeYaw
 import kitty.cat.utils.renderPos
 import kitty.cat.utils.rotate
 import kitty.cat.utils.drawFilled
+import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.BowItem
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.Vec3
@@ -44,8 +48,10 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     private val wardrobeRegex = Regex("Wardrobe \\((\\d)/(\\d)\\)")
 
     var maxor = false
-    var swapping = false
     var storm = false
+    var necron = false
+
+    var swapping = false
     var aiming = false
     var useTime = 0
     var stormTicks = 0
@@ -78,6 +84,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { minecraft, level ->
             maxor = false
             storm = false
+            necron = false
             aiming = false
             swapping = false
         }
@@ -131,6 +138,10 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             aiming = false
             mc.options.keyUp.isDown = false
             mc.options.keyAttack.isDown = false
+        } else if (unformatted.contains("[BOSS] Necron: You went further than any human before, congratulations.")) {
+            necron = true
+        } else if (unformatted.contains("[BOSS] Necron: All this, for nothing...")) {
+            necron = false
         }
     }
 
@@ -147,6 +158,17 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
                 }
+            }
+        }
+    }
+
+    fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
+        if (player.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG" && necron && autoSwapCritItem.value) {
+            mc.connection?.sendCommand("wd")
+            swapping = true
+            schedule(swapDelay.value) {
+                if (mc.player!!.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
+                mc.player!!.inventory.selectedSlot = swapSlot.value.toInt() - 1
             }
         }
     }
