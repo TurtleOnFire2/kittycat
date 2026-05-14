@@ -70,6 +70,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             }
             if (storm) ctx.drawFilled(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, false)
             if (!aiming) return@register
+            if (!inArea()) return@register
             rotate(getLook().first, getLook().second)
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->
