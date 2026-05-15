@@ -39,6 +39,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
     val tickOffset = numberSetting("Tick offset", min = 0.0, max = 10.0, 0.0, step = 1.0, description = "Tick offset. 50 = 1t")
     val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath")
+    val pitchLimit = numberSetting("Pitch limit", min = -85.0, max = -0.0, -70.0, step = 1.0)
     val waypointOffset = numberSetting("Waypoint offset", min = -2.0, max = 2.0, 0.0, step = 0.1)
     val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
     val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
@@ -75,7 +76,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->
             if (mc.player == null) return@register
-            if (mc.player!!.xRot < -60f && inArea()) {
+            if (mc.player!!.xRot < pitchLimit.value.toFloat() && inArea()) {
                 if (autoWalkForward.value) mc.options.keyUp.isDown = false
                 schedule(5) {
                     aiming = false
