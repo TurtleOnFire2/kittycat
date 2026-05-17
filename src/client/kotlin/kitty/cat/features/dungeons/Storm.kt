@@ -44,7 +44,10 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
     val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
     val leftClickWithTerm = booleanSetting("Left click with term after")
-    val autoSneakYellow = booleanSetting("Auto sneak at yellow edge")
+    val autoSwapAfterLeap = booleanSetting("Swap item after right click leap")
+    val swapDelayLeap = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
+    val swapSlotAfterLeap = numberSetting("Item slot leap", 1.0, 8.0, 1.0, step = 1.0)
+    val autoSneak = booleanSetting("Auto sneak at yellow")
 
     private val wardrobeRegex = Regex("Wardrobe \\((\\d)/(\\d)\\)")
 
@@ -57,17 +60,19 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     var useTime = 0
     var stormTicks = 0
     val aimPos = Vec3(100.0, 181.0, 64.0)
-    var unSneak = false
+    var sneak = true
 
     fun register() {
         WorldRenderEvents.END_MAIN.register { ctx ->
             if (mc.player == null) return@register
-            if (storm && mc.player!!.x in 33.0..35.0 && mc.player!!.y == 169.0 && mc.player!!.z in 63.0..70.0 && autoSneakYellow.value) {
-                mc.options.keyShift.isDown = true
-                unSneak = true
-            } else if (unSneak) {
-                mc.options.keyShift.isDown = false
-                unSneak = false
+            if (storm && mc.player!!.x in 33.0..35.0 && mc.player!!.y >= 169.0 && mc.player!!.z in 63.0..70.0 && autoSneak.value) {
+                mc.options.keyShift.isDown = sneak
+                mc.options.keyDown.isDown = false
+                schedule(15) {
+                    sneak = false
+                }
+            } else {
+                sneak = true
             }
             if (storm) ctx.drawFilled(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, false)
             if (!aiming) return@register
@@ -100,8 +105,8 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             schedule(2) { maxor = false }
 
             schedule(swapDelay.value) {
-                if (mc.player!!.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
-                mc.player!!.inventory.selectedSlot = swapSlot.value.toInt() - 1
+                if (mc.player?.inventory?.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
+                mc.player?.inventory?.selectedSlot = swapSlot.value.toInt() - 1
             }
         }
 
@@ -148,7 +153,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     }
 
     fun handleScreen(packet: ClientboundOpenScreenPacket) {
-        if (!wardrobeRegex.matches(packet.title.string) || !swapping) return
+        if (!wardrobeRegex.matches(packet.title.string) || !swapping || mc.player == null) return
         swapping = false
 
         schedule(clickDelay.value, true) {
@@ -165,12 +170,22 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     }
 
     fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
-        if (player.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG" && necron && autoSwapCritItem.value) {
+        if (player.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG" && necron && autoSwapCritItem.value && player.y > 20) {
             mc.connection?.sendCommand("wd")
             swapping = true
             schedule(swapDelay.value) {
-                if (mc.player!!.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
-                mc.player!!.inventory.selectedSlot = swapSlot.value.toInt() - 1
+                if (player.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
+                player.inventory.selectedSlot = swapSlot.value.toInt() - 1
+            }
+        }
+
+        if (player.mainHandItem.uuid() == "INFINITE_SPIRIT_LEAP" && storm && autoSwapAfterLeap.value) {
+            val pos = player.position()
+            schedule(swapDelayLeap.value) {
+                if (pos.x in 88.0..100.0 && pos.y in 163.0..168.0 && pos.z in 88.0..97.0) {
+                    if (player.inventory.selectedSlot == swapSlotAfterLeap.value.toInt() - 1) return@schedule
+                    player.inventory.selectedSlot = swapSlotAfterLeap.value.toInt() - 1
+                }
             }
         }
     }
