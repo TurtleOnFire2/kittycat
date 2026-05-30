@@ -233,7 +233,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 mc.options.keyAttack.isDown = false
                 schedule(10, true) {
                     Chat.send("purple")
-                    mc.options.keyAttack.isDown = true
+                    mc.options.keyAttack.clickCount++
                 }
             }
 
@@ -241,7 +241,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 mc.options.keyAttack.isDown = false
                 schedule(10, true) {
                     Chat.send("yellow")
-                    mc.options.keyAttack.isDown = true
+                    mc.options.keyAttack.clickCount++
                 }
             }
         }
