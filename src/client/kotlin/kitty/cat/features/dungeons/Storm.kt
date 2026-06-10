@@ -33,7 +33,7 @@ import kotlin.math.abs
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
     //Arch
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
-    val sulphurBowMode = booleanSetting("Sulphur Bow mode", false)
+    val sulphurBowMode = booleanSetting("Sulphur Bow mode", false, description = "Turn off autoSwapCritItem and autoSwapArmor (Still set the values)")
     val deathBowSlot = numberSetting("Death Bow slot", 1.0, 8.0, 1.0, step = 1.0, description = "Since you shoot with sulphur I need the Death Bow slot instead")
     val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
     val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
