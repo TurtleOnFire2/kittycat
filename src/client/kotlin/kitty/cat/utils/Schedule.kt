@@ -1,5 +1,6 @@
 package kitty.cat.utils
 
+import kitty.cat.KittycatClient.mc
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 
 object Schedule {
@@ -46,10 +47,12 @@ object Schedule {
             }
         }
         for (t in due) {
-            try {
-                t.callback()
-            } catch (e: Throwable) {
-                e.printStackTrace()
+            mc.execute {
+                try {
+                    t.callback()
+                } catch (e: Throwable) {
+                    e.printStackTrace()
+                }
             }
         }
     }
