@@ -33,6 +33,8 @@ import kotlin.math.abs
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
     //Arch
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
+    val sulphurBowMode = booleanSetting("Sulphur Bow mode", false)
+    val deathBowSlot = numberSetting("Death Bow slot", 1.0, 8.0, 1.0, step = 1.0, description = "Since you shoot with sulphur I need the Death Bow slot instead")
     val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
     val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
     val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
@@ -205,9 +207,24 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     fun serverTick() {
         if (mc.player == null || !enabled) return
 
+        if (mc.player?.mainHandItem?.hoverName?.string?.contains("Sulphur Bow") == true && sulphurBowMode.value) {
+            if (BowItem.getPowerForTime(useTime) == 1f) {
+                mc.options.keyUse.isDown = false
+                schedule(0) {
+                    mc.player?.inventory?.selectedSlot = deathBowSlot.value.toInt() - 1
+                    mc.connection?.sendCommand("wd")
+                    swapping = true
+                }
+                schedule(1 + swapDelay.value) {
+                    if (mc.player?.inventory?.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
+                    mc.player?.inventory?.selectedSlot = swapSlot.value.toInt() - 1
+                }
+            }
+        }
+
         stormTicks++
 
-        if (mc.player!!.mainHandItem.hoverName.string.contains("Death Bow") && mc.player!!.isUsingItem) {
+        if (mc.player!!.mainHandItem.item is BowItem && mc.player!!.isUsingItem) {
             useTime++
         } else {
             if (useTime >= 20 && autoSwapArmor.value && maxor) {
