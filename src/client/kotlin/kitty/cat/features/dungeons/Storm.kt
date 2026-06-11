@@ -207,11 +207,11 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     fun serverTick() {
         if (mc.player == null || !enabled) return
 
-        if (mc.player?.mainHandItem?.hoverName?.string?.contains("Sulphur Bow") == true && sulphurBowMode.value) {
+        if (mc.player?.mainHandItem?.uuid() == "SULPHUR_BOW" && sulphurBowMode.value) {
             if (BowItem.getPowerForTime(useTime) == 1f) {
                 mc.options.keyUse.isDown = false
+                mc.player?.inventory?.selectedSlot = deathBowSlot.value.toInt() - 1
                 schedule(0) {
-                    mc.player?.inventory?.selectedSlot = deathBowSlot.value.toInt() - 1
                     if (!autoSwapArmor.value) return@schedule
                     mc.connection?.sendCommand("wd")
                     swapping = true
