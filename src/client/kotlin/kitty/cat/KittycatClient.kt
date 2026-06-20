@@ -24,13 +24,13 @@ import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
-import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper
+import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
@@ -60,7 +60,7 @@ object KittycatClient : ClientModInitializer {
 	var keybindShowHud: KeyMapping? = null
 
 	override fun onInitializeClient() {
-		SpecialGuiElementRegistry.register { ctx -> NVGPIPRenderer(ctx.vertexConsumers()) }
+		PictureInPictureRendererRegistry.register { NVGPIPRenderer() }
 
 		ConfigManager.initialize(featureList)
 		ClientLifecycleEvents.CLIENT_STOPPING.register {
@@ -68,7 +68,7 @@ object KittycatClient : ClientModInitializer {
 		}
 
 		val keybindCategory = KeyMapping.Category(Identifier.fromNamespaceAndPath("kittycat", "general"))
-		keybindShowHud = KeyBindingHelper.registerKeyBinding(
+		keybindShowHud = KeyMappingHelper.registerKeyMapping(
 			KeyMapping(
 				"key.kittycat.hud_insight",
 				InputConstants.Type.KEYSYM,
@@ -90,7 +90,7 @@ object KittycatClient : ClientModInitializer {
 				Hud.open()
 			}
 
-			if (client.screen is ClickGui) return@register
+			if (client.gui.screen() is ClickGui) return@register
 
 			val window = client.window
 			featureList.forEach { feature ->

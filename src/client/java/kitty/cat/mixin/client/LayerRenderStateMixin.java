@@ -12,16 +12,16 @@ public class LayerRenderStateMixin {
             method = "submit",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitItem(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V"
+                    target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitItem(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V"
             ),
             index = 5
     )
     private int[] kittycat$tintHeldItem(int[] tints) {
         if (!Storm.tintBow()) return tints;
-        int n = Math.max(tints.length, 8); // cover items with no explicit tint layers
+        int n = Math.max(tints.length, 8);
         int[] out = new int[n];
         for (int idx = 0; idx < n; idx++) {
-            int argb = idx < tints.length ? tints[idx] : -1; // -1 = white, full multiplier
+            int argb = idx < tints.length ? tints[idx] : -1;
             out[idx] = Storm.tintArgb(argb);
         }
         return out;

@@ -6,7 +6,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.inventory.ClickType
+import net.minecraft.world.inventory.ContainerInput
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.phys.AABB
@@ -102,8 +102,8 @@ fun Vec3.aabb(snap: Double, width: Double, height: Double): AABB {
     return AABB(x - width, y - height, z - width, x + width, y + height, z + width)
 }
 
-fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
-    mc.gameMode?.handleInventoryMouseClick(containerId, slotIndex, button, clickType, this)
+fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ContainerInput = ContainerInput.PICKUP) {
+    mc.gameMode?.handleContainerInput(containerId, slotIndex, button, clickType, this)
 }
 
 fun ItemStack.uuid(): String? {

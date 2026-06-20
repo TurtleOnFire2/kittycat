@@ -1,9 +1,7 @@
 package kitty.cat.gui
 
-import com.mojang.blaze3d.opengl.GlDevice
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.opengl.GlTexture
-import com.mojang.blaze3d.systems.RenderSystem
 import imgui.*
 import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiConfigFlags
@@ -34,7 +32,7 @@ object ImGuiHandler {
             ImGui.getIO().clearEventsQueue()
             applyColors()
             ImGui.getIO().fontGlobalScale = mc.window.guiScale.toFloat() / 2f
-            mc.setScreen(this)
+            mc.gui.setScreen(this)
         }
     }
 
@@ -120,12 +118,11 @@ object ImGuiHandler {
     }
 
     fun start() {
-        val framebuffer = Minecraft.getInstance().mainRenderTarget
-        GlStateManager._glBindFramebuffer(
-            GL30C.GL_FRAMEBUFFER,
-            (framebuffer.getColorTexture() as GlTexture)
-                .getFbo((RenderSystem.getDevice() as GlDevice).directStateAccess(), null)
-        )
+        val framebuffer = Minecraft.getInstance().gameRenderer.mainRenderTarget()
+        val colorTexture = framebuffer.getColorTexture() as GlTexture
+        val fbo = GlStateManager.glGenFramebuffers()
+        GlStateManager._glBindFramebuffer(GL30C.GL_FRAMEBUFFER, fbo)
+        GlStateManager._glFramebufferTexture2D(GL30C.GL_FRAMEBUFFER, GL30C.GL_COLOR_ATTACHMENT0, GL30C.GL_TEXTURE_2D, colorTexture.glId(), 0)
         GL11C.glViewport(0, 0, framebuffer.width, framebuffer.height)
 
         imGuiGl3.newFrame()

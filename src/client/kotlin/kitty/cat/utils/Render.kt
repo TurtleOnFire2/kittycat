@@ -3,18 +3,21 @@ package kitty.cat.utils
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import kitty.cat.KittycatClient.mc
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
-import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.core.BlockPos
+import net.minecraft.network.chat.Style
+import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+private const val FULL_BRIGHT = 15728880
 
 object PrimitiveRenderer {
 
@@ -213,34 +216,34 @@ object PrimitiveRenderer {
     }
 }
 
-fun WorldRenderContext.drawLine(
+fun LevelRenderContext.drawLine(
     startPos: Vec3,
     endPos: Vec3,
     color: Color,
     lineWidth: Float,
     depth: Boolean
-) = matrices().poseScopeWithCamera {
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.LINES)
-    else this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-
-    val pose = this.matrices().last()
-    PrimitiveRenderer.drawLine(pose, buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
+) = poseStack().poseScopeWithCamera { stack ->
+    val renderType = if (depth) RenderTypes.LINES else RenderLayers.LINES_THROUGH_WALLS
+    submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer ->
+        PrimitiveRenderer.drawLine(pose, buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
+    }
 }
 
-fun WorldRenderContext.drawLineFromCursor(
+fun LevelRenderContext.drawLineFromCursor(
     endPos: Vec3,
     color: Color,
     lineWidth: Float
-) = matrices().poseScopeWithCamera {
+) = poseStack().poseScopeWithCamera { stack ->
     val startPos = mc.player?.let { player ->
         player.renderPos.add(player.forward.add(0.0, player.eyeHeight.toDouble(), 0.0))
-    } ?: return
+    } ?: return@poseScopeWithCamera
 
-    val buffer = this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-    PrimitiveRenderer.drawLine(it.last(), buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
+    submitNodeCollector().submitCustomGeometry(stack, RenderLayers.LINES_THROUGH_WALLS) { pose, buffer ->
+        PrimitiveRenderer.drawLine(pose, buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
+    }
 }
 
-fun WorldRenderContext.drawCircle(
+fun LevelRenderContext.drawCircle(
     center: Vec3,
     radius: Double,
     segments: Int,
@@ -248,40 +251,41 @@ fun WorldRenderContext.drawCircle(
     width: Float = 3.0f,
     depth: Boolean = false
 ) {
-    val pose = this.matrices().last()
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.LINES)
-    else this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
+    val renderType = if (depth) RenderTypes.LINES else RenderLayers.LINES_THROUGH_WALLS
 
-    val angleStep = 2.0 * Math.PI / segments
-    for (i in 0 until segments) {
-        val angle1 = i * angleStep
-        val angle2 = (i + 1) * angleStep
+    poseStack().poseScopeWithCamera { stack ->
+        submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer ->
+            val angleStep = 2.0 * Math.PI / segments
+            for (i in 0 until segments) {
+                val angle1 = i * angleStep
+                val angle2 = (i + 1) * angleStep
 
-        val x1 = (radius * cos(angle1)).toFloat()
-        val z1 = (radius * sin(angle1)).toFloat()
-        val x2 = (radius * cos(angle2)).toFloat()
-        val z2 = (radius * sin(angle2)).toFloat()
+                val x1 = (radius * cos(angle1)).toFloat()
+                val z1 = (radius * sin(angle1)).toFloat()
+                val x2 = (radius * cos(angle2)).toFloat()
+                val z2 = (radius * sin(angle2)).toFloat()
 
-        val p1 = center.add(x1.toDouble(), 0.0, z1.toDouble())
-        val p2 = center.add(x2.toDouble(), 0.0, z2.toDouble())
+                val p1 = center.add(x1.toDouble(), 0.0, z1.toDouble())
+                val p2 = center.add(x2.toDouble(), 0.0, z2.toDouble())
 
-        PrimitiveRenderer.drawLine(pose, buffer, p1, p2, color.rgb, color.rgb, width)
+                PrimitiveRenderer.drawLine(pose, buffer, p1, p2, color.rgb, color.rgb, width)
+            }
+        }
     }
 }
 
-fun WorldRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Boolean) {
+fun LevelRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Boolean) {
     val level = mc.level ?: return
 
     val block = level.getBlockState(pos)
     val shape = block.getShape(level, pos)
     if (shape.isEmpty) return
 
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.debugFilledBox())
-    else this.consumers().getBuffer(RenderLayers.QUADS_THROUGH_WALLS)
+    val renderType = if (depth) RenderTypes.debugFilledBox() else RenderLayers.QUADS_THROUGH_WALLS
 
-    val camera = mc.gameRenderer.mainCamera.position()
+    val camera = mc.gameRenderer.mainCamera().position()
 
-    val matrices = this.matrices()
+    val matrices = PoseStack()
     matrices.pushPose()
     matrices.translate(
         pos.x - camera.x,
@@ -289,22 +293,24 @@ fun WorldRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Bool
         pos.z - camera.z
     )
 
-    shape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
-        PrimitiveRenderer.addChainedFilledBoxVertices(
-            matrices.last(),
-            buffer,
-            AABB(
-                minX * 0.999, minY * 0.999, minZ * 0.999,
-                maxX * 1.001, maxY * 1.001, maxZ * 1.001,
-            ),
-            color.rgb
-        )
+    submitNodeCollector().submitCustomGeometry(matrices, renderType) { pose, buffer ->
+        shape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
+            PrimitiveRenderer.addChainedFilledBoxVertices(
+                pose,
+                buffer,
+                AABB(
+                    minX * 0.999, minY * 0.999, minZ * 0.999,
+                    maxX * 1.001, maxY * 1.001, maxZ * 1.001,
+                ),
+                color.rgb
+            )
+        }
     }
 
     matrices.popPose()
 }
 
-fun WorldRenderContext.drawString(
+fun LevelRenderContext.text(
     text: String,
     pos: Vec3,
     color: Int = -1,
@@ -313,7 +319,7 @@ fun WorldRenderContext.drawString(
     shadow: Boolean = true
 ) {
     val client = Minecraft.getInstance()
-    val camera = client.gameRenderer.mainCamera
+    val camera = client.gameRenderer.mainCamera()
 
     val camPos = camera.position()
     val dx = pos.x - camPos.x
@@ -324,7 +330,7 @@ fun WorldRenderContext.drawString(
     val distFactor = (dist * 0.02f).coerceIn(0.5f, 25f)
     val finalScale = scale * distFactor
 
-    val stack = this.matrices()
+    val stack = PoseStack()
     stack.pushPose()
 
     val s = finalScale * 0.025f
@@ -336,45 +342,48 @@ fun WorldRenderContext.drawString(
     }
 
     client.font.let {
-        it.drawInBatch(
-            text,
+        submitNodeCollector().submitText(
+            stack,
             -it.width(text) / 2f,
             0f,
-            color,
+            FormattedCharSequence.forward(text, Style.EMPTY),
             shadow,
-            stack.last().pose(),
-            this.consumers(),
             if (depth) Font.DisplayMode.NORMAL else Font.DisplayMode.SEE_THROUGH,
+            color,
             0,
-            LightTexture.FULL_BRIGHT
+            FULL_BRIGHT,
+            0
         )
     }
 
     stack.popPose()
 }
 
-fun WorldRenderContext.drawLineBox(
+fun LevelRenderContext.drawLineBox(
     aabb: AABB,
     color: Color,
     thickness: Float,
     depth: Boolean
-) = matrices().poseScopeWithCamera {
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.LINES) else this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-    PrimitiveRenderer.renderLineBox(this.matrices().last(), buffer, aabb, color.rgb, thickness)
+) = poseStack().poseScopeWithCamera { stack ->
+    val renderType = if (depth) RenderTypes.LINES else RenderLayers.LINES_THROUGH_WALLS
+    submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer ->
+        PrimitiveRenderer.renderLineBox(pose, buffer, aabb, color.rgb, thickness)
+    }
 }
 
-fun WorldRenderContext.drawFilled(
+fun LevelRenderContext.drawFilled(
     aabb: AABB,
     color: Color,
     depth: Boolean
-) = matrices().poseScopeWithCamera {
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.debugFilledBox()) else this.consumers().getBuffer(
-        RenderLayers.QUADS_THROUGH_WALLS)
-    PrimitiveRenderer.addChainedFilledBoxVertices(this.matrices().last(), buffer, aabb, color.rgb)
+) = poseStack().poseScopeWithCamera { stack ->
+    val renderType = if (depth) RenderTypes.debugFilledBox() else RenderLayers.QUADS_THROUGH_WALLS
+    submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer ->
+        PrimitiveRenderer.addChainedFilledBoxVertices(pose, buffer, aabb, color.rgb)
+    }
 }
 
 inline fun PoseStack.poseScopeWithCamera(block: (PoseStack) -> Unit) = poseScope {
-    val camera = mc.gameRenderer.mainCamera.position()
+    val camera = mc.gameRenderer.mainCamera().position()
     it.translate(-camera.x, -camera.y, -camera.z)
     block(this)
 }

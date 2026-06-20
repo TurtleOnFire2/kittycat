@@ -4,8 +4,8 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.misc.BestiaryHud
 import kitty.cat.gui.Hud
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
-import net.minecraft.client.gui.GuiGraphics
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 
 object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderConditions = mutableListOf(Hud.Condition.Always)) {
@@ -14,7 +14,7 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
     val bestiaries = mutableMapOf<String, Bestiary>()
 
     fun register() {
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { _, _ ->
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             if (BestiaryHud.resetOnWorldChange.value) bestiaries.clear()
         }
         ClientTickEvents.END_CLIENT_TICK.register {
@@ -70,7 +70,7 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
         }
     }
 
-    override fun render(context: GuiGraphics) {
+    override fun render(context: GuiGraphicsExtractor) {
         if (!BestiaryHud.enabled) return
         var y = 0
         bestiaries.values.forEach { b ->
@@ -96,13 +96,13 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
 
             if (perHour.isEmpty() && BestiaryHud.showActiveOnly.value) return@forEach
 
-            context.drawString(mc.font, "${b.name} ${b.level}: §b${b.progress}/${b.next} §7(${b.percentage}%)$perHour ", 0, y, -1)
+            context.text(mc.font, "${b.name} ${b.level}: §b${b.progress}/${b.next} §7(${b.percentage}%)$perHour ", 0, y, -1)
             y += 10
         }
     }
 
-    override fun example(context: GuiGraphics) {
-        context.drawString(mc.font, "Golden Goblin 9: §b97/100 §7(97%) §6[15] §a1,200/h ", 0, 0, -1)
+    override fun example(context: GuiGraphicsExtractor) {
+        context.text(mc.font, "Golden Goblin 9: §b97/100 §7(97%) §6[15] §a1,200/h ", 0, 0, -1)
     }
 
     override fun bounds(): Pair<Double, Double> {

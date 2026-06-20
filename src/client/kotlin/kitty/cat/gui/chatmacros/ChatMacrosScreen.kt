@@ -6,7 +6,7 @@ import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils
 import com.mojang.blaze3d.platform.InputConstants
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.CharacterEvent
 import net.minecraft.client.input.KeyEvent
@@ -81,7 +81,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         super.tick()
     }
 
-    override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTicks: Float) {
+    override fun extractRenderState(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
         val macros = ChatMacros.listMacros()
         pruneTestInputs(macros.size)
         clampSelectedIndex(macros.size)
@@ -118,7 +118,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         renderListPanel(guiGraphics, sw, sh, scale, listPanel, listRows, macros)
         renderDetailPanel(guiGraphics, sw, sh, scale, detailPanel, macros, mouseX.toDouble(), mouseY.toDouble())
 
-        super.render(guiGraphics, mouseX, mouseY, partialTicks)
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks)
     }
 
     override fun mouseClicked(mouseButtonEvent: MouseButtonEvent, doubled: Boolean): Boolean {
@@ -334,13 +334,13 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     override fun onClose() {
-        minecraft.setScreen(parent)
+        minecraft.gui.setScreen(parent)
     }
 
     override fun isPauseScreen(): Boolean = false
 
     private fun renderListPanel(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -437,7 +437,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun renderDetailPanel(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -583,7 +583,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun renderButton(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -620,7 +620,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun renderField(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -724,7 +724,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun drawText(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -748,7 +748,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun drawCenteredText(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,

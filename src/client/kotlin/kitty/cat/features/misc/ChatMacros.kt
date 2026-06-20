@@ -49,14 +49,14 @@ object ChatMacros : Feature("Chat Macros", "", Categories.Category.MISC) {
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (openGui) {
-                openManagerScreen(mc.screen)
+                openManagerScreen(mc.gui.screen())
                 openGui = false
             }
         }
     }
 
-    fun openManagerScreen(parent: Screen? = mc.screen) {
-        mc.setScreen(ChatMacrosScreen(parent))
+    fun openManagerScreen(parent: Screen? = mc.gui.screen()) {
+        mc.gui.setScreen(ChatMacrosScreen(parent))
     }
 
     fun listMacros(): List<MacroView> {

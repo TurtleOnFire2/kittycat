@@ -11,7 +11,7 @@ import kitty.cat.utils.allMobs
 import kitty.cat.utils.drawFilled
 import kitty.cat.utils.drawLineFromCursor
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
@@ -88,7 +88,7 @@ object BestiaryESP : Feature("Bestiary ESP", "", Categories.Category.VISUAL) {
         loadConfig()
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
-            if (openGui) { mc.setScreen(BestiaryESPScreen(mc.screen)); openGui = false }
+            if (openGui) { mc.gui.setScreen(BestiaryESPScreen(mc.gui.screen())); openGui = false }
             espEntities.clear(); tracerEntities.clear()
             if (!enabled) return@register
 
@@ -100,7 +100,7 @@ object BestiaryESP : Feature("Bestiary ESP", "", Categories.Category.VISUAL) {
             }
         }
 
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
             espEntities.forEach { (entity, beName) ->
                 ctx.drawFilled(entity.boundingBox, Color(espColors.getOrDefault(beName, 0xFFFFFFFF.toInt()), true), false)

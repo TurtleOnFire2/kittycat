@@ -11,9 +11,9 @@ import kitty.cat.utils.round
 import kitty.cat.utils.drawFilled
 import kitty.cat.utils.drawLineBox
 import kitty.cat.utils.drawLineFromCursor
-import kitty.cat.utils.drawString
+import kitty.cat.utils.text
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
@@ -78,20 +78,20 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 entities.removeIf { entity -> !entity.isAlive }
             }
         }
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (debug.value) {
                 mc.level?.entitiesForRendering()?.forEach { e ->
                     if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach
 
                     val h = e.bbHeight
 
-                    ctx.drawString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0), -1)
-                    ctx.drawString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0), -1)
-                    ctx.drawString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0), -1)
+                    ctx.text(e.name.string, e.position().add(0.0, 1.4 + h, 0.0), -1)
+                    ctx.text(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0), -1)
+                    ctx.text(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0), -1)
                     ctx.drawLineBox(e.boundingBox, Color.WHITE, 3f, true)
                     if (e !is LivingEntity) return@forEach
-                    ctx.drawString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0), -1)
-                    ctx.drawString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0), -1)
+                    ctx.text(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0), -1)
+                    ctx.text( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0), -1)
                 }
             }
 

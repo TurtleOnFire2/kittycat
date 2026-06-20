@@ -75,8 +75,8 @@ object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
 
         if (!canUseGuiScreens()) return
 
-        if (mc.screen !is ClickGuiScreen) {
-            mc.setScreen(ClickGuiScreen())
+        if (mc.gui.screen() !is ClickGuiScreen) {
+            mc.gui.setScreen(ClickGuiScreen())
         }
     }
 
@@ -86,13 +86,13 @@ object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
             setEnabled(false)
             return
         }
-        mc.setScreen(ClickGuiScreen())
+        mc.gui.setScreen(ClickGuiScreen())
     }
 
     override fun onDisable() {
         if (!canUseGuiScreens()) return
-        if (mc.screen is ClickGuiScreen) {
-            mc.setScreen(null)
+        if (mc.gui.screen() is ClickGuiScreen) {
+            mc.gui.setScreen(null)
         }
     }
 

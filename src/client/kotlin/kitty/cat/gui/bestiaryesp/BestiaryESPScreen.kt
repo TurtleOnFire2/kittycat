@@ -6,7 +6,7 @@ import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils
 import kitty.cat.utils.allMobs
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.CharacterEvent
 import net.minecraft.client.input.KeyEvent
@@ -66,7 +66,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
 
     // ── Render ───────────────────────────────────────────────────────────────
 
-    override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTicks: Float) {
+    override fun extractRenderState(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
         val names = filtered
         val panel = panel(); val rows = rowsRect(panel)
         val vis   = visRows(rows.height)
@@ -111,7 +111,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         guiGraphics.disableScissor()
 
         renderPicker(guiGraphics, sw, sh, sc, panel)
-        super.render(guiGraphics, mouseX, mouseY, partialTicks)
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks)
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         return true
     }
 
-    override fun onClose() { minecraft.setScreen(parent) }
+    override fun onClose() { minecraft.gui.setScreen(parent) }
     override fun isPauseScreen() = false
 
     // ── Color picker ──────────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         return (alpha.coerceIn(0, 255) shl 24) or (rgb and 0x00FFFFFF)
     }
 
-    private fun renderPicker(guiGraphics: GuiGraphics, sw: Int, sh: Int, sc: Float, panel: Rect) {
+    private fun renderPicker(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, panel: Rect) {
         val p      = picker ?: return
         val anchor = pickerAnchor(p, panel) ?: run { picker = null; return }
         val pp     = pickerRect(anchor, panel)
@@ -335,13 +335,13 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun swatch(guiGraphics: GuiGraphics, rect: Rect, argb: Int, selected: Boolean) {
+    private fun swatch(guiGraphics: GuiGraphicsExtractor, rect: Rect, argb: Int, selected: Boolean) {
         GuiUtils.renderRoundedRectangle(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, argb)
         GuiUtils.renderRoundedOutline(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, 1,
             if (selected) Color(234, 110, 146, 240).rgb else Color(137, 55, 77, 180).rgb)
     }
 
-    private fun renderBtn(guiGraphics: GuiGraphics, sw: Int, sh: Int, sc: Float, rect: Rect, label: String, active: Boolean, hovered: Boolean) {
+    private fun renderBtn(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, rect: Rect, label: String, active: Boolean, hovered: Boolean) {
         val fill   = when { active && hovered -> Color(18, 72, 22, 226).rgb;  active -> Color(14, 55, 17, 212).rgb;  hovered -> Color(72, 18, 18, 200).rgb;  else -> Color(55, 14, 14, 170).rgb }
         val border = when { active && hovered -> Color(90, 220, 100, 240).rgb; active -> Color(60, 180, 70, 224).rgb; hovered -> Color(210, 65, 65, 200).rgb;  else -> Color(160, 45, 45, 140).rgb }
         val text   = when { active && hovered -> Color(185, 255, 190, 255).rgb; active -> Color(160, 240, 165, 255).rgb; hovered -> Color(255, 170, 170, 255).rgb; else -> Color(190, 115, 115, 255).rgb }
@@ -350,7 +350,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         ctxt(guiGraphics, sw, sh, sc, label, (rect.x + rect.width / 2).toFloat(), (rect.y + 5).toFloat(), 9f, text)
     }
 
-    private fun renderSearch(guiGraphics: GuiGraphics, sw: Int, sh: Int, sc: Float, panel: Rect) {
+    private fun renderSearch(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, panel: Rect) {
         val r = searchRect(panel)
         GuiUtils.renderRoundedRectangle(guiGraphics, r.x, r.y, r.width, r.height, 2, Color(31, 11, 17, 214).rgb)
         GuiUtils.renderRoundedOutline(guiGraphics, r.x, r.y, r.width, r.height, 2, 1,
@@ -403,13 +403,13 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
 
     // ── Text ──────────────────────────────────────────────────────────────────
 
-    private fun txt(guiGraphics: GuiGraphics, sw: Int, sh: Int, sc: Float, text: String, x: Float, y: Float, size: Float, color: Int) {
+    private fun txt(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, text: String, x: Float, y: Float, size: Float, color: Int) {
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
             NVGRenderer.text(text = text, x = x * sc, y = y * sc, size = size * sc, color = color, font = ClickGuiFeature.selectedFont)
         }
     }
 
-    private fun ctxt(guiGraphics: GuiGraphics, sw: Int, sh: Int, sc: Float, text: String, cx: Float, y: Float, size: Float, color: Int) {
+    private fun ctxt(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, text: String, cx: Float, y: Float, size: Float, color: Int) {
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
             NVGRenderer.textCentered(text = text, cx = cx * sc, y = y * sc, size = size * sc, color = color, font = ClickGuiFeature.selectedFont)
         }

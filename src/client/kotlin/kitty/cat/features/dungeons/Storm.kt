@@ -14,15 +14,14 @@ import kitty.cat.utils.rotate
 import kitty.cat.utils.drawFilled
 import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.LivingEntity
-import net.minecraft.world.entity.boss.wither.WitherBoss
-import net.minecraft.world.entity.decoration.ArmorStand
+
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.BowItem
 import net.minecraft.world.item.ItemStack
@@ -73,7 +72,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     var sneak = true
 
     fun register() {
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.player == null) return@register
             if (storm && mc.player!!.x in 33.0..35.0 && mc.player!!.y >= 169.0 && mc.player!!.z in 63.0..70.0 && autoSneak.value) {
                 mc.options.keyShift.isDown = sneak
@@ -102,7 +101,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 }
             }
         }
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { minecraft, level ->
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
             maxor = false
             storm = false
             necron = false
@@ -171,7 +170,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         swapping = false
 
         schedule(clickDelay.value, true) {
-            val sc = mc.screen as? AbstractContainerScreen<*> ?: return@schedule
+            val sc = mc.gui.screen() as? AbstractContainerScreen<*> ?: return@schedule
             if (!wardrobeRegex.matches(sc.title.string)) return@schedule
 
             mc.player!!.clickSlot(sc.menu.containerId, swapWardrobeSlot.value.toInt() + 35)

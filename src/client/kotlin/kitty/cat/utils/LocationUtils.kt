@@ -1,12 +1,12 @@
 package kitty.cat.utils
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 
 object LocationUtils {
     var inF7Boss = false
 
     fun register() {
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { minecraft, level ->
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
             inF7Boss = false
         }
     }

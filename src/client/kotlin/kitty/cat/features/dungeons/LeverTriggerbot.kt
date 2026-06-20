@@ -37,7 +37,7 @@ object LeverTriggerbot: Feature("Lever Triggerbot", "", Categories.Category.DUNG
 
     fun register() {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
-            if (!enabled || client.screen != null || client.player == null) return@register
+            if (!enabled || client.gui.screen() != null || client.player == null) return@register
 
             val hr = client.hitResult as? BlockHitResult ?: return@register
 

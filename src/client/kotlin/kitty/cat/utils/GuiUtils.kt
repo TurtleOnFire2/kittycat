@@ -3,10 +3,10 @@ package kitty.cat.utils
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.GuiGraphicsExtractor
 
 object GuiUtils {
-    fun renderRectangle(guiGraphics: GuiGraphics, x: Int, y: Int, width: Int, height: Int, color: Int) {
+    fun renderRectangle(guiGraphics: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int, color: Int) {
         val left = minOf(x, x + width)
         val right = maxOf(x, x + width)
         val top = minOf(y, y + height)
@@ -16,7 +16,7 @@ object GuiUtils {
     }
 
     fun renderRoundedRectangle(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         x: Int,
         y: Int,
         width: Int,
@@ -52,7 +52,7 @@ object GuiUtils {
     }
 
     fun renderRoundedOutline(
-        guiGraphics: GuiGraphics,
+        guiGraphics: GuiGraphicsExtractor,
         x: Int,
         y: Int,
         width: Int,
@@ -86,7 +86,7 @@ object GuiUtils {
         }
     }
 
-    private fun drawWithNanoVG(guiGraphics: GuiGraphics, draw: (scale: Float) -> Unit) {
+    private fun drawWithNanoVG(guiGraphics: GuiGraphicsExtractor, draw: (scale: Float) -> Unit) {
         val window = Minecraft.getInstance().window
         val sw = window.guiScaledWidth
         val sh = window.guiScaledHeight

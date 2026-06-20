@@ -6,8 +6,8 @@ import kitty.cat.gui.features.Feature
 import kitty.cat.utils.canInteract
 import kitty.cat.utils.drawLineBox
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
@@ -36,13 +36,13 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
                 active = false
             }
         }
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled || !renderSpawnBox.value || !render) return@register
             Relic.entries.forEach {
                 ctx.drawLineBox(it.aabb, if (it.aabb.canInteract()) Color.GREEN else Color.RED, 3f, true)
             }
         }
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register { minecraft, level ->
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
             active = false
             render = false
         }

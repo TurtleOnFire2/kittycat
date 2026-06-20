@@ -3,8 +3,10 @@ package kitty.cat.features.visual
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
+import com.mojang.blaze3d.vertex.PoseStack
+import kitty.cat.utils.entityType
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
@@ -74,52 +76,53 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
             }
         }
 
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
             if (segments.isEmpty()) return@register
 
-            val cam = ctx.worldState().cameraRenderState.pos
-            val consumers = ctx.consumers() ?: return@register
-            val buf = consumers.getBuffer(RenderTypes.linesTranslucent())
-            val pose = ctx.matrices().last()
+            val cam = ctx.levelState().cameraRenderState.pos
+            val stack = PoseStack()
+            stack.translate(-cam.x, -cam.y, -cam.z)
 
             val r = color.red
             val g = color.green
             val b = color.blue
             val a = color.alpha
 
-            segments.forEach { (seg, time) ->
-                val sx = (seg.start.x - cam.x).toFloat()
-                val sy = (seg.start.y - cam.y).toFloat()
-                val sz = (seg.start.z - cam.z).toFloat()
-                val ex = (seg.end.x - cam.x).toFloat()
-                val ey = (seg.end.y - cam.y).toFloat()
-                val ez = (seg.end.z - cam.z).toFloat()
+            ctx.submitNodeCollector().submitCustomGeometry(stack, RenderTypes.linesTranslucent()) { pose, buf ->
+                segments.forEach { (seg, _) ->
+                    val sx = seg.start.x.toFloat()
+                    val sy = seg.start.y.toFloat()
+                    val sz = seg.start.z.toFloat()
+                    val ex = seg.end.x.toFloat()
+                    val ey = seg.end.y.toFloat()
+                    val ez = seg.end.z.toFloat()
 
-                val dx = ex - sx
-                val dy = ey - sy
-                val dz = ez - sz
-                val len = sqrt((dx*dx + dy*dy + dz*dz).toDouble()).toFloat()
-                val nx = dx / len
-                val ny = dy / len
-                val nz = dz / len
+                    val dx = ex - sx
+                    val dy = ey - sy
+                    val dz = ez - sz
+                    val len = sqrt((dx * dx + dy * dy + dz * dz).toDouble()).toFloat()
+                    val nx = dx / len
+                    val ny = dy / len
+                    val nz = dz / len
 
-                buf.addVertex(pose, sx, sy, sz)
-                    .setColor(r, g, b, a)
-                    .setNormal(nx, ny, nz)
-                    .setLineWidth(lineWidth.value.toFloat())
+                    buf.addVertex(pose, sx, sy, sz)
+                        .setColor(r, g, b, a)
+                        .setNormal(nx, ny, nz)
+                        .setLineWidth(lineWidth.value.toFloat())
 
-                buf.addVertex(pose, ex, ey, ez)
-                    .setColor(r, g, b, a)
-                    .setNormal(nx, ny, nz)
-                    .setLineWidth(lineWidth.value.toFloat())
+                    buf.addVertex(pose, ex, ey, ez)
+                        .setColor(r, g, b, a)
+                        .setNormal(nx, ny, nz)
+                        .setLineWidth(lineWidth.value.toFloat())
+                }
             }
         }
     }
 
     fun handleAddEntity(packet: ClientboundAddEntityPacket) {
         if (!enabled) return
-        if (packet.type != EntityType.ARROW) return
+        if (packet.type != entityType("arrow")) return
 
         val player = Minecraft.getInstance().player ?: return
         val dx = packet.x - player.x
