@@ -60,6 +60,8 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     private val wardrobeRegex = Regex("Wardrobe \\((\\d)/(\\d)\\)")
 
+    private val buffBows = listOf("SULPHUR_BOW", "SAVANA_BOW", "PRISMARINE_BOW", "MAGMA_BOW")
+
     var maxor = false
     var storm = false
     var necron = false
@@ -164,6 +166,10 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         } else if (unformatted.contains("[BOSS] Necron: All this, for nothing...")) {
             necron = false
         }
+
+        if (unformatted.contains("legitcatgirl: !meow")) {
+            mc.connection?.sendCommand("r meow")
+        }
     }
 
     fun handleScreen(packet: ClientboundOpenScreenPacket) {
@@ -207,10 +213,11 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     fun serverTick() {
         if (mc.player == null || !enabled) return
 
-        if (mc.player?.mainHandItem?.uuid() == "SULPHUR_BOW" && sulphurBowMode.value) {
+        if (mc.player?.mainHandItem?.uuid() in buffBows && sulphurBowMode.value) {
             if (BowItem.getPowerForTime(useTime) == 1f) {
                 mc.options.keyUse.isDown = false
                 mc.player?.inventory?.selectedSlot = deathBowSlot.value.toInt() - 1
+
                 schedule(0) {
                     if (!autoSwapArmor.value) return@schedule
                     mc.connection?.sendCommand("wd")
