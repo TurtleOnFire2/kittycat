@@ -166,12 +166,12 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     }
 
     fun handleScreen(packet: ClientboundOpenScreenPacket) {
-        if (!wardrobeRegex.matches(packet.title.string) || !swapping || mc.player == null) return
+        if (!packet.title.string.contains("Wardrobe") || !swapping || mc.player == null) return
         swapping = false
 
         schedule(clickDelay.value, true) {
             val sc = mc.gui.screen() as? AbstractContainerScreen<*> ?: return@schedule
-            if (!wardrobeRegex.matches(sc.title.string)) return@schedule
+            if (!packet.title.string.contains("Wardrobe")) return@schedule
 
             mc.player!!.clickSlot(sc.menu.containerId, swapWardrobeSlot.value.toInt() + 35)
             schedule(0) {
