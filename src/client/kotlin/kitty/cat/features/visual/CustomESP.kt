@@ -13,7 +13,7 @@ import kitty.cat.utils.drawLineBox
 import kitty.cat.utils.drawLineFromCursor
 import kitty.cat.utils.drawString
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
@@ -78,7 +78,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 entities.removeIf { entity -> !entity.isAlive }
             }
         }
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (debug.value) {
                 mc.level?.entitiesForRendering()?.forEach { e ->
                     if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach

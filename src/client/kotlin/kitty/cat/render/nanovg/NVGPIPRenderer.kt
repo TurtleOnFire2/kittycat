@@ -1,17 +1,17 @@
 package kitty.cat.render.nanovg
 
 import com.mojang.blaze3d.opengl.GlConst
-import com.mojang.blaze3d.opengl.GlDevice
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.opengl.GlTexture
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import kitty.cat.mixin.client.gui.GuiGraphicsAccessor
-import net.minecraft.client.gui.GuiGraphics
+import kitty.cat.compat.GuiGraphicsAccessorHelper
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.navigation.ScreenRectangle
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer
-import net.minecraft.client.gui.render.state.pip.PictureInPictureRenderState
 import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState
 import org.joml.Matrix3x2f
 
 class NVGPIPRenderer(vertexConsumers: MultiBufferSource.BufferSource) :
@@ -19,14 +19,15 @@ class NVGPIPRenderer(vertexConsumers: MultiBufferSource.BufferSource) :
 
     override fun renderToTexture(state: NVGRenderState, poseStack: PoseStack) {
         val colorTex = RenderSystem.outputColorTextureOverride ?: return
-        val bufferManager = (RenderSystem.getDevice() as? GlDevice)?.directStateAccess() ?: return
-        val glDepthTex = (RenderSystem.outputDepthTextureOverride?.texture() as? GlTexture) ?: return
+        val glColorTex = colorTex.texture() as? GlTexture ?: return
+        val glDepthTex = RenderSystem.outputDepthTextureOverride?.texture() ?: return
+        val bufferManager = RenderSystem.getDevice().directStateAccessReflective() ?: return
 
-        val (width, height) = colorTex.let { it.getWidth(0) to it.getHeight(0) }
-        (colorTex.texture() as? GlTexture)?.getFbo(bufferManager, glDepthTex)?.apply {
-            GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, this)
-            GlStateManager._viewport(0, 0, width, height)
-        }
+        val width = colorTex.getWidth(0)
+        val height = colorTex.getHeight(0)
+        val framebuffer = glColorTex.getFboReflective(bufferManager, glDepthTex) ?: return
+        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, framebuffer)
+        GlStateManager._viewport(0, 0, width, height)
 
         // IMPORTANT for 1.21.11+: Unbind Minecraft's sampler objects from texture unit 0.
         // Minecraft 1.21.11 introduced GlSampler objects (via glBindSampler) that override
@@ -63,24 +64,25 @@ class NVGPIPRenderer(vertexConsumers: MultiBufferSource.BufferSource) :
         override fun y0(): Int = y
         override fun x1(): Int = x + width
         override fun y1(): Int = y + height
+        override fun pose(): Matrix3x2f = poseMatrix
         override fun scissorArea(): ScreenRectangle? = scissor
         override fun bounds(): ScreenRectangle? = bounds
     }
 
     companion object {
         fun draw(
-            context: GuiGraphics,
+            context: GuiGraphicsExtractor,
             x: Int, y: Int,
             width: Int, height: Int,
             renderContent: () -> Unit
         ) {
             val accessor = context as GuiGraphicsAccessor
-            val scissor = accessor.scissorStack.peek()
+            val scissor = GuiGraphicsAccessorHelper.getScissorStack(accessor).peekScissor()
             val pose = Matrix3x2f(context.pose())
             val bounds = createBounds(x, y, x + width, y + height, pose, scissor)
 
             val state = NVGRenderState(x, y, width, height, pose, scissor, bounds, renderContent)
-            accessor.guiRenderState.submitPicturesInPictureState(state)
+            accessor.guiRenderState.addPicturesInPictureState(state)
         }
 
         private fun createBounds(
@@ -92,3 +94,24 @@ class NVGPIPRenderer(vertexConsumers: MultiBufferSource.BufferSource) :
         }
     }
 }
+
+
+private fun Any.directStateAccessReflective(): Any? =
+    findZeroArgMethod("directStateAccess", "method_68401", "b")?.invoke(this)
+
+private fun GlTexture.getFboReflective(dsa: Any, depth: Any): Int? =
+    findMethod("getFbo", "method_68426", "a") { method -> method.parameterCount == 2 }
+        ?.invoke(this, dsa, depth) as? Int
+
+private fun Any.findZeroArgMethod(vararg names: String): java.lang.reflect.Method? =
+    findMethod(*names) { method -> method.parameterCount == 0 }
+
+private fun Any.findMethod(vararg names: String, predicate: (java.lang.reflect.Method) -> Boolean): java.lang.reflect.Method? =
+    javaClass.methods.firstOrNull { method -> method.name in names && predicate(method) }
+        ?: javaClass.declaredMethods.firstOrNull { method -> method.name in names && predicate(method) }
+            ?.apply { isAccessible = true }
+
+private fun Any.peekScissor(): ScreenRectangle? =
+    runCatching {
+        javaClass.getDeclaredMethod("peek").apply { isAccessible = true }.invoke(this) as? ScreenRectangle
+    }.getOrNull()

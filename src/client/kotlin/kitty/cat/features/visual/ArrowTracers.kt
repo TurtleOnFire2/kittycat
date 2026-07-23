@@ -4,7 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
@@ -74,14 +74,14 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
             }
         }
 
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
             if (segments.isEmpty()) return@register
 
-            val cam = ctx.worldState().cameraRenderState.pos
-            val consumers = ctx.consumers() ?: return@register
+            val cam = mc.gameRenderer.mainCamera.position()
+            val consumers = ctx.bufferSource()
             val buf = consumers.getBuffer(RenderTypes.linesTranslucent())
-            val pose = ctx.matrices().last()
+            val pose = ctx.poseStack().last()
 
             val r = color.red
             val g = color.green

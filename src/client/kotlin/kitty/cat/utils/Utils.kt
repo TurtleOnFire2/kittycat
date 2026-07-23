@@ -6,7 +6,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.inventory.ClickType
+import net.minecraft.world.inventory.ContainerInput
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.phys.AABB
@@ -23,15 +23,15 @@ inline val Entity.renderPos: Vec3
 
 inline val Entity.renderX: Double
     get() =
-        xo + (x - xo) * mc.deltaTracker.getGameTimeDeltaPartialTick(true)
+        xo + (getX() - xo) * mc.deltaTracker.getGameTimeDeltaPartialTick(true)
 
 inline val Entity.renderY: Double
     get() =
-        yo + (y - yo) * mc.deltaTracker.getGameTimeDeltaPartialTick(true)
+        yo + (getY() - yo) * mc.deltaTracker.getGameTimeDeltaPartialTick(true)
 
 inline val Entity.renderZ: Double
     get() =
-        zo + (z - zo) * mc.deltaTracker.getGameTimeDeltaPartialTick(true)
+        zo + (getZ() - zo) * mc.deltaTracker.getGameTimeDeltaPartialTick(true)
 
 inline val String?.noFormatting: String?
     get() = ChatFormatting.stripFormatting(this)
@@ -102,8 +102,8 @@ fun Vec3.aabb(snap: Double, width: Double, height: Double): AABB {
     return AABB(x - width, y - height, z - width, x + width, y + height, z + width)
 }
 
-fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ClickType = ClickType.PICKUP) {
-    mc.gameMode?.handleInventoryMouseClick(containerId, slotIndex, button, clickType, this)
+fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickType: ContainerInput = ContainerInput.PICKUP) {
+    mc.gameMode?.handleContainerInput(containerId, slotIndex, button, clickType, this)
 }
 
 fun ItemStack.uuid(): String? {

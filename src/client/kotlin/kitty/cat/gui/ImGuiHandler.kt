@@ -1,8 +1,8 @@
 package kitty.cat.gui
 
-import com.mojang.blaze3d.opengl.GlDevice
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.opengl.GlTexture
+import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.systems.RenderSystem
 import imgui.*
 import imgui.extension.implot.ImPlot
@@ -124,7 +124,7 @@ object ImGuiHandler {
         GlStateManager._glBindFramebuffer(
             GL30C.GL_FRAMEBUFFER,
             (framebuffer.getColorTexture() as GlTexture)
-                .getFbo((RenderSystem.getDevice() as GlDevice).directStateAccess(), null)
+                .getFboReflective(RenderSystem.getDevice().directStateAccessReflective(), null)
         )
         GL11C.glViewport(0, 0, framebuffer.width, framebuffer.height)
 
@@ -183,3 +183,10 @@ object ImGuiHandler {
         ImGui.destroyContext()
     }
 }
+
+private fun Any.directStateAccessReflective(): Any =
+    javaClass.getDeclaredMethod("directStateAccess").apply { isAccessible = true }.invoke(this)
+
+private fun GlTexture.getFboReflective(dsa: Any, depth: GpuTexture?): Int =
+    javaClass.methods.first { method -> method.name == "getFbo" && method.parameterCount == 2 }
+        .invoke(this, dsa, depth) as Int

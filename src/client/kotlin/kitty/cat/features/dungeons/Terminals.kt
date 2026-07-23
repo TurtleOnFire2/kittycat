@@ -6,7 +6,7 @@ import kitty.cat.gui.features.Feature
 import kitty.cat.utils.canInteract
 import kitty.cat.utils.drawLineBox
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.phys.EntityHitResult
 import java.awt.Color
@@ -28,7 +28,7 @@ object Terminals: Feature("Terminals", "", Categories.Category.DUNGEONS) {
             previousXZ = xy
             it.options.keyUse.clickCount++
         }
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled ||!showHitbox.value) return@register
             mc.level?.entitiesForRendering()?.filterIsInstance<ArmorStand>()?.forEach { entity ->
                 if (!entity.name.string.matches(terminalRegex)) return@forEach

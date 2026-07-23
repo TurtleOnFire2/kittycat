@@ -12,7 +12,7 @@ object Chat {
     fun send(string: Any) {
         try {
             val msg = string.toString()
-            mc.player?.displayClientMessage(Component.literal(PREFIX).append(Component.literal(msg)), false)
+            mc.player?.sendSystemMessage(Component.literal(PREFIX).append(Component.literal(msg)))
         } catch (e: Exception) {}
     }
 
@@ -32,7 +32,7 @@ object Chat {
                 .append(buttonComponent)
         }
 
-        player.displayClientMessage(text, false)
+        player.sendSystemMessage(text)
     }
 
     data class Clickable(

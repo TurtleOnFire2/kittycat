@@ -3,12 +3,12 @@ package kitty.cat.utils
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import kitty.cat.KittycatClient.mc
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
-import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.core.BlockPos
+import net.minecraft.util.LightCoordsUtil
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
@@ -213,34 +213,34 @@ object PrimitiveRenderer {
     }
 }
 
-fun WorldRenderContext.drawLine(
+fun LevelRenderContext.drawLine(
     startPos: Vec3,
     endPos: Vec3,
     color: Color,
     lineWidth: Float,
     depth: Boolean
-) = matrices().poseScopeWithCamera {
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.LINES)
-    else this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
+) = poseStack().poseScopeWithCamera {
+    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.LINES)
+    else this.bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
 
-    val pose = this.matrices().last()
+    val pose = this.poseStack().last()
     PrimitiveRenderer.drawLine(pose, buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
 }
 
-fun WorldRenderContext.drawLineFromCursor(
+fun LevelRenderContext.drawLineFromCursor(
     endPos: Vec3,
     color: Color,
     lineWidth: Float
-) = matrices().poseScopeWithCamera {
+) = poseStack().poseScopeWithCamera {
     val startPos = mc.player?.let { player ->
         player.renderPos.add(player.forward.add(0.0, player.eyeHeight.toDouble(), 0.0))
     } ?: return
 
-    val buffer = this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
+    val buffer = this.bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
     PrimitiveRenderer.drawLine(it.last(), buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
 }
 
-fun WorldRenderContext.drawCircle(
+fun LevelRenderContext.drawCircle(
     center: Vec3,
     radius: Double,
     segments: Int,
@@ -248,9 +248,9 @@ fun WorldRenderContext.drawCircle(
     width: Float = 3.0f,
     depth: Boolean = false
 ) {
-    val pose = this.matrices().last()
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.LINES)
-    else this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
+    val pose = this.poseStack().last()
+    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.LINES)
+    else this.bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
 
     val angleStep = 2.0 * Math.PI / segments
     for (i in 0 until segments) {
@@ -269,19 +269,19 @@ fun WorldRenderContext.drawCircle(
     }
 }
 
-fun WorldRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Boolean) {
+fun LevelRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Boolean) {
     val level = mc.level ?: return
 
     val block = level.getBlockState(pos)
     val shape = block.getShape(level, pos)
     if (shape.isEmpty) return
 
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.debugFilledBox())
-    else this.consumers().getBuffer(RenderLayers.QUADS_THROUGH_WALLS)
+    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.debugFilledBox())
+    else this.bufferSource().getBuffer(RenderLayers.QUADS_THROUGH_WALLS)
 
     val camera = mc.gameRenderer.mainCamera.position()
 
-    val matrices = this.matrices()
+    val matrices = this.poseStack()
     matrices.pushPose()
     matrices.translate(
         pos.x - camera.x,
@@ -304,7 +304,7 @@ fun WorldRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Bool
     matrices.popPose()
 }
 
-fun WorldRenderContext.drawString(
+fun LevelRenderContext.drawString(
     text: String,
     pos: Vec3,
     color: Int = -1,
@@ -324,7 +324,7 @@ fun WorldRenderContext.drawString(
     val distFactor = (dist * 0.02f).coerceIn(0.5f, 25f)
     val finalScale = scale * distFactor
 
-    val stack = this.matrices()
+    val stack = this.poseStack()
     stack.pushPose()
 
     val s = finalScale * 0.025f
@@ -343,34 +343,34 @@ fun WorldRenderContext.drawString(
             color,
             shadow,
             stack.last().pose(),
-            this.consumers(),
+            this.bufferSource(),
             if (depth) Font.DisplayMode.NORMAL else Font.DisplayMode.SEE_THROUGH,
             0,
-            LightTexture.FULL_BRIGHT
+            LightCoordsUtil.FULL_BRIGHT
         )
     }
 
     stack.popPose()
 }
 
-fun WorldRenderContext.drawLineBox(
+fun LevelRenderContext.drawLineBox(
     aabb: AABB,
     color: Color,
     thickness: Float,
     depth: Boolean
-) = matrices().poseScopeWithCamera {
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.LINES) else this.consumers().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-    PrimitiveRenderer.renderLineBox(this.matrices().last(), buffer, aabb, color.rgb, thickness)
+) = poseStack().poseScopeWithCamera {
+    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.LINES) else this.bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
+    PrimitiveRenderer.renderLineBox(this.poseStack().last(), buffer, aabb, color.rgb, thickness)
 }
 
-fun WorldRenderContext.drawFilled(
+fun LevelRenderContext.drawFilled(
     aabb: AABB,
     color: Color,
     depth: Boolean
-) = matrices().poseScopeWithCamera {
-    val buffer = if (depth) this.consumers().getBuffer(RenderTypes.debugFilledBox()) else this.consumers().getBuffer(
+) = poseStack().poseScopeWithCamera {
+    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.debugFilledBox()) else this.bufferSource().getBuffer(
         RenderLayers.QUADS_THROUGH_WALLS)
-    PrimitiveRenderer.addChainedFilledBoxVertices(this.matrices().last(), buffer, aabb, color.rgb)
+    PrimitiveRenderer.addChainedFilledBoxVertices(this.poseStack().last(), buffer, aabb, color.rgb)
 }
 
 inline fun PoseStack.poseScopeWithCamera(block: (PoseStack) -> Unit) = poseScope {

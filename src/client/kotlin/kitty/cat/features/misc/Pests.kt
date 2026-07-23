@@ -4,7 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.features.Feature
 import kitty.cat.utils.drawLineFromCursor
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.decoration.ArmorStand
@@ -39,7 +39,7 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
     )
 
     fun register() {
-        WorldRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.END_MAIN.register { ctx ->
             if (!pestEsp.value || !enabled) return@register
             mc.level?.entitiesForRendering()?.forEach {
                 if (it !is ArmorStand) return@forEach

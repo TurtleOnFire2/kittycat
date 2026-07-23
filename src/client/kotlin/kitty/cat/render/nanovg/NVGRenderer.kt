@@ -48,8 +48,7 @@ object NVGRenderer {
     fun beginFrame(width: Float, height: Float) {
         ensureInit()
         if (drawing) return
-        val dpr = devicePixelRatio()
-        nvgBeginFrame(vg, width / dpr, height / dpr, dpr)
+        nvgBeginFrame(vg, width, height, 1f)
         nvgTextAlign(vg, NVG_ALIGN_LEFT or NVG_ALIGN_TOP)
         drawing = true
     }
