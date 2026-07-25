@@ -11,11 +11,4 @@ object RenderLayers {
             .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
             .createRenderSetup()
     )
-
-    val QUADS_THROUGH_WALLS = RenderType.create(
-        "quads_through_walls",
-        RenderSetup.builder(RenderPipelines.QUADS_THROUGH_WALLS)
-            .sortOnUpload()
-            .createRenderSetup()
-    )
 }

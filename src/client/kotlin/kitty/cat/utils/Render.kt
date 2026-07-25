@@ -234,7 +234,7 @@ fun LevelRenderContext.drawLineFromCursor(
 ) = poseStack().poseScopeWithCamera {
     val startPos = mc.player?.let { player ->
         player.renderPos.add(player.forward.add(0.0, player.eyeHeight.toDouble(), 0.0))
-    } ?: return
+    } ?: return@poseScopeWithCamera
 
     val buffer = this.bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
     PrimitiveRenderer.drawLine(it.last(), buffer, startPos, endPos, color.rgb, color.rgb, lineWidth)
@@ -276,8 +276,7 @@ fun LevelRenderContext.drawBlockOverlay(pos: BlockPos, color: Color, depth: Bool
     val shape = block.getShape(level, pos)
     if (shape.isEmpty) return
 
-    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.debugFilledBox())
-    else this.bufferSource().getBuffer(RenderLayers.QUADS_THROUGH_WALLS)
+    val buffer = ImmediateRenderer.getBuffer(if (depth) RenderPipelines.FILLED else RenderPipelines.FILLED_THROUGH_WALLS)
 
     val camera = mc.gameRenderer.mainCamera.position()
 
@@ -367,10 +366,10 @@ fun LevelRenderContext.drawFilled(
     aabb: AABB,
     color: Color,
     depth: Boolean
-) = poseStack().poseScopeWithCamera {
-    val buffer = if (depth) this.bufferSource().getBuffer(RenderTypes.debugFilledBox()) else this.bufferSource().getBuffer(
-        RenderLayers.QUADS_THROUGH_WALLS)
-    PrimitiveRenderer.addChainedFilledBoxVertices(this.poseStack().last(), buffer, aabb, color.rgb)
+) {
+    val camera = mc.gameRenderer.mainCamera.position()
+    val buffer = ImmediateRenderer.getBuffer(if (depth) RenderPipelines.FILLED else RenderPipelines.FILLED_THROUGH_WALLS)
+    PrimitiveRenderer.addChainedFilledBoxVertices(this.poseStack().last(), buffer, aabb.move(-camera.x, -camera.y, -camera.z), color.rgb)
 }
 
 inline fun PoseStack.poseScopeWithCamera(block: (PoseStack) -> Unit) = poseScope {

@@ -21,7 +21,9 @@ import kitty.cat.gui.features.Feature
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
+import kitty.cat.utils.ImmediateRenderer
 import kitty.cat.utils.LocationUtils
+import kitty.cat.utils.RenderLayers
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument
@@ -60,6 +62,10 @@ object KittycatClient : ClientModInitializer {
 	var keybindShowHud: KeyMapping? = null
 
 	override fun onInitializeClient() {
+		// Force class-init so the custom render pipelines are registered before the
+		// renderer precompiles static pipelines, not lazily mid-frame on first draw.
+		RenderLayers.LINES_THROUGH_WALLS
+
 		PictureInPictureRendererRegistry.register { ctx -> NVGPIPRenderer(ctx.bufferSource()) }
 
 		ConfigManager.initialize(featureList)
@@ -266,5 +272,7 @@ object KittycatClient : ClientModInitializer {
 		Terminals.register()
 		LeverTriggerbot.register()
 		LocationUtils.register()
+		// Must register after all features so its END_MAIN handler flushes their draws.
+		ImmediateRenderer.register()
 	}
 }
