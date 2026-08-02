@@ -4,6 +4,7 @@ import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
+import kitty.cat.features.kuudra.RendMacro;
 import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
@@ -53,5 +54,10 @@ public class ClientPlayNetworkHandleMixin {
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)
     void handleOpenScreen(ClientboundOpenScreenPacket clientboundOpenScreenPacket, CallbackInfo ci) {
         Storm.INSTANCE.handleScreen(clientboundOpenScreenPacket);
+    }
+
+    @Inject(method = "handleMovePlayer(Lnet/minecraft/network/protocol/game/ClientboundPlayerPositionPacket;)V", at = @At("TAIL"))
+    void handleMovePlayer(ClientboundPlayerPositionPacket packet, CallbackInfo ci) {
+        RendMacro.INSTANCE.onPositionChange(packet);
     }
 }

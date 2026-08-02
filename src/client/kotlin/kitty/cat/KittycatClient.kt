@@ -9,6 +9,8 @@ import kitty.cat.features.dungeons.Relics
 import kitty.cat.features.dungeons.Storm
 import kitty.cat.features.dungeons.Terminals
 import kitty.cat.features.huds.BestiaryHud
+import kitty.cat.features.kuudra.BoneUtils
+import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.visual.ArrowTracers
@@ -272,6 +274,7 @@ object KittycatClient : ClientModInitializer {
 		Terminals.register()
 		LeverTriggerbot.register()
 		LocationUtils.register()
+		BoneUtils.register()
 		// Must register after all features so its END_MAIN handler flushes their draws.
 		ImmediateRenderer.register()
 	}

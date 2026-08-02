@@ -8,6 +8,7 @@ import kitty.cat.gui.features.settings.BooleanSetting
 import kitty.cat.gui.features.settings.ColorSetting
 import kitty.cat.gui.features.settings.KeybindSetting
 import kitty.cat.gui.features.settings.NumberSetting
+import kitty.cat.gui.features.settings.OrderSetting
 import kitty.cat.gui.features.settings.SelectorSetting
 import kitty.cat.gui.features.settings.Setting
 import kitty.cat.gui.features.settings.StringSetting
@@ -189,6 +190,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var draggingHueSetting: ColorSetting? = null
     private var draggingAlphaSetting: ColorSetting? = null
     private var draggingSaturationBrightnessSetting: ColorSetting? = null
+    private var draggingOrderSetting: OrderSetting? = null
+    private var draggingOrderIndex = -1
 
     private var textInputSession: TextInputSession? = null
     private var openColorPickerFor: ColorSetting? = null
@@ -582,6 +585,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             height = FEATURE_SETTING_ROW_HEIGHT
         )
     }
+    private fun orderOptionRect(layout: SettingLayout, index: Int) = Rect(
+        layout.x + 8,
+        layout.y + FEATURE_SETTING_ROW_HEIGHT + index * FEATURE_SETTING_ROW_HEIGHT,
+        layout.width - 10,
+        FEATURE_SETTING_ROW_HEIGHT
+    )
 
     private fun keybindRect(layout: SettingLayout): Rect {
         return Rect(
@@ -1146,6 +1155,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                                 return true
                             }
                         }
+                        is OrderSetting -> {
+                            if (button != LEFT_MOUSE_BUTTON) return@forEach
+                            setting.order.indices.firstOrNull { orderOptionRect(settingLayout, it).contains(mouseX, mouseY) }?.let {
+                                draggingOrderSetting = setting
+                                draggingOrderIndex = it
+                                return true
+                            }
+                        }
 
                         is ColorSetting -> {
                             if (!settingLayout.contains(mouseX, mouseY)) return@forEach
@@ -1187,6 +1204,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         draggingHueSetting = null
         draggingAlphaSetting = null
         draggingSaturationBrightnessSetting = null
+        draggingOrderSetting = null
+        draggingOrderIndex = -1
         return super.mouseReleased(mouseButtonEvent)
     }
 
@@ -1199,6 +1218,15 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val mouseX = mouseButtonEvent.x()
         val mouseY = mouseButtonEvent.y()
+        draggingOrderSetting?.let { setting ->
+            val layout = findSettingLayout(setting) ?: return@let
+            val target = ((mouseY - layout.y - FEATURE_SETTING_ROW_HEIGHT) / FEATURE_SETTING_ROW_HEIGHT).toInt().coerceIn(0, setting.order.lastIndex)
+            if (target != draggingOrderIndex) {
+                setting.move(draggingOrderIndex, target)
+                draggingOrderIndex = target
+            }
+            return true
+        }
 
         draggingNumberSetting?.let { setting ->
             findSettingLayout(setting)?.let { layout ->
@@ -1352,6 +1380,17 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             is StringSetting -> renderStringSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
             is ColorSetting -> renderColorSetting(GuiGraphicsExtractor, settingLayout, setting)
             is ActionSetting -> renderActionSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout)
+            is OrderSetting -> renderOrderSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+        }
+    }
+    private fun renderOrderSetting(graphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, layout: SettingLayout, setting: OrderSetting) {
+        setting.order.forEachIndexed { index, option ->
+            val rect = orderOptionRect(layout, index)
+            val dragging = draggingOrderSetting === setting && draggingOrderIndex == index
+            GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, if (dragging) sidebarSelectedColor() else fieldFillColor())
+            GuiUtils.renderRoundedOutline(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, 1, if (dragging) accentBrightBorderColor() else accentDimColor())
+            drawText(graphics, sw, sh, scale, "=", (rect.x + 3).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textMutedColor())
+            drawText(graphics, sw, sh, scale, option, (rect.x + 13).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textPrimaryColor())
         }
     }
 
@@ -1833,6 +1872,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private fun settingHeight(setting: Setting): Int {
         return when (setting) {
+            is OrderSetting -> FEATURE_SETTING_ROW_HEIGHT * (setting.options.size + 1)
             is ColorSetting -> FEATURE_SETTING_ROW_HEIGHT
             is SelectorSetting -> FEATURE_SETTING_ROW_HEIGHT
             else -> FEATURE_SETTING_ROW_HEIGHT

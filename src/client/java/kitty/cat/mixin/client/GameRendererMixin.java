@@ -14,9 +14,13 @@ public class GameRendererMixin {
     @Inject(method = "render", at = @At("RETURN"))
     private void render(DeltaTracker tickCounter, boolean tick, CallbackInfo ci) {
         if (net.minecraft.client.Minecraft.getInstance().screen instanceof final ImGuiHandler.RenderInterface renderInterface) {
-            ImGuiHandler.INSTANCE.start();
-            renderInterface.render(ImGui.getIO());
-            ImGuiHandler.INSTANCE.end();
+            if (ImGuiHandler.INSTANCE.start()) {
+                try {
+                    renderInterface.render(ImGui.getIO());
+                } finally {
+                    ImGuiHandler.INSTANCE.end();
+                }
+            }
         }
     }
 }

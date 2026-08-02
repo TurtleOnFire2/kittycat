@@ -17,6 +17,7 @@
   },
   "mixins": [
     "BowItemMixin",
+    "ClientLevelMixin",
     "ConnectionMixin"
   ]
 }

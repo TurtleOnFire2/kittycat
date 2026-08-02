@@ -7,6 +7,7 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.ContainerInput
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.phys.AABB
@@ -108,4 +109,20 @@ fun Player.clickSlot(containerId: Int, slotIndex: Int, button: Int = 0, clickTyp
 
 fun ItemStack.uuid(): String? {
     return getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getString("id").getOrNull()
+}
+
+fun hotbarSlotFromID(id: String): Int? {
+    for (i in 0 .. 7) {
+        val item = mc.player!!.inventory.getItem(i)
+        if (item.uuid() == id) return i
+    }
+    return null
+}
+
+fun hotbarSlotFromItem(item: Item): Int? {
+    for (i in 0 .. 7) {
+        val itemStack = mc.player!!.inventory.getItem(i)
+        if (itemStack.item == item) return i
+    }
+    return null
 }

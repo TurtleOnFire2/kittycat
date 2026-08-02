@@ -1,9 +1,6 @@
 package kitty.cat.gui
 
 import com.mojang.blaze3d.opengl.GlStateManager
-import com.mojang.blaze3d.opengl.GlTexture
-import com.mojang.blaze3d.textures.GpuTexture
-import com.mojang.blaze3d.systems.RenderSystem
 import imgui.*
 import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiConfigFlags
@@ -119,26 +116,29 @@ object ImGuiHandler {
         imGuiStyle.setColor(45, 0.28f, 0.28f, 0.30f, 1.0f)
     }
 
-    fun start() {
+    private var frameStarted = false
+    private var previousFramebuffer = 0
+
+    fun start(): Boolean {
+        if (frameStarted) return false
         val framebuffer = Minecraft.getInstance().mainRenderTarget
-        GlStateManager._glBindFramebuffer(
-            GL30C.GL_FRAMEBUFFER,
-            (framebuffer.getColorTexture() as GlTexture)
-                .getFboReflective(RenderSystem.getDevice().directStateAccessReflective(), null)
-        )
+        previousFramebuffer = GL11C.glGetInteger(GL30C.GL_FRAMEBUFFER_BINDING)
         GL11C.glViewport(0, 0, framebuffer.width, framebuffer.height)
 
         imGuiGl3.newFrame()
         imGuiGlfw.newFrame()
         ImGui.newFrame()
+        frameStarted = true
+        return true
     }
 
     fun end() {
+        if (!frameStarted) return
         ImGui.render()
 
         imGuiGl3.renderDrawData(ImGui.getDrawData())
 
-        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0)
+        GlStateManager._glBindFramebuffer(GL30.GL_FRAMEBUFFER, previousFramebuffer)
 
         if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
             val ptr = glfwGetCurrentContext()
@@ -147,6 +147,7 @@ object ImGuiHandler {
 
             glfwMakeContextCurrent(ptr)
         }
+        frameStarted = false
     }
 
     var glyphRanges: ShortArray? = null
@@ -183,10 +184,3 @@ object ImGuiHandler {
         ImGui.destroyContext()
     }
 }
-
-private fun Any.directStateAccessReflective(): Any =
-    javaClass.getDeclaredMethod("directStateAccess").apply { isAccessible = true }.invoke(this)
-
-private fun GlTexture.getFboReflective(dsa: Any, depth: GpuTexture?): Int =
-    javaClass.methods.first { method -> method.name == "getFbo" && method.parameterCount == 2 }
-        .invoke(this, dsa, depth) as Int
