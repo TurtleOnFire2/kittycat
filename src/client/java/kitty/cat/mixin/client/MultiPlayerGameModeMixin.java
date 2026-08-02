@@ -1,7 +1,7 @@
 package kitty.cat.mixin.client;
 
 import kitty.cat.features.dungeons.Storm;
-import kitty.cat.features.kuudra.BoneUtils;
+import kitty.cat.utils.BoneUtils;
 import kitty.cat.features.kuudra.RendMacro;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.InteractionHand;

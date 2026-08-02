@@ -1,14 +1,12 @@
-package kitty.cat.features.kuudra
+package kitty.cat.utils
 
-import kitty.cat.utils.Chat
+import kitty.cat.features.huds.BackboneHud
 import kitty.cat.utils.Schedule.schedule
-import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.Display
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
@@ -35,7 +33,7 @@ object BoneUtils {
             val relPos = throwOrigin?.subtract(entity.position()) ?: return
             if (relPos.x in -0.3..0.3 && relPos.z in -0.3..0.3 && awaitBone) {
                 Chat.send("BONE FOUND")
-                schedule(1) {
+                Schedule.schedule(1) {
                     addBone(entity)
                 }
             }
@@ -51,7 +49,7 @@ object BoneUtils {
         awaitBone = true
         throwOrigin = player.position()
 
-        schedule(12) {
+        Schedule.schedule(12) {
             awaitBone = false
         }
     }
@@ -91,7 +89,10 @@ object BoneUtils {
                     if (dot < 0.995) {
                         returning = true
                         if (curr == null) return
-                        val pos = curr!!.add(0.0, 1.75, 0.0)
+                        BackboneHud.render = true
+                        schedule(10) {
+                            BackboneHud.render = false
+                        }
                     }
                 }
             }
