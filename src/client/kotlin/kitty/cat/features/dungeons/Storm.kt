@@ -182,8 +182,10 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
         if (player.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG" && necron && autoSwapCritItem.value && player.y > 20) {
-            mc.connection?.sendCommand("wd")
-            swapping = true
+            if (autoSwapArmor.value) {
+                mc.connection?.sendCommand("wd")
+                swapping = true
+            }
             schedule(swapDelay.value) {
                 if (player.inventory.selectedSlot == swapSlot.value.toInt() - 1) return@schedule
                 player.inventory.selectedSlot = swapSlot.value.toInt() - 1
