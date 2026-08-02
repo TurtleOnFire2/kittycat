@@ -2,8 +2,9 @@ package kitty.cat.features.dungeons
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import kitty.cat.utils.Chat
+import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
 import kitty.cat.utils.clickSlot
@@ -11,7 +12,6 @@ import kitty.cat.utils.getLook
 import kitty.cat.utils.normalizeYaw
 import kitty.cat.utils.renderPos
 import kitty.cat.utils.rotate
-import kitty.cat.utils.drawFilled
 import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
@@ -21,8 +21,6 @@ import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.LivingEntity
-import net.minecraft.world.entity.boss.wither.WitherBoss
-import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.BowItem
 import net.minecraft.world.item.ItemStack
@@ -82,8 +80,8 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 sneak = true
             }
             if (storm) {
-                ctx.drawFilled(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, false)
-                ctx.drawFilled(stormPos.aabb(0.2), Color.CYAN, false)
+                ctx.renderBoxBounds(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, phase = false)
+                ctx.renderBoxBounds(stormPos.aabb(0.2), Color.CYAN, phase = false)
 
             }
             if (!aiming) return@register

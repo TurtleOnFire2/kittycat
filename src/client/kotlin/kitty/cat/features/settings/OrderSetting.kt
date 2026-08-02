@@ -1,4 +1,4 @@
-package kitty.cat.gui.features.settings
+package kitty.cat.features.settings
 import kitty.cat.config.ConfigManager
 class OrderSetting(override val name: String, options: List<String>, defaultOrder: List<String> = options, override val description: String = "") : Setting {
     val options = options.distinct()

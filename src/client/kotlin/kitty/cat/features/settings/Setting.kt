@@ -1,4 +1,4 @@
-package kitty.cat.gui.features.settings
+package kitty.cat.features.settings
 
 interface Setting {
     val name: String

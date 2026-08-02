@@ -4,14 +4,13 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import kitty.cat.utils.Chat
+import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.renderString
+import kitty.cat.render.world.Render3D.renderTracer
 import kitty.cat.utils.name
 import kitty.cat.utils.round
-import kitty.cat.utils.drawFilled
-import kitty.cat.utils.drawLineBox
-import kitty.cat.utils.drawLineFromCursor
-import kitty.cat.utils.drawString
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
@@ -85,22 +84,22 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
 
                     val h = e.bbHeight
 
-                    ctx.drawString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0), -1)
-                    ctx.drawString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0), -1)
-                    ctx.drawString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0), -1)
-                    ctx.drawLineBox(e.boundingBox, Color.WHITE, 3f, true)
+                    ctx.renderString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0))
+                    ctx.renderString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0))
+                    ctx.renderString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0))
+                    ctx.renderBoxBounds(e.boundingBox, Color.WHITE, phase = true)
                     if (e !is LivingEntity) return@forEach
-                    ctx.drawString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0), -1)
-                    ctx.drawString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0), -1)
+                    ctx.renderString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0))
+                    ctx.renderString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0))
                 }
             }
 
             entities.forEach{
-                ctx.drawFilled(it.boundingBox, color.color, false)
+                ctx.renderBoxBounds(it.boundingBox, color.color, phase = false)
             }
             tracers.forEach{
                 val height = it.boundingBox.ysize
-                ctx.drawLineFromCursor(it.position().add(0.0, height / 2.0, 0.0), color.color, 3.0f)
+                ctx.renderTracer(it.position().add(0.0, height / 2.0, 0.0), color.color, 3.0f)
             }
         }
     }

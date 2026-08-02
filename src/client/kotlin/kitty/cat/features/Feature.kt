@@ -1,16 +1,16 @@
-package kitty.cat.gui.features
+package kitty.cat.features
 
 import kitty.cat.config.ConfigManager
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.settings.ActionSetting
-import kitty.cat.gui.features.settings.BooleanSetting
-import kitty.cat.gui.features.settings.ColorSetting
-import kitty.cat.gui.features.settings.KeybindSetting
-import kitty.cat.gui.features.settings.NumberSetting
-import kitty.cat.gui.features.settings.OrderSetting
-import kitty.cat.gui.features.settings.SelectorSetting
-import kitty.cat.gui.features.settings.Setting
-import kitty.cat.gui.features.settings.StringSetting
+import kitty.cat.features.settings.ActionSetting
+import kitty.cat.features.settings.BooleanSetting
+import kitty.cat.features.settings.ColorSetting
+import kitty.cat.features.settings.KeybindSetting
+import kitty.cat.features.settings.NumberSetting
+import kitty.cat.features.settings.OrderSetting
+import kitty.cat.features.settings.SelectorSetting
+import kitty.cat.features.settings.Setting
+import kitty.cat.features.settings.StringSetting
 
 abstract class Feature {
     internal val name: String

@@ -1,18 +1,31 @@
 package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
+import kitty.cat.features.Feature
+import kitty.cat.features.dungeons.Storm.clickDelay
+import kitty.cat.features.dungeons.Storm.swapWardrobeSlot
+import kitty.cat.features.dungeons.Storm.swapping
+import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.BooleanSetting
-import kitty.cat.gui.features.settings.NumberSetting
-import kitty.cat.gui.features.settings.OrderSetting
+import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
+import kitty.cat.utils.clickSlot
+import kitty.cat.utils.getLoadoutIndex
 import kitty.cat.utils.hotbarSlotFromID
 import kitty.cat.utils.hotbarSlotFromItem
 import kitty.cat.utils.uuid
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Items
+import net.minecraft.world.phys.AABB
+import java.awt.Color
 
 object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
@@ -22,15 +35,47 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoRod = booleanSetting("Auto rod", false)
     val boneDelay = numberSetting("Bone delay", 1.0, 20.0, 6.0, "", 1.0)
     val autoThrowBone = booleanSetting("Auto throw bone", false)
+    val offsetRight = numberSetting("Offset right",  -2.5, 2.5, 0.0)
+    val offsetLeft = numberSetting("Offset left",  -2.5, 2.5, 0.0)
+    val offsetBack = numberSetting("Offset back",  -2.5, 2.5, 0.0)
+    val offsetFront = numberSetting("Offset front",  -2.5, 2.5, 0.0)
+    val renderArea = booleanSetting("Render area", false, "Rendering is broken only for this? Idk why")
+    val autoHalberd = booleanSetting("Auto halberd", false)
+    val autoLoadout = booleanSetting("Auto loadout", false)
+    val loadoutSlot = numberSetting("Loadout slot", 1.0, 14.0, 1.0, "", 1.0)
+    val clickDelay = numberSetting("Click delay", 1.0, 10.0, 1.0, "", 1.0)
+    val autoPull = booleanSetting("Auto pull on ice spray", false)
+    val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
 
-    private val wardrobeRegex = Regex("Wardrobe \\((\\d)/(\\d)\\)")
-    private var clickWardrobe = false
+    private var clickLoadout = false
 
     private var edging = false
     private var throwBone = false
     private var rodThrow = System.currentTimeMillis()
 
+    fun register() {
+        ClientTickEvents.END_CLIENT_TICK.register {
+            if (mc.player == null) return@register
+            checkBoneAndEdge()
+        }
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (mc.level == null || !renderArea.value) return@register
+
+            val aabb = AABB(
+                -111.0 - offsetRight.value,
+                6.0,
+                -118.0 - offsetBack.value,
+                -95.0 + offsetLeft.value,
+                0.0,
+                -97.0 + offsetFront.value,
+            )
+            ctx.renderBoxBounds(aabb, Color.RED, phase = true)
+        }
+    }
+
     fun onPositionChange(packet: ClientboundPlayerPositionPacket) {
+        if (!enabled) return
+
         val pos = packet.change.position
         val x = pos.x; val y = pos.y; val z = pos.z
 
@@ -88,14 +133,81 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             }
             schedule(2) {
                 mc.player!!.inventory.selectedSlot = boneSlot
-                }
+            }
         }
     }
 
-    fun backBone() {
+    fun checkBoneAndEdge() {
+        if (mc.level?.getBlockState(mc.player?.blockPosition()!!.below())?.isAir == true && edging) {
+            mc.options.keyJump.isDown = true
+            edging = false
+            schedule(2) { mc.options.keyJump.isDown = false }
+        }
 
+        val pos = mc.player?.position() ?: return
+
+        if (
+            throwBone && (
+                    pos.x !in (-111.0 - offsetRight.value)..(-95.0 + offsetLeft.value)
+                            || pos.z !in (-118.0 - offsetBack.value)..(-97.0 + offsetFront.value))
+            && pos.y == 6.0
+        ) {
+            if (System.currentTimeMillis() - rodThrow < boneDelay.value * 50) return
+            if (mc.player?.mainHandItem?.uuid() != "STARRED_BONE_BOOMERANG") return
+            mc.options.keyUse.clickCount++
+            throwBone = false
+        }
     }
 
+    fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
+        if (!enabled) return
+
+        if (result !is InteractionResult.Pass) return
+
+        if (mc.player?.y != 6.0) return
+
+        val item = player.getItemInHand(interactionHand)
+        if (item.uuid() == "STARRED_BONE_BOOMERANG" && autoHalberd.value) {
+            val slot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return
+            mc.player?.inventory?.selectedSlot = slot
+            schedule(1) {
+                mc.options.keyUse.clickCount++
+            }
+        }
+
+        if (item.uuid() == "AXE_OF_THE_SHREDDED") {
+            if (autoLoadout.value) {
+                mc.connection?.sendCommand("loadout")
+                clickLoadout = true
+            }
+        }
+
+        if (item.uuid() == "STARRED_ICE_SPRAY_WAND") {
+            if (autoPull.value) {
+               mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
+                schedule(2) {
+                    mc.options.keyAttack.clickCount++
+                }
+            }
+        }
+    }
+
+    fun openScreen(packet: ClientboundOpenScreenPacket) {
+        if (!packet.title.string.contains("Loadout") || !clickLoadout || mc.player == null) return
+        clickLoadout = false
+
+        schedule(clickDelay.value, true) {
+            val sc = mc.screen as? AbstractContainerScreen<*> ?: return@schedule
+            if (!packet.title.string.contains("Loadout")) return@schedule
+
+            mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(loadoutSlot.value.toInt()))
+            schedule(0) {
+                if (mc.player?.containerMenu != null) {
+                    mc.player!!.closeContainer()
+                }
+            }
+        }
+    }
     private fun clickByString(string: String) {
         if (string == "Left click") {
             mc.options.keyAttack.clickCount++

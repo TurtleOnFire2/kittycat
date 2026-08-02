@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files

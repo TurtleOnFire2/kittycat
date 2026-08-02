@@ -54,6 +54,7 @@ public class ClientPlayNetworkHandleMixin {
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)
     void handleOpenScreen(ClientboundOpenScreenPacket clientboundOpenScreenPacket, CallbackInfo ci) {
         Storm.INSTANCE.handleScreen(clientboundOpenScreenPacket);
+        RendMacro.INSTANCE.openScreen(clientboundOpenScreenPacket);
     }
 
     @Inject(method = "handleMovePlayer(Lnet/minecraft/network/protocol/game/ClientboundPlayerPositionPacket;)V", at = @At("TAIL"))

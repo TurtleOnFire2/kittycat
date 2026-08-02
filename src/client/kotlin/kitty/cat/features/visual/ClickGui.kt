@@ -3,8 +3,8 @@ package kitty.cat.features.visual
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.clickgui.ClickGui as ClickGuiScreen
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.KeybindSetting
+import kitty.cat.features.Feature
+import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGFont
 import kitty.cat.render.nanovg.NVGRenderer
 import org.lwjgl.glfw.GLFW

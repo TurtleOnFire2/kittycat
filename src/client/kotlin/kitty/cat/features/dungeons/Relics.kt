@@ -2,9 +2,9 @@ package kitty.cat.features.dungeons
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
+import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.canInteract
-import kitty.cat.utils.drawLineBox
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
@@ -39,7 +39,7 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled || !renderSpawnBox.value || !render) return@register
             Relic.entries.forEach {
-                ctx.drawLineBox(it.aabb, if (it.aabb.canInteract()) Color.GREEN else Color.RED, 3f, true)
+                ctx.renderBoxBounds(it.aabb, if (it.aabb.canInteract()) Color.GREEN else Color.RED, phase = true)
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->

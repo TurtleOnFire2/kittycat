@@ -1,4 +1,4 @@
-package kitty.cat.gui.features.settings
+package kitty.cat.features.settings
 
 import kitty.cat.config.ConfigManager
 import org.lwjgl.glfw.GLFW

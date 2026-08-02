@@ -1,7 +1,7 @@
 package kitty.cat.features.dungeons
 
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.add
 import kitty.cat.utils.canInteract

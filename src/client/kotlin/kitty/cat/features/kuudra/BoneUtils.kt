@@ -92,7 +92,6 @@ object BoneUtils {
                         returning = true
                         if (curr == null) return
                         val pos = curr!!.add(0.0, 1.75, 0.0)
-                        RendMacro.backBone()
                     }
                 }
             }

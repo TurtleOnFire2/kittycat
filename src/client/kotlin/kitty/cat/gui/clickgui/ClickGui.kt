@@ -2,16 +2,16 @@ package kitty.cat.gui.clickgui
 
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.ActionSetting
-import kitty.cat.gui.features.settings.BooleanSetting
-import kitty.cat.gui.features.settings.ColorSetting
-import kitty.cat.gui.features.settings.KeybindSetting
-import kitty.cat.gui.features.settings.NumberSetting
-import kitty.cat.gui.features.settings.OrderSetting
-import kitty.cat.gui.features.settings.SelectorSetting
-import kitty.cat.gui.features.settings.Setting
-import kitty.cat.gui.features.settings.StringSetting
+import kitty.cat.features.Feature
+import kitty.cat.features.settings.ActionSetting
+import kitty.cat.features.settings.BooleanSetting
+import kitty.cat.features.settings.ColorSetting
+import kitty.cat.features.settings.KeybindSetting
+import kitty.cat.features.settings.NumberSetting
+import kitty.cat.features.settings.OrderSetting
+import kitty.cat.features.settings.SelectorSetting
+import kitty.cat.features.settings.Setting
+import kitty.cat.features.settings.StringSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils

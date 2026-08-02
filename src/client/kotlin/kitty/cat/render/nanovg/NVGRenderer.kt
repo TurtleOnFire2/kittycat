@@ -142,7 +142,7 @@ object NVGRenderer {
         if (resourcePaths.isEmpty()) {
             listOf(
                 "assets/kittycat/font/onest_regular.ttf",
-                "font/WinkySans-Regular.ttf"
+                "assets/kittycat/font/WinkySans-Regular.ttf"
             ).forEach { path ->
                 if (findFontResource(path) != null) {
                     resourcePaths += path
@@ -163,7 +163,7 @@ object NVGRenderer {
 
         val fallback = requireFontResource(
             "assets/kittycat/font/onest_regular.ttf",
-            "font/WinkySans-Regular.ttf"
+            "assets/kittycat/font/WinkySans-Regular.ttf"
         )
         discovered["Default"] = NVGFont("Default", fallback)
         return discovered

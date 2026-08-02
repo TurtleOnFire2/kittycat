@@ -19,13 +19,12 @@ import kitty.cat.features.visual.CustomESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.KeybindSetting
+import kitty.cat.features.Feature
+import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
-import kitty.cat.utils.ImmediateRenderer
 import kitty.cat.utils.LocationUtils
-import kitty.cat.utils.RenderLayers
+import kitty.cat.render.world.RenderLayers
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument
@@ -260,6 +259,7 @@ object KittycatClient : ClientModInitializer {
 			)
 		}
 
+		RendMacro.register()
 		ArrowTracers.register()
 		AutoLB.register()
 		Pests.register()
@@ -275,7 +275,5 @@ object KittycatClient : ClientModInitializer {
 		LeverTriggerbot.register()
 		LocationUtils.register()
 		BoneUtils.register()
-		// Must register after all features so its END_MAIN handler flushes their draws.
-		ImmediateRenderer.register()
 	}
 }

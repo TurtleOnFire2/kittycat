@@ -2,8 +2,8 @@ package kitty.cat.features.misc
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
-import kitty.cat.utils.drawLineFromCursor
+import kitty.cat.features.Feature
+import kitty.cat.render.world.Render3D.renderTracer
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
@@ -50,7 +50,7 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
                 val gameProfile = profile.partialProfile()
                 val textures = gameProfile.properties.get("textures").firstOrNull()
                 if (pestSkull.contains(textures?.value)) {
-                    ctx.drawLineFromCursor(it.eyePosition, Color(255, 0, 0, 100), 3.0f)
+                    ctx.renderTracer(it.eyePosition, Color(255, 0, 0, 100), 3.0f)
                 }
             }
         }

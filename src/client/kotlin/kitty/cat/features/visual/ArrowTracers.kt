@@ -2,7 +2,7 @@ package kitty.cat.features.visual
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.Minecraft

@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import java.awt.Color
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.atan2
 import kotlin.math.pow
@@ -111,6 +112,40 @@ fun ItemStack.uuid(): String? {
     return getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getString("id").getOrNull()
 }
 
+fun String.addColor() = replace("&", "§")
+
+fun Color.setRed(r: Int): Color {
+    return Color(r, green, blue, alpha)
+}
+
+fun Color.setGreen(g: Int): Color {
+    return Color(red, g, blue, alpha)
+}
+
+fun Color.setBlue(b: Int): Color {
+    return Color(red, green, b, alpha)
+}
+
+fun Color.setAlpha(a: Int): Color {
+    return Color(red, green, blue, a)
+}
+
+fun Int.setRed(r: Int): Int {
+    return (this and 0x00FFFFFF) or (r.coerceIn(0, 255) shl 16)
+}
+
+fun Int.setGreen(g: Int): Int {
+    return (this and 0x00FFFFFF) or (g.coerceIn(0, 255) shl 8)
+}
+
+fun Int.setBlue(b: Int): Int {
+    return (this and 0x00FFFFFF) or b.coerceIn(0, 255)
+}
+
+fun Int.setAlpha(a: Int): Int {
+    return (this and 0x00FFFFFF) or (a.coerceIn(0, 255) shl 24)
+}
+
 fun hotbarSlotFromID(id: String): Int? {
     for (i in 0 .. 7) {
         val item = mc.player!!.inventory.getItem(i)
@@ -125,4 +160,13 @@ fun hotbarSlotFromItem(item: Item): Int? {
         if (itemStack.item == item) return i
     }
     return null
+}
+
+fun getLoadoutIndex(num: Int): Int {
+    val i = (num - 1) / 3
+    val j = (num - 1) % 3
+    val k = 14 + i * 9 + j
+
+    if (k !in 14..43) return -1
+    return k
 }

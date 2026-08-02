@@ -1,8 +1,8 @@
 package kitty.cat.features.debug
 
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.KeybindSetting
+import kitty.cat.features.Feature
+import kitty.cat.features.settings.KeybindSetting
 
 object ExampleFeature : Feature("Example Feature", "", Categories.Category.DEBUG) {
     val toggle = booleanSetting("Boolean Switch", true)
