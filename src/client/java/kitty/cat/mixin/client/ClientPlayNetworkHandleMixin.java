@@ -8,6 +8,7 @@ import kitty.cat.features.kuudra.RendMacro;
 import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
+import kitty.cat.utils.KuudraUtils;
 import kitty.cat.utils.LocationUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -49,6 +50,7 @@ public class ClientPlayNetworkHandleMixin {
         Storm.INSTANCE.handleChat(unformatted);
         Relics.INSTANCE.handleChat(unformatted);
         LocationUtils.INSTANCE.handleChat(unformatted);
+        KuudraUtils.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)

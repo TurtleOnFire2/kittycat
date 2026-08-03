@@ -2,13 +2,11 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
-import kitty.cat.features.dungeons.Storm.clickDelay
-import kitty.cat.features.dungeons.Storm.swapWardrobeSlot
-import kitty.cat.features.dungeons.Storm.swapping
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
-import kitty.cat.utils.Chat
+import kitty.cat.utils.KuudraUtils.dps
+import kitty.cat.utils.KuudraUtils.stun
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.clickSlot
 import kitty.cat.utils.getLoadoutIndex
@@ -16,7 +14,6 @@ import kitty.cat.utils.hotbarSlotFromID
 import kitty.cat.utils.hotbarSlotFromItem
 import kitty.cat.utils.renderPos
 import kitty.cat.utils.uuid
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.core.BlockPos
@@ -85,6 +82,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun onPositionChange(packet: ClientboundPlayerPositionPacket) {
         if (!enabled) return
 
+        if (!stun() && !dps()) return
+
         val pos = packet.change.position
         val x = pos.x; val y = pos.y; val z = pos.z
 
@@ -132,6 +131,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     fun startSequence() {
+        if (!dps()) return
+
         val rodSlot = hotbarSlotFromItem(Items.FISHING_ROD) ?: return
         val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return
         if (autoRod.value) mc.player!!.inventory.selectedSlot = rodSlot
@@ -147,6 +148,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     fun checkBoneAndEdge() {
+        if (!dps()) return
+
         val pos = mc.player?.renderPos ?: return
         val blockPos = BlockPos.containing(pos)
 
@@ -160,7 +163,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             throwBone && (
                     pos.x !in (-111.0 - offsetRight.value)..(-95.0 + offsetLeft.value)
                             || pos.z !in (-118.0 - offsetBack.value)..(-97.0 + offsetFront.value))
-            && pos.y == 6.0
         ) {
             if (System.currentTimeMillis() - rodThrow < boneDelay.value * 50) return
             if (mc.player?.mainHandItem?.uuid() != "STARRED_BONE_BOOMERANG") return
@@ -172,9 +174,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
         if (!enabled) return
 
-        if (result !is InteractionResult.Pass) return
+        if (!dps()) return
 
-        if (mc.player?.y != 6.0) return
+        if (result !is InteractionResult.Pass) return
 
         val item = player.getItemInHand(interactionHand)
         if (item.uuid() == "STARRED_BONE_BOOMERANG" && autoHalberd.value) {
