@@ -47,6 +47,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoPull = booleanSetting("Auto pull on ice spray", false)
     val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
 
+    val debug = booleanSetting("debug", false)
+
     private var clickLoadout = false
 
     private var edging = false
@@ -79,7 +81,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         val pos = packet.change.position
         val x = pos.x; val y = pos.y; val z = pos.z
 
-        if (x !in -102.0..-101.0 || y !in 5.0..7.0 || z !in -106.0..-105.0) return
+        if (x !in -102.0..-101.0 || y !in 5.0..7.0 || z !in -106.0..-105.0 && !debug.value) return
 
         if (autoSneak.value) {
             mc.options.keyShift.isDown = true
