@@ -14,10 +14,12 @@ import kitty.cat.utils.clickSlot
 import kitty.cat.utils.getLoadoutIndex
 import kitty.cat.utils.hotbarSlotFromID
 import kitty.cat.utils.hotbarSlotFromItem
+import kitty.cat.utils.renderPos
 import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.InteractionHand
@@ -61,12 +63,12 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     private var rodThrow = System.currentTimeMillis()
 
     fun register() {
-        ClientTickEvents.END_CLIENT_TICK.register {
-            if (mc.player == null) return@register
-            checkBoneAndEdge()
-        }
         LevelRenderEvents.END_MAIN.register { ctx ->
-            if (mc.level == null || !renderArea.value) return@register
+            if (mc.level == null || mc.player == null) return@register
+
+            checkBoneAndEdge()
+
+            if (!renderArea.value) return@register
 
             val aabb = AABB(
                 -111.0 - offsetRight.value,
@@ -145,13 +147,14 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     fun checkBoneAndEdge() {
-        if (mc.level?.getBlockState(mc.player?.blockPosition()!!.below())?.isAir == true && edging) {
+        val pos = mc.player?.renderPos ?: return
+        val blockPos = BlockPos.containing(pos)
+
+        if (mc.level?.getBlockState(blockPos.below())?.isAir == true && edging) {
             mc.options.keyJump.isDown = true
             edging = false
-            schedule(2) { mc.options.keyJump.isDown = false }
+            schedule(3) { mc.options.keyJump.isDown = false }
         }
-
-        val pos = mc.player?.position() ?: return
 
         if (
             throwBone && (
