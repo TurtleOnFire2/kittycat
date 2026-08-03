@@ -47,7 +47,12 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoPull = booleanSetting("Auto pull on ice spray", false)
     val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
 
-    val debug = booleanSetting("debug", false)
+    val key = keybindSetting("Trigger")
+
+    override fun onKeybindPressed(setting: KeybindSetting) {
+        if (!enabled) return
+        triggerMacro()
+    }
 
     private var clickLoadout = false
 
@@ -81,7 +86,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         val pos = packet.change.position
         val x = pos.x; val y = pos.y; val z = pos.z
 
-        if (x !in -102.0..-101.0 || y !in 5.0..7.0 || z !in -106.0..-105.0 && !debug.value) return
+        if (x !in -102.0..-101.0 || y !in 5.0..7.0 || z !in -106.0..-105.0) return
 
         if (autoSneak.value) {
             mc.options.keyShift.isDown = true
@@ -215,6 +220,50 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             mc.options.keyAttack.clickCount++
         } else if (string == "Right click") {
             mc.options.keyUse.clickCount++
+        }
+    }
+
+    fun triggerMacro() {
+        if (!enabled) return
+
+        if (autoSneak.value) {
+            mc.options.keyShift.isDown = true
+            schedule(2) { mc.options.keyShift.isDown = false }
+        }
+        if (autoJump.value) {
+            edging = true
+        }
+        if (autoThrowBone.value) {
+            throwBone = true
+        }
+        if (autoHollowWand.value) {
+            if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
+                clickByString(clickOrder.options[0])
+                schedule(2) {
+                    clickByString(clickOrder.options[1])
+                    schedule(2) {
+                        startSequence()
+                    }
+                }
+            } else {
+                val slot = hotbarSlotFromID("HOLLOW_WAND")
+
+                if (slot == null) {
+                    startSequence()
+                    return
+                }
+
+                mc.player!!.inventory.selectedSlot = slot
+                schedule(1) {
+                    clickByString(clickOrder.options[0])
+                    schedule(1) {
+                        clickByString(clickOrder.options[1])
+                        schedule(1) {
+                            startSequence()
+                        }
+                    }
+                }
+            }
         }
     }
 }
