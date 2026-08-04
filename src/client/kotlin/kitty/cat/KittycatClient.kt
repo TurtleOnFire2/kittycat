@@ -21,6 +21,7 @@ import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.features.Feature
 import kitty.cat.features.huds.BackboneHud
+import kitty.cat.features.kuudra.Stun
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
@@ -276,6 +277,7 @@ object KittycatClient : ClientModInitializer {
 		LeverTriggerbot.register()
 		LocationUtils.register()
 		BoneUtils.register()
+		Stun.register()
 
 		BackboneHud
 	}

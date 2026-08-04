@@ -4,12 +4,14 @@ import kitty.cat.KittycatClient.mc
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
+import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.ContainerInput
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
+import net.minecraft.world.item.component.ItemLore
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
@@ -170,3 +172,7 @@ fun getLoadoutIndex(num: Int): Int {
     if (k !in 14..43) return -1
     return k
 }
+
+inline val ItemStack.lore: List<Component>
+    get() =
+        getOrDefault(DataComponents.LORE, ItemLore.EMPTY).styledLines()
