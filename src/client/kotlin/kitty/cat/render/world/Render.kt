@@ -312,7 +312,7 @@ object Render3D {
             matrixStack.last(),
             minX,
             minY, minZ, maxX, maxY, maxZ, outlineColor.red / 255f,
-            outlineColor.green / 255f, outlineColor.blue / 255f, 1f, lineWidth.toFloat()
+            outlineColor.green / 255f, outlineColor.blue / 255f, outlineColor.alpha.toFloat(), lineWidth.toFloat()
         )
 
         matrixStack.popPose()

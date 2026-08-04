@@ -1,6 +1,7 @@
 package kitty.cat.utils
 
 import kitty.cat.features.huds.BackboneHud
+import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.utils.Schedule.schedule
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.world.InteractionHand
@@ -90,7 +91,7 @@ object BoneUtils {
                         returning = true
                         if (curr == null) return
                         BackboneHud.render = true
-                        schedule(10) {
+                        schedule(BackboneAlert.time.value) {
                             BackboneHud.render = false
                         }
                     }

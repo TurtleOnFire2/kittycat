@@ -10,9 +10,14 @@ plugins {
 version = providers.gradleProperty("mod_version").get()
 group = providers.gradleProperty("maven_group").get()
 val imgui_version = providers.gradleProperty("imgui_version").get()
+val minecraftVersion = providers.gradleProperty("minecraft_version").get()
 
 base {
 	archivesName = providers.gradleProperty("archives_base_name")
+}
+
+tasks.withType<AbstractArchiveTask>().configureEach {
+	archiveVersion = "${project.version}-$minecraftVersion"
 }
 
 repositories {

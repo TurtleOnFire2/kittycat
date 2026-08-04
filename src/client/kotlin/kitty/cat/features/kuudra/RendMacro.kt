@@ -6,6 +6,7 @@ import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.KuudraUtils.dps
+import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.stun
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.clickSlot
@@ -13,6 +14,7 @@ import kitty.cat.utils.getLoadoutIndex
 import kitty.cat.utils.hotbarSlotFromID
 import kitty.cat.utils.hotbarSlotFromItem
 import kitty.cat.utils.renderPos
+import kitty.cat.utils.setAlpha
 import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
@@ -75,7 +77,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 0.0,
                 -97.0 + offsetFront.value,
             )
-            ctx.renderBoxBounds(aabb, Color.RED, phase = true)
+            ctx.renderBoxBounds(aabb, Color.WHITE.setAlpha(0), Color.RED.setAlpha(64), phase = true)
         }
     }
 
@@ -84,10 +86,10 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         if (!stun() && !dps()) return
 
-        val pos = packet.change.position
-        val x = pos.x; val y = pos.y; val z = pos.z
+        if (!kuudra()) return
 
-        if (x !in -102.0..-101.0 || y !in 5.0..7.0 || z !in -106.0..-105.0) return
+        val pos = packet.change.position
+        if (pos.y > 10) return
 
         if (autoSneak.value) {
             mc.options.keyShift.isDown = true
@@ -103,7 +105,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
                 clickByString(clickOrder.options[0])
                 schedule(2) {
-                    clickByString(clickOrder.options[1])
+                    clickByString(clickOrder.options[1] )
                     schedule(2) {
                         startSequence()
                     }
@@ -131,6 +133,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     fun startSequence() {
+        if (!enabled) return
+
         if (!dps()) return
 
         val rodSlot = hotbarSlotFromItem(Items.FISHING_ROD) ?: return
@@ -148,6 +152,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     fun checkBoneAndEdge() {
+        if (!enabled) return
+
         if (!dps()) return
 
         val pos = mc.player?.renderPos ?: return
@@ -205,6 +211,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     fun openScreen(packet: ClientboundOpenScreenPacket) {
+        if (!enabled) return
+
         if (!packet.title.string.contains("Loadout") || !clickLoadout || mc.player == null) return
         clickLoadout = false
 
