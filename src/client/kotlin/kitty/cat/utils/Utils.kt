@@ -176,3 +176,11 @@ fun getLoadoutIndex(num: Int): Int {
 inline val ItemStack.lore: List<Component>
     get() =
         getOrDefault(DataComponents.LORE, ItemLore.EMPTY).styledLines()
+
+fun BlockPos.aabb(): AABB {
+    return AABB(this)
+}
+
+fun AABB.flatten(y: Double = minY): AABB {
+    return AABB(minX, minY, minZ, maxX, minY + y, maxZ)
+}
