@@ -77,7 +77,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 0.0,
                 -97.0 + offsetFront.value,
             )
-            ctx.renderBoxBounds(aabb, Color.WHITE.setAlpha(0), Color.RED.setAlpha(64), phase = true)
+            ctx.renderBoxBounds(aabb, Color.RED, Color.RED.setAlpha(64), phase = true)
         }
     }
 

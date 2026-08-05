@@ -95,7 +95,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
             }
 
             entities.forEach{
-                ctx.renderBoxBounds(it.boundingBox, color.color, phase = false)
+                ctx.renderBoxBounds(it.boundingBox, color.color, phase = true)
             }
             tracers.forEach{
                 val height = it.boundingBox.ysize
