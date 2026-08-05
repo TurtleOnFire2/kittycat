@@ -22,7 +22,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val autoOpenShop = booleanSetting("Auto open shop", false)
     val autoCloseShop = booleanSetting("Auto close shop", false)
     val clickThroughCannon = booleanSetting("Click through cannon", false)
-    val blindnessAlert = booleanSetting("Blindness alert", false)
+    val blindnessAlert = booleanSetting("Blindness alert", false, "Doesnt do anything yet...")
     val stunWaypoint = booleanSetting("Stun waypoint", false)
     val autoPickobulus = booleanSetting("Auto pickobulus", false)
 
