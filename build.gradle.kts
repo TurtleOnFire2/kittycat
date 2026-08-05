@@ -9,7 +9,6 @@ plugins {
 
 version = providers.gradleProperty("mod_version").get()
 group = providers.gradleProperty("maven_group").get()
-val imgui_version = providers.gradleProperty("imgui_version").get()
 
 base {
 	archivesName = providers.gradleProperty("archives_base_name")
@@ -76,13 +75,6 @@ dependencies {
 	includeImplementation("org.reflections:reflections:0.10.2")
 	includeImplementation("org.javassist:javassist:3.29.2-GA")
 
-	arrayOf(
-		"io.github.spair:imgui-java-binding:$imgui_version",
-		"io.github.spair:imgui-java-lwjgl3:$imgui_version",
-		"io.github.spair:imgui-java-natives-windows:$imgui_version",
-		"io.github.spair:imgui-java-natives-linux:$imgui_version",
-		"io.github.spair:imgui-java-natives-macos:$imgui_version"
-	).forEach(includeImplementation)
 }
 
 tasks.processResources {

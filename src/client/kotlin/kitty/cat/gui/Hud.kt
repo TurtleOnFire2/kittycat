@@ -1,14 +1,16 @@
 package kitty.cat.gui
 
-import imgui.ImGui
-import imgui.ImGuiIO
-import imgui.flag.ImGuiWindowFlags
 import kitty.cat.KittycatClient
 import kitty.cat.KittycatClient.mc
+import kitty.cat.features.visual.ClickGui as ClickGuiFeature
+import kitty.cat.render.nanovg.NVGPIPRenderer
+import kitty.cat.render.nanovg.NVGRenderer
+import kitty.cat.utils.GuiUtils
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.resources.Identifier
 import java.awt.Color
@@ -20,7 +22,7 @@ import kotlin.io.path.exists
 import kotlin.math.sign
 
 // Based on the HUD system from legitcatmod by BladeMasterGabe's practical-config
-object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
+object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud")) {
     private val components = mutableListOf<Component>()
 
     enum class Condition(val displayName: String, val predicate: () -> Boolean) {
@@ -140,6 +142,10 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
     private var openedOptions: Component? = null
     private var isDragging = false
 
+    fun open() {
+        mc.gui.setScreen(this)
+    }
+
     override fun mouseScrolled(
         mouseX: Double,
         mouseY: Double,
@@ -154,7 +160,12 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
         val x = click.x()
         val y = click.y()
 
-        if (clickedInOpenedOptions(x, y)) return super.mouseClicked(click, doubled)
+        optionAt(x, y)?.let { condition ->
+            val opened = openedOptions ?: return@let
+            if (condition in opened.staticRenderConditions) opened.staticRenderConditions.remove(condition)
+            else opened.staticRenderConditions.add(condition)
+            return true
+        }
 
         val clicked = components.find {
             val bounds = it.internalBounds()
@@ -215,6 +226,8 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
             val offset = selected!!.offsetBounds(context)
             context.outline(posX + offset.first, posY + offset.second, bounds.first.toInt(), bounds.second.toInt(), Color.RED.rgb)
         }
+
+        renderOptions(context, mouseX, mouseY)
     }
 
     override fun isPauseScreen(): Boolean = false
@@ -226,61 +239,58 @@ object Hud : ImGuiHandler.RenderInterface("KittycatHud") {
         super.onClose()
     }
 
-    private val openedOptionsSize = Pair(300f, 200f)
+    private const val OPTIONS_WIDTH = 150
+    private const val OPTIONS_PADDING = 8
+    private const val OPTION_HEIGHT = 18
 
-    private fun clickedInOpenedOptions(x: Double, y: Double): Boolean {
-        if (openedOptions == null) return false
+    private data class OptionsRect(val x: Int, val y: Int, val width: Int, val height: Int)
 
-        val (posX, posY) = selectedWindowPosition()
-        val (sizeX, sizeY) = openedOptionsSize
+    private fun optionsRect(): OptionsRect? {
+        val opened = openedOptions ?: return null
+        val count = opened.allowedStaticRenderConditions.size
+        val panelHeight = OPTIONS_PADDING * 2 + count * OPTION_HEIGHT
+        val (componentX, componentY) = opened.position(width, height)
+        val (offsetX, offsetY) = opened.offsetBounds(width, height)
+        val componentWidth = opened.internalBounds().first.toInt()
 
-        val scale = minecraft!!.window.guiScale
-        val scaledX = x * scale
-        val scaledY = y * scale
-        return (scaledX >= posX && scaledX <= posX + sizeX && scaledY >= posY && scaledY <= posY + sizeY)
+        var panelX = componentX + offsetX - OPTIONS_WIDTH - 4
+        if (panelX < 4) panelX = componentX + offsetX + componentWidth + 4
+        panelX = panelX.coerceIn(4, (width - OPTIONS_WIDTH - 4).coerceAtLeast(4))
+        val panelY = (componentY + offsetY).coerceIn(4, (height - panelHeight - 4).coerceAtLeast(4))
+        return OptionsRect(panelX, panelY, OPTIONS_WIDTH, panelHeight)
     }
 
-    private fun selectedWindowPosition(): Pair<Float, Float> {
-        val opened = openedOptions ?: return Pair(0f, 0f)
-
-        val viewPort = ImGui.getMainViewport()
-        val (boundsX, boundsY) = opened.offsetBounds(viewPort.size.x.toInt(), viewPort.size.y.toInt())
-        val pos = opened.position(viewPort.sizeX.toInt(), viewPort.sizeY.toInt())
-        val (sizeX, sizeY) = openedOptionsSize
-
-        val scale = minecraft!!.window.guiScale
-        var x = viewPort.pos.x + pos.first + boundsX.toFloat() * scale - sizeX
-        var y = viewPort.pos.y + pos.second + boundsY.toFloat() * scale
-
-        if (y < viewPort.pos.y) y = viewPort.pos.y
-        if (y + sizeY > viewPort.pos.y + viewPort.size.y) y = viewPort.pos.y + viewPort.size.y - sizeY
-
-        if (viewPort.pos.x > x) {
-            val (boundsSizeX, _) = opened.internalBounds()
-            x += boundsSizeX.toFloat() * scale + sizeX
-        }
-
-        return Pair(x, y)
+    private fun optionAt(mouseX: Double, mouseY: Double): Condition? {
+        val opened = openedOptions ?: return null
+        val panel = optionsRect() ?: return null
+        if (mouseX < panel.x || mouseX > panel.x + panel.width ||
+            mouseY < panel.y || mouseY > panel.y + panel.height) return null
+        val index = ((mouseY - panel.y - OPTIONS_PADDING) / OPTION_HEIGHT).toInt()
+        return opened.allowedStaticRenderConditions.getOrNull(index)
     }
 
-    override fun render(io: ImGuiIO) {
+    private fun renderOptions(context: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
         val opened = openedOptions ?: return
+        val panel = optionsRect() ?: return
+        GuiUtils.renderRoundedRectangle(context, panel.x, panel.y, panel.width, panel.height, 3, Color(24, 9, 14, 235).rgb)
+        GuiUtils.renderRoundedOutline(context, panel.x, panel.y, panel.width, panel.height, 3, 1, Color(204, 84, 116, 238).rgb)
 
-        val (x, y) = selectedWindowPosition()
-        val (sizeX, sizeY) = openedOptionsSize
-        ImGui.setNextWindowPos(x, y)
-        ImGui.setNextWindowSize(sizeX, sizeY)
-
-        val flags = ImGuiWindowFlags.NoTitleBar or ImGuiWindowFlags.NoResize or ImGuiWindowFlags.NoMove or ImGuiWindowFlags.NoCollapse
-        if (ImGui.begin("KittycatHud", flags)) {
-            opened.allowedStaticRenderConditions.forEach { condition ->
-                val active = opened.staticRenderConditions.find { it == condition }
-                if (ImGui.checkbox(condition.displayName, active != null)) {
-                    if (active != null) opened.staticRenderConditions.remove(active)
-                    else opened.staticRenderConditions.add(condition)
-                }
+        opened.allowedStaticRenderConditions.forEachIndexed { index, condition ->
+            val rowY = panel.y + OPTIONS_PADDING + index * OPTION_HEIGHT
+            val hovered = mouseX in panel.x..(panel.x + panel.width) && mouseY in rowY..(rowY + OPTION_HEIGHT)
+            if (hovered) GuiUtils.renderRectangle(context, panel.x + 3, rowY, panel.width - 6, OPTION_HEIGHT, Color(75, 25, 40, 170).rgb)
+            val active = condition in opened.staticRenderConditions
+            val boxX = panel.x + OPTIONS_PADDING
+            val boxY = rowY + 4
+            GuiUtils.renderRoundedRectangle(context, boxX, boxY, 10, 10, 2,
+                if (active) Color(204, 84, 116, 255).rgb else Color(45, 20, 28, 255).rgb)
+            GuiUtils.renderRoundedOutline(context, boxX, boxY, 10, 10, 2, 1, Color(235, 140, 166, 220).rgb)
+            if (active) GuiUtils.renderRectangle(context, boxX + 3, boxY + 3, 4, 4, Color.WHITE.rgb)
+            NVGPIPRenderer.draw(context, 0, 0, width, height) {
+                NVGRenderer.text(condition.displayName, (boxX + 16) * minecraft.window.guiScale.toFloat(),
+                    (rowY + 4) * minecraft.window.guiScale.toFloat(), 9f * minecraft.window.guiScale.toFloat(),
+                    Color(246, 227, 233, 255).rgb, ClickGuiFeature.selectedFont)
             }
         }
-        ImGui.end()
     }
 }

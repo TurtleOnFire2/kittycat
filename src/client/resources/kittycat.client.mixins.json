@@ -5,10 +5,8 @@
   "client": [
     "ClientPlayNetworkHandleMixin",
     "ExampleClientMixin",
-    "GameRendererMixin",
     "ItemInHandRendererMixin",
     "LayerRenderStateMixin",
-    "MinecraftMixin",
     "MultiPlayerGameModeMixin",
     "gui.GuiGraphicsAccessor",
     "gui.GuiScissorStackAccessor"
