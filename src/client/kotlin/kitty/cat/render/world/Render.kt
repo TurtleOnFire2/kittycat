@@ -19,6 +19,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 private const val FULL_BRIGHT = 15728880
+private const val FILL_DEPTH_OFFSET = 0.002
+private const val OUTLINE_DEPTH_OFFSET = 0.003
 
 object PrimitiveRenderer {
 
@@ -35,12 +37,14 @@ object PrimitiveRenderer {
         color: Int,
         thickness: Float
     ) {
-        val x0 = aabb.minX.toFloat()
-        val y0 = aabb.minY.toFloat()
-        val z0 = aabb.minZ.toFloat()
-        val x1 = aabb.maxX.toFloat()
-        val y1 = aabb.maxY.toFloat()
-        val z1 = aabb.maxZ.toFloat()
+        // Keep the outline off both the target surface and the filled overlay.
+        // Coplanar geometry flickers as depth precision changes with distance.
+        val x0 = (aabb.minX - OUTLINE_DEPTH_OFFSET).toFloat()
+        val y0 = (aabb.minY - OUTLINE_DEPTH_OFFSET).toFloat()
+        val z0 = (aabb.minZ - OUTLINE_DEPTH_OFFSET).toFloat()
+        val x1 = (aabb.maxX + OUTLINE_DEPTH_OFFSET).toFloat()
+        val y1 = (aabb.maxY + OUTLINE_DEPTH_OFFSET).toFloat()
+        val z1 = (aabb.maxZ + OUTLINE_DEPTH_OFFSET).toFloat()
 
         val corners = floatArrayOf(
             x0, y0, z0,
@@ -85,12 +89,14 @@ object PrimitiveRenderer {
             buffer.addVertex(matrix, x, y, z).setColor(color)
         }
 
-        val minX = aabb.minX.toFloat()
-        val minY = aabb.minY.toFloat()
-        val minZ = aabb.minZ.toFloat()
-        val maxX = aabb.maxX.toFloat()
-        val maxY = aabb.maxY.toFloat()
-        val maxZ = aabb.maxZ.toFloat()
+        // Move overlay faces off block/entity faces. The outline uses a slightly
+        // larger offset so it cannot fight with this fill either.
+        val minX = (aabb.minX - FILL_DEPTH_OFFSET).toFloat()
+        val minY = (aabb.minY - FILL_DEPTH_OFFSET).toFloat()
+        val minZ = (aabb.minZ - FILL_DEPTH_OFFSET).toFloat()
+        val maxX = (aabb.maxX + FILL_DEPTH_OFFSET).toFloat()
+        val maxY = (aabb.maxY + FILL_DEPTH_OFFSET).toFloat()
+        val maxZ = (aabb.maxZ + FILL_DEPTH_OFFSET).toFloat()
 
         vertex(minX, minY, minZ)
         vertex(minX, minY, maxZ)
