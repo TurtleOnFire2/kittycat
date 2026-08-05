@@ -2,7 +2,7 @@ package kitty.cat.features.visual
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import com.mojang.blaze3d.vertex.PoseStack
 import kitty.cat.utils.entityType
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents

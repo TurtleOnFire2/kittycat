@@ -2,15 +2,16 @@ package kitty.cat.gui.clickgui
 
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.ActionSetting
-import kitty.cat.gui.features.settings.BooleanSetting
-import kitty.cat.gui.features.settings.ColorSetting
-import kitty.cat.gui.features.settings.KeybindSetting
-import kitty.cat.gui.features.settings.NumberSetting
-import kitty.cat.gui.features.settings.SelectorSetting
-import kitty.cat.gui.features.settings.Setting
-import kitty.cat.gui.features.settings.StringSetting
+import kitty.cat.features.Feature
+import kitty.cat.features.settings.ActionSetting
+import kitty.cat.features.settings.BooleanSetting
+import kitty.cat.features.settings.ColorSetting
+import kitty.cat.features.settings.KeybindSetting
+import kitty.cat.features.settings.NumberSetting
+import kitty.cat.features.settings.OrderSetting
+import kitty.cat.features.settings.SelectorSetting
+import kitty.cat.features.settings.Setting
+import kitty.cat.features.settings.StringSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils
@@ -189,6 +190,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var draggingHueSetting: ColorSetting? = null
     private var draggingAlphaSetting: ColorSetting? = null
     private var draggingSaturationBrightnessSetting: ColorSetting? = null
+    private var draggingOrderSetting: OrderSetting? = null
+    private var draggingOrderIndex = -1
 
     private var textInputSession: TextInputSession? = null
     private var openColorPickerFor: ColorSetting? = null
@@ -232,7 +235,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         super.tick()
     }
 
-    override fun extractRenderState(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
+    override fun extractRenderState(GuiGraphicsExtractor: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
         val nowMs = System.currentTimeMillis()
         val panelX = panelOriginX()
         val panelY = panelOriginY()
@@ -242,13 +245,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val sh = minecraft.window.guiScaledHeight
         val scale = minecraft.window.guiScale.toFloat()
 
-        renderMainPanelBody(guiGraphics, panelX, panelY)
-        renderTopDragBar(guiGraphics, panelX, panelY)
+        renderMainPanelBody(GuiGraphicsExtractor, panelX, panelY)
+        renderTopDragBar(GuiGraphicsExtractor, panelX, panelY)
 
-        renderCategoryBar(guiGraphics, sw, sh, scale, panelX, panelY)
+        renderCategoryBar(GuiGraphicsExtractor, sw, sh, scale, panelX, panelY)
         val sidebar = sidebarRect(panelX, panelY)
         GuiUtils.renderRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sidebar.x + sidebar.width + SIDEBAR_CONTENT_GAP / 2,
             sidebar.y,
             1,
@@ -256,7 +259,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             panelBorderColor(142)
         )
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panelX,
             panelY,
             panelWidth,
@@ -269,7 +272,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         updateFeatureScrollBounds()
         val clipRect = featureClipRect(panelX, panelY)
         val featureLayouts = buildFeatureLayouts(panelX, panelY)
-        guiGraphics.enableScissor(
+        GuiGraphicsExtractor.enableScissor(
             clipRect.x,
             clipRect.y,
             clipRect.x + clipRect.width,
@@ -287,7 +290,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             }
 
             GuiUtils.renderRoundedRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 layout.x,
                 layout.y,
                 layout.width,
@@ -296,7 +299,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 accentPanelColor(alpha = 116)
             )
             GuiUtils.renderRoundedOutline(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 layout.x,
                 layout.y,
                 layout.width,
@@ -306,12 +309,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 borderColor
             )
 
-            renderFeatureHeader(guiGraphics, sw, sh, scale, layout)
+            renderFeatureHeader(GuiGraphicsExtractor, sw, sh, scale, layout)
 
             if (!layout.expanded) return@forEach
 
             GuiUtils.renderRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 layout.x + 4,
                 layout.y + FEATURE_HEADER_HEIGHT,
                 layout.width - 8,
@@ -321,7 +324,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
             if (layout.settingLayouts.isEmpty()) {
                 drawText(
-                    guiGraphics,
+                    GuiGraphicsExtractor,
                     sw,
                     sh,
                     scale,
@@ -333,16 +336,16 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 )
             } else {
                 layout.settingLayouts.forEach { settingLayout ->
-                    renderSettingRow(guiGraphics, sw, sh, scale, settingLayout)
+                    renderSettingRow(GuiGraphicsExtractor, sw, sh, scale, settingLayout)
                 }
                 layout.settingLayouts.forEach { settingLayout ->
                     val setting = settingLayout.setting as? SelectorSetting ?: return@forEach
                     if (!setting.dropdownOpen) return@forEach
-                    renderSelectorDropdownOverlay(guiGraphics, sw, sh, scale, settingLayout, setting)
+                    renderSelectorDropdownOverlay(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
                 }
             }
         }
-        guiGraphics.disableScissor()
+        GuiGraphicsExtractor.disableScissor()
 
         // Update hover tracking for feature headers and settings
         val mouseXD = mouseX.toDouble()
@@ -373,7 +376,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             settingHoverStartMs = nowMs
         }
 
-        renderColorPickerOverlay(guiGraphics, sw, sh, scale)
+        renderColorPickerOverlay(GuiGraphicsExtractor, sw, sh, scale)
 
         // Render hover tooltip (on top of everything)
         val currentSetting = hoveredSetting
@@ -381,15 +384,15 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         when {
             currentSetting != null && currentSetting.description.isNotEmpty() &&
                 nowMs - settingHoverStartMs >= HOVER_TOOLTIP_DELAY_MS -> {
-                renderTooltip(guiGraphics, sw, sh, scale, currentSetting.description, mouseX, mouseY)
+                renderTooltip(GuiGraphicsExtractor, sw, sh, scale, currentSetting.description, mouseX, mouseY)
             }
             currentFeature != null && currentFeature.description.isNotEmpty() &&
                 nowMs - featureHoverStartMs >= HOVER_TOOLTIP_DELAY_MS -> {
-                renderTooltip(guiGraphics, sw, sh, scale, currentFeature.description, mouseX, mouseY)
+                renderTooltip(GuiGraphicsExtractor, sw, sh, scale, currentFeature.description, mouseX, mouseY)
             }
         }
 
-        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks)
+        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
     }
 
     private fun panelWidth(): Int {
@@ -582,6 +585,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             height = FEATURE_SETTING_ROW_HEIGHT
         )
     }
+    private fun orderOptionRect(layout: SettingLayout, index: Int) = Rect(
+        layout.x + 8,
+        layout.y + FEATURE_SETTING_ROW_HEIGHT + index * FEATURE_SETTING_ROW_HEIGHT,
+        layout.width - 10,
+        FEATURE_SETTING_ROW_HEIGHT
+    )
 
     private fun keybindRect(layout: SettingLayout): Rect {
         return Rect(
@@ -898,12 +907,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private fun textMutedColor(): Int = themedColor(193, 152, 165, 255, baseWeight = 0.2f, accentWeight = 0.3f)
     private fun textPrimaryColor(): Int = themedColor(246, 227, 233, 255, baseWeight = 0.08f, accentWeight = 0.18f)
 
-    private fun renderMainPanelBody(guiGraphics: GuiGraphicsExtractor, panelX: Int, panelY: Int) {
+    private fun renderMainPanelBody(GuiGraphicsExtractor: GuiGraphicsExtractor, panelX: Int, panelY: Int) {
         val panelWidth = panelWidth()
         val panelHeight = panelHeight()
 
         GuiUtils.renderRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panelX,
             panelY,
             panelWidth,
@@ -911,7 +920,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             panelBottomLayerColor()
         )
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panelX,
             panelY,
             panelWidth,
@@ -922,10 +931,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
     }
 
-    private fun renderTopDragBar(guiGraphics: GuiGraphicsExtractor, panelX: Int, panelY: Int) {
+    private fun renderTopDragBar(GuiGraphicsExtractor: GuiGraphicsExtractor, panelX: Int, panelY: Int) {
         val panelWidth = panelWidth()
         GuiUtils.renderRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panelX,
             panelY,
             panelWidth,
@@ -933,7 +942,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             topBarColor()
         )
         GuiUtils.renderRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panelX,
             panelY + DRAG_BAR_HEIGHT,
             panelWidth,
@@ -1146,6 +1155,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                                 return true
                             }
                         }
+                        is OrderSetting -> {
+                            if (button != LEFT_MOUSE_BUTTON) return@forEach
+                            setting.order.indices.firstOrNull { orderOptionRect(settingLayout, it).contains(mouseX, mouseY) }?.let {
+                                draggingOrderSetting = setting
+                                draggingOrderIndex = it
+                                return true
+                            }
+                        }
 
                         is ColorSetting -> {
                             if (!settingLayout.contains(mouseX, mouseY)) return@forEach
@@ -1187,6 +1204,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         draggingHueSetting = null
         draggingAlphaSetting = null
         draggingSaturationBrightnessSetting = null
+        draggingOrderSetting = null
+        draggingOrderIndex = -1
         return super.mouseReleased(mouseButtonEvent)
     }
 
@@ -1199,6 +1218,15 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val mouseX = mouseButtonEvent.x()
         val mouseY = mouseButtonEvent.y()
+        draggingOrderSetting?.let { setting ->
+            val layout = findSettingLayout(setting) ?: return@let
+            val target = ((mouseY - layout.y - FEATURE_SETTING_ROW_HEIGHT) / FEATURE_SETTING_ROW_HEIGHT).toInt().coerceIn(0, setting.order.lastIndex)
+            if (target != draggingOrderIndex) {
+                setting.move(draggingOrderIndex, target)
+                draggingOrderIndex = target
+            }
+            return true
+        }
 
         draggingNumberSetting?.let { setting ->
             findSettingLayout(setting)?.let { layout ->
@@ -1330,10 +1358,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         super.onClose()
     }
 
-    private fun renderSettingRow(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
+    private fun renderSettingRow(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
         val setting = settingLayout.setting
         drawText(
-            guiGraphics = guiGraphics,
+            GuiGraphicsExtractor = GuiGraphicsExtractor,
             sw = sw,
             sh = sh,
             scale = scale,
@@ -1345,17 +1373,28 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         when (setting) {
-            is BooleanSetting -> renderBooleanSetting(guiGraphics, settingLayout, setting)
-            is NumberSetting -> renderNumberSetting(guiGraphics, sw, sh, scale, settingLayout, setting)
-            is SelectorSetting -> renderSelectorSetting(guiGraphics, sw, sh, scale, settingLayout, setting)
-            is KeybindSetting -> renderKeybindSetting(guiGraphics, sw, sh, scale, settingLayout, setting)
-            is StringSetting -> renderStringSetting(guiGraphics, sw, sh, scale, settingLayout, setting)
-            is ColorSetting -> renderColorSetting(guiGraphics, settingLayout, setting)
-            is ActionSetting -> renderActionSetting(guiGraphics, sw, sh, scale, settingLayout)
+            is BooleanSetting -> renderBooleanSetting(GuiGraphicsExtractor, settingLayout, setting)
+            is NumberSetting -> renderNumberSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+            is SelectorSetting -> renderSelectorSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+            is KeybindSetting -> renderKeybindSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+            is StringSetting -> renderStringSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+            is ColorSetting -> renderColorSetting(GuiGraphicsExtractor, settingLayout, setting)
+            is ActionSetting -> renderActionSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout)
+            is OrderSetting -> renderOrderSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+        }
+    }
+    private fun renderOrderSetting(graphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, layout: SettingLayout, setting: OrderSetting) {
+        setting.order.forEachIndexed { index, option ->
+            val rect = orderOptionRect(layout, index)
+            val dragging = draggingOrderSetting === setting && draggingOrderIndex == index
+            GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, if (dragging) sidebarSelectedColor() else fieldFillColor())
+            GuiUtils.renderRoundedOutline(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, 1, if (dragging) accentBrightBorderColor() else accentDimColor())
+            drawText(graphics, sw, sh, scale, "=", (rect.x + 3).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textMutedColor())
+            drawText(graphics, sw, sh, scale, option, (rect.x + 13).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textPrimaryColor())
         }
     }
 
-    private fun renderBooleanSetting(guiGraphics: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: BooleanSetting) {
+    private fun renderBooleanSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: BooleanSetting) {
         val switchRect = booleanSwitchRect(settingLayout)
         val trackColor = if (setting.value) toggleOnColor() else toggleOffColor()
         val knobSize = switchRect.height - FEATURE_SWITCH_KNOB_MARGIN * 2
@@ -1367,7 +1406,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val knobY = switchRect.y + FEATURE_SWITCH_KNOB_MARGIN
 
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             switchRect.x,
             switchRect.y,
             switchRect.width,
@@ -1376,7 +1415,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             trackColor
         )
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             knobX,
             knobY,
             knobSize,
@@ -1386,12 +1425,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
     }
 
-    private fun renderNumberSetting(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: NumberSetting) {
+    private fun renderNumberSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: NumberSetting) {
         val textRect = numberTextRect(settingLayout)
         val sliderRect = numberSliderRect(settingLayout)
 
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sliderRect.x,
             sliderRect.y,
             sliderRect.width,
@@ -1403,7 +1442,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val fillWidth = (sliderRect.width * setting.sliderPosition()).toInt().coerceIn(0, sliderRect.width)
         if (fillWidth > 0) {
             GuiUtils.renderRoundedRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sliderRect.x,
                 sliderRect.y,
                 fillWidth,
@@ -1414,7 +1453,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
 
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             textRect.x,
             textRect.y,
             textRect.width,
@@ -1426,7 +1465,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val valueText = activeTextBufferOrNull(setting) ?: setting.textValue(includeUnit = true)
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1438,10 +1477,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
     }
 
-    private fun renderSelectorSetting(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: SelectorSetting) {
+    private fun renderSelectorSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: SelectorSetting) {
         val baseRect = selectorBaseRect(settingLayout)
-        GuiUtils.renderRoundedRectangle(guiGraphics, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, fieldFillColor())
-        GuiUtils.renderRoundedOutline(guiGraphics, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, 1, accentDimColor())
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, 1, accentDimColor())
 
         val selectedText = if (setting.allowMultiple) {
             setting.selected.joinToString(", ").ifBlank { "None" }
@@ -1450,7 +1489,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
         val arrow = if (setting.dropdownOpen) "v" else ">"
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1461,7 +1500,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             textMutedColor()
         )
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1474,7 +1513,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun renderKeybindSetting(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1483,9 +1522,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     ) {
         val rect = keybindRect(settingLayout)
         val captureActive = keybindCaptureSetting === setting
-        GuiUtils.renderRoundedRectangle(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             rect.x,
             rect.y,
             rect.width,
@@ -1497,7 +1536,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val value = if (captureActive) "Press key..." else setting.displayValue()
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1510,7 +1549,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun renderStringSetting(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1518,9 +1557,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         setting: StringSetting
     ) {
         val rect = stringTextRect(settingLayout)
-        GuiUtils.renderRoundedRectangle(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             rect.x,
             rect.y,
             rect.width,
@@ -1533,7 +1572,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val raw = activeTextBufferOrNull(setting) ?: setting.value
         val value = if (raw.length > 46) "${raw.take(46)}..." else raw
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1546,7 +1585,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun renderSelectorDropdownOverlay(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1556,7 +1595,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val firstOptionRect = selectorOptionRect(settingLayout, 0)
         val overlayHeight = setting.options.size * FEATURE_SETTING_ROW_HEIGHT
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             firstOptionRect.x,
             firstOptionRect.y,
             firstOptionRect.width,
@@ -1565,7 +1604,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             fieldFillColor(214)
         )
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             firstOptionRect.x,
             firstOptionRect.y,
             firstOptionRect.width,
@@ -1579,9 +1618,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             val optionRect = selectorOptionRect(settingLayout, optionIndex)
             val selected = setting.isSelected(option)
             val backgroundColor = if (selected) sidebarSelectedColor(214) else fieldFillColor(188)
-            GuiUtils.renderRoundedRectangle(guiGraphics, optionRect.x, optionRect.y, optionRect.width, optionRect.height, 2, backgroundColor)
+            GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, optionRect.x, optionRect.y, optionRect.width, optionRect.height, 2, backgroundColor)
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -1594,7 +1633,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
     }
 
-    private fun renderColorPickerOverlay(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float) {
+    private fun renderColorPickerOverlay(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float) {
         val setting = openColorPickerFor ?: return
         if (findSettingLayout(setting) == null) {
             openColorPickerFor = null
@@ -1608,7 +1647,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val alphaRect = picker.alphaRect
 
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panel.x,
             panel.y,
             panel.width,
@@ -1617,7 +1656,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             fieldFillColor(216)
         )
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             panel.x,
             panel.y,
             panel.width,
@@ -1627,22 +1666,22 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             accentBrightBorderColor()
         )
 
-        renderSaturationBrightnessBox(guiGraphics, sbRect, setting)
-        GuiUtils.renderRoundedOutline(guiGraphics, sbRect.x, sbRect.y, sbRect.width, sbRect.height, 2, 1, accentDimColor())
+        renderSaturationBrightnessBox(GuiGraphicsExtractor, sbRect, setting)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, sbRect.x, sbRect.y, sbRect.width, sbRect.height, 2, 1, accentDimColor())
 
         val sbMarkerX = sbRect.x + (setting.saturation * (sbRect.width - 1)).toInt().coerceIn(0, sbRect.width - 1)
         val sbMarkerY = sbRect.y + ((1f - setting.brightness) * (sbRect.height - 1)).toInt().coerceIn(0, sbRect.height - 1)
-        GuiUtils.renderRoundedOutline(guiGraphics, sbMarkerX - 2, sbMarkerY - 2, 5, 5, 2, 1, textPrimaryColor())
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, sbMarkerX - 2, sbMarkerY - 2, 5, 5, 2, 1, textPrimaryColor())
 
-        renderHueBar(guiGraphics, hueRect, COLOR_PICKER_BAR_STEP)
-        GuiUtils.renderRoundedOutline(guiGraphics, hueRect.x, hueRect.y, hueRect.width, hueRect.height, 2, 1, accentDimColor())
+        renderHueBar(GuiGraphicsExtractor, hueRect, COLOR_PICKER_BAR_STEP)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, hueRect.x, hueRect.y, hueRect.width, hueRect.height, 2, 1, accentDimColor())
         val hueKnobX = hueRect.x + ((setting.hue / 360f) * (hueRect.width - 1)).toInt().coerceIn(0, hueRect.width - 1)
-        GuiUtils.renderRectangle(guiGraphics, hueKnobX, hueRect.y - 1, 1, hueRect.height + 2, textPrimaryColor())
+        GuiUtils.renderRectangle(GuiGraphicsExtractor, hueKnobX, hueRect.y - 1, 1, hueRect.height + 2, textPrimaryColor())
 
-        renderAlphaBar(guiGraphics, alphaRect, setting, COLOR_PICKER_BAR_STEP)
-        GuiUtils.renderRoundedOutline(guiGraphics, alphaRect.x, alphaRect.y, alphaRect.width, alphaRect.height, 2, 1, accentDimColor())
+        renderAlphaBar(GuiGraphicsExtractor, alphaRect, setting, COLOR_PICKER_BAR_STEP)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, alphaRect.x, alphaRect.y, alphaRect.width, alphaRect.height, 2, 1, accentDimColor())
         val alphaKnobX = alphaRect.x + (setting.alphaSliderPosition() * (alphaRect.width - 1)).toInt().coerceIn(0, alphaRect.width - 1)
-        GuiUtils.renderRectangle(guiGraphics, alphaKnobX, alphaRect.y - 1, 1, alphaRect.height + 2, textPrimaryColor())
+        GuiUtils.renderRectangle(GuiGraphicsExtractor, alphaKnobX, alphaRect.y - 1, 1, alphaRect.height + 2, textPrimaryColor())
 
         listOf(
             ColorChannel.RED,
@@ -1651,9 +1690,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             ColorChannel.ALPHA
         ).forEach { channel ->
             val rect = colorPickerChannelRect(picker, channel)
-            GuiUtils.renderRoundedRectangle(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+            GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
             GuiUtils.renderRoundedOutline(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 rect.x,
                 rect.y,
                 rect.width,
@@ -1665,7 +1704,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
             val text = activeTextBufferOrNull(setting, channel) ?: colorChannelValue(setting, channel).toString()
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -1678,14 +1717,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
     }
 
-    private fun renderHueBar(guiGraphics: GuiGraphicsExtractor, rect: Rect, step: Int) {
+    private fun renderHueBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, step: Int) {
         val safeStep = step.coerceAtLeast(1)
         var offset = 0
         while (offset < rect.width) {
             val segmentWidth = minOf(safeStep, rect.width - offset)
             val hue = (offset.toFloat() / rect.width.toFloat()) * 360f
             GuiUtils.renderRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 rect.x + offset,
                 rect.y,
                 segmentWidth,
@@ -1696,7 +1735,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
     }
 
-    private fun renderAlphaBar(guiGraphics: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting, step: Int) {
+    private fun renderAlphaBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting, step: Int) {
         val safeStep = step.coerceAtLeast(1)
         val rgb = (setting.red shl 16) or (setting.green shl 8) or setting.blue
         var offset = 0
@@ -1704,7 +1743,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             val segmentWidth = minOf(safeStep, rect.width - offset)
             val alpha = (offset.toFloat() / rect.width.toFloat() * 255f).toInt().coerceIn(0, 255)
             GuiUtils.renderRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 rect.x + offset,
                 rect.y,
                 segmentWidth,
@@ -1715,7 +1754,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
     }
 
-    private fun renderSaturationBrightnessBox(guiGraphics: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting) {
+    private fun renderSaturationBrightnessBox(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting) {
         val safeStep = COLOR_PICKER_SB_STEP.coerceAtLeast(1)
         var localY = 0
         while (localY < rect.height) {
@@ -1726,7 +1765,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 val blockWidth = minOf(safeStep, rect.width - localX)
                 val saturation = (localX.toDouble() / (rect.width - 1).coerceAtLeast(1).toDouble()).toFloat()
                 GuiUtils.renderRectangle(
-                    guiGraphics,
+                    GuiGraphicsExtractor,
                     rect.x + localX,
                     rect.y + localY,
                     blockWidth,
@@ -1739,20 +1778,20 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
     }
 
-    private fun renderColorSetting(guiGraphics: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: ColorSetting) {
+    private fun renderColorSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: ColorSetting) {
         val swatchRect = colorSwatchRect(settingLayout)
 
         val argb = (setting.alpha shl 24) or (setting.red shl 16) or (setting.green shl 8) or setting.blue
-        GuiUtils.renderRoundedRectangle(guiGraphics, swatchRect.x, swatchRect.y, swatchRect.width, swatchRect.height, 2, argb)
-        GuiUtils.renderRoundedOutline(guiGraphics, swatchRect.x, swatchRect.y, swatchRect.width, swatchRect.height, 2, 1, accentDimColor())
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, swatchRect.x, swatchRect.y, swatchRect.width, swatchRect.height, 2, argb)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, swatchRect.x, swatchRect.y, swatchRect.width, swatchRect.height, 2, 1, accentDimColor())
     }
 
-    private fun renderActionSetting(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
+    private fun renderActionSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
         val buttonRect = actionButtonRect(settingLayout)
-        GuiUtils.renderRoundedRectangle(guiGraphics, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, fieldFillColor())
-        GuiUtils.renderRoundedOutline(guiGraphics, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, 1, accentDimColor())
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, fieldFillColor())
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, 1, accentDimColor())
         drawCenteredText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1833,13 +1872,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private fun settingHeight(setting: Setting): Int {
         return when (setting) {
+            is OrderSetting -> FEATURE_SETTING_ROW_HEIGHT * (setting.options.size + 1)
             is ColorSetting -> FEATURE_SETTING_ROW_HEIGHT
             is SelectorSetting -> FEATURE_SETTING_ROW_HEIGHT
             else -> FEATURE_SETTING_ROW_HEIGHT
         }
     }
 
-    private fun renderTooltip(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, text: String, mouseX: Int, mouseY: Int) {
+    private fun renderTooltip(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, text: String, mouseX: Int, mouseY: Int) {
         val font = ClickGuiFeature.selectedFont
         val measuredWidth = NVGRenderer.textWidth(text, TOOLTIP_TEXT_SIZE * scale, font) / scale
         val boxWidth = measuredWidth.toInt() + TOOLTIP_PADDING_H * 2
@@ -1852,10 +1892,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         if (ty < panelOriginY()) ty = mouseY + 14
         if (ty + boxHeight > panelBottom) ty = panelBottom - boxHeight - 4
 
-        GuiUtils.renderRoundedRectangle(guiGraphics, tx, ty, boxWidth, boxHeight, 3, fieldFillColor(230))
-        GuiUtils.renderRoundedOutline(guiGraphics, tx, ty, boxWidth, boxHeight, 3, 1, accentDimColor())
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, tx, ty, boxWidth, boxHeight, 3, fieldFillColor(230))
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, tx, ty, boxWidth, boxHeight, 3, 1, accentDimColor())
         drawText(
-            guiGraphics, sw, sh, scale, text,
+            GuiGraphicsExtractor, sw, sh, scale, text,
             (tx + TOOLTIP_PADDING_H).toFloat(),
             (ty + TOOLTIP_PADDING_V).toFloat(),
             TOOLTIP_TEXT_SIZE,
@@ -1863,9 +1903,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
     }
 
-    private fun renderFeatureHeader(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, layout: FeatureLayout) {
+    private fun renderFeatureHeader(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, layout: FeatureLayout) {
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -1887,7 +1927,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val knobY = switchRect.y + FEATURE_SWITCH_KNOB_MARGIN
 
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             switchRect.x,
             switchRect.y,
             switchRect.width,
@@ -1896,7 +1936,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             trackColor
         )
         GuiUtils.renderRoundedRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             knobX,
             knobY,
             knobSize,
@@ -1907,7 +1947,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun renderCategoryBar(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1918,7 +1958,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val sidebar = sidebarRect(panelX, panelY)
         GuiUtils.renderRectangle(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sidebar.x,
             sidebar.y,
             sidebar.width,
@@ -1926,7 +1966,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             sidebarPanelColor()
         )
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sidebar.x,
             sidebar.y,
             sidebar.width,
@@ -1940,7 +1980,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         categoryLayouts.forEach { layout ->
             GuiUtils.renderRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 layout.rect.x,
                 layout.rect.y,
                 layout.rect.width,
@@ -1948,7 +1988,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 if (layout.selected) sidebarSelectedColor() else sidebarTabColor()
             )
             GuiUtils.renderRoundedOutline(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 layout.rect.x,
                 layout.rect.y,
                 layout.rect.width,
@@ -1960,7 +2000,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
             val label = layout.category.name.lowercase().replaceFirstChar { it.uppercase() }
             drawCenteredText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -1974,7 +2014,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun drawText(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1984,8 +2024,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
+        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.text(
                 text = text,
                 x = x * scale,
@@ -1998,7 +2039,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun drawCenteredText(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -2008,8 +2049,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
+        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.textCentered(
                 text = text,
                 cx = cx * scale,

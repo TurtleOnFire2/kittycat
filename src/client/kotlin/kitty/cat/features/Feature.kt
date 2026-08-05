@@ -1,15 +1,16 @@
-package kitty.cat.gui.features
+package kitty.cat.features
 
 import kitty.cat.config.ConfigManager
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.settings.ActionSetting
-import kitty.cat.gui.features.settings.BooleanSetting
-import kitty.cat.gui.features.settings.ColorSetting
-import kitty.cat.gui.features.settings.KeybindSetting
-import kitty.cat.gui.features.settings.NumberSetting
-import kitty.cat.gui.features.settings.SelectorSetting
-import kitty.cat.gui.features.settings.Setting
-import kitty.cat.gui.features.settings.StringSetting
+import kitty.cat.features.settings.ActionSetting
+import kitty.cat.features.settings.BooleanSetting
+import kitty.cat.features.settings.ColorSetting
+import kitty.cat.features.settings.KeybindSetting
+import kitty.cat.features.settings.NumberSetting
+import kitty.cat.features.settings.OrderSetting
+import kitty.cat.features.settings.SelectorSetting
+import kitty.cat.features.settings.Setting
+import kitty.cat.features.settings.StringSetting
 
 abstract class Feature {
     internal val name: String
@@ -43,6 +44,8 @@ abstract class Feature {
     private val _stringSettings = mutableListOf<StringSetting>()
     val stringSettings: List<StringSetting>
         get() = _stringSettings
+    private val _orderSettings = mutableListOf<OrderSetting>()
+    val orderSettings: List<OrderSetting> get() = _orderSettings
 
     constructor(name: String, description: String, category: Categories.Category) {
         this.name = name
@@ -159,6 +162,12 @@ abstract class Feature {
     ): StringSetting {
         val setting = StringSetting(name = name, defaultValue = defaultValue, maxLength = maxLength, description = description)
         _stringSettings += setting
+        _settings += setting
+        return setting
+    }
+    protected fun orderSetting(name: String, options: List<String>, defaultOrder: List<String> = options, description: String = ""): OrderSetting {
+        val setting = OrderSetting(name, options, defaultOrder, description)
+        _orderSettings += setting
         _settings += setting
         return setting
     }

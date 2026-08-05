@@ -81,7 +81,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         super.tick()
     }
 
-    override fun extractRenderState(guiGraphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
+    override fun extractRenderState(GuiGraphicsExtractor: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
         val macros = ChatMacros.listMacros()
         pruneTestInputs(macros.size)
         clampSelectedIndex(macros.size)
@@ -95,16 +95,16 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         clampListScroll(macros.size, visibleRows)
         ensureSelectionVisible(visibleRows)
 
-        GuiUtils.renderRectangle(guiGraphics, 0, 0, width, height, Color(0, 0, 0, 140).rgb)
-        GuiUtils.renderRoundedRectangle(guiGraphics, panel.x, panel.y, panel.width, panel.height, 0, Color(24, 9, 14, 226).rgb)
-        GuiUtils.renderRoundedOutline(guiGraphics, panel.x, panel.y, panel.width, panel.height, 0, 1, Color(204, 84, 116, 238).rgb)
+        GuiUtils.renderRectangle(GuiGraphicsExtractor, 0, 0, width, height, Color(0, 0, 0, 140).rgb)
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, panel.x, panel.y, panel.width, panel.height, 0, Color(24, 9, 14, 226).rgb)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, panel.x, panel.y, panel.width, panel.height, 0, 1, Color(204, 84, 116, 238).rgb)
 
         val sw = minecraft.window.guiScaledWidth
         val sh = minecraft.window.guiScaledHeight
         val scale = minecraft.window.guiScale.toFloat()
 
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -115,10 +115,10 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
             Color(246, 227, 233, 255).rgb
         )
 
-        renderListPanel(guiGraphics, sw, sh, scale, listPanel, listRows, macros)
-        renderDetailPanel(guiGraphics, sw, sh, scale, detailPanel, macros, mouseX.toDouble(), mouseY.toDouble())
+        renderListPanel(GuiGraphicsExtractor, sw, sh, scale, listPanel, listRows, macros)
+        renderDetailPanel(GuiGraphicsExtractor, sw, sh, scale, detailPanel, macros, mouseX.toDouble(), mouseY.toDouble())
 
-        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks)
+        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
     }
 
     override fun mouseClicked(mouseButtonEvent: MouseButtonEvent, doubled: Boolean): Boolean {
@@ -340,7 +340,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     override fun isPauseScreen(): Boolean = false
 
     private fun renderListPanel(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -348,11 +348,11 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         listRows: Rect,
         macros: List<ChatMacros.MacroView>
     ) {
-        GuiUtils.renderRoundedRectangle(guiGraphics, listPanel.x, listPanel.y, listPanel.width, listPanel.height, 0, Color(37, 10, 16, 218).rgb)
-        GuiUtils.renderRoundedOutline(guiGraphics, listPanel.x, listPanel.y, listPanel.width, listPanel.height, 0, 1, Color(204, 84, 116, 186).rgb)
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, listPanel.x, listPanel.y, listPanel.width, listPanel.height, 0, Color(37, 10, 16, 218).rgb)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, listPanel.x, listPanel.y, listPanel.width, listPanel.height, 0, 1, Color(204, 84, 116, 186).rgb)
 
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -365,7 +365,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         if (macros.isEmpty()) {
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -401,8 +401,8 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
                 inactive -> Color(110, 110, 110, 170).rgb
                 else -> Color(137, 55, 77, 170).rgb
             }
-            GuiUtils.renderRoundedRectangle(guiGraphics, rowRect.x, rowRect.y, rowRect.width, rowRect.height, 2, rowColor)
-            GuiUtils.renderRoundedOutline(guiGraphics, rowRect.x, rowRect.y, rowRect.width, rowRect.height, 2, 1, rowBorder)
+            GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rowRect.x, rowRect.y, rowRect.width, rowRect.height, 2, rowColor)
+            GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, rowRect.x, rowRect.y, rowRect.width, rowRect.height, 2, 1, rowBorder)
 
             val triggerColor = if (inactive) Color(176, 176, 176, 255).rgb else Color(246, 227, 233, 255).rgb
             val commandColor = if (inactive) Color(145, 145, 145, 255).rgb else Color(193, 152, 165, 255).rgb
@@ -411,7 +411,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
             val previewStartY = rowRect.y + ((rowRect.height - previewBlockHeight) / 2)
 
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -423,7 +423,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
             )
 
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -437,7 +437,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun renderDetailPanel(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -446,20 +446,20 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         mouseX: Double,
         mouseY: Double
     ) {
-        GuiUtils.renderRoundedRectangle(guiGraphics, detailPanel.x, detailPanel.y, detailPanel.width, detailPanel.height, 0, Color(32, 9, 15, 208).rgb)
-        GuiUtils.renderRoundedOutline(guiGraphics, detailPanel.x, detailPanel.y, detailPanel.width, detailPanel.height, 0, 1, Color(204, 84, 116, 186).rgb)
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, detailPanel.x, detailPanel.y, detailPanel.width, detailPanel.height, 0, Color(32, 9, 15, 208).rgb)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, detailPanel.x, detailPanel.y, detailPanel.width, detailPanel.height, 0, 1, Color(204, 84, 116, 186).rgb)
 
         val addRect = addButtonRect(detailPanel)
         val deleteRect = deleteButtonRect(detailPanel)
         val toggleRect = toggleButtonRect(detailPanel)
 
-        renderButton(guiGraphics, sw, sh, scale, addRect, "Add New", enabled = true, hovered = addRect.contains(mouseX, mouseY))
+        renderButton(GuiGraphicsExtractor, sw, sh, scale, addRect, "Add New", enabled = true, hovered = addRect.contains(mouseX, mouseY))
 
         val selectedMacro = macros.getOrNull(selectedIndex)
         val hasSelection = selectedMacro != null
 
         renderButton(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -471,7 +471,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         val toggleLabel = if (selectedMacro?.active == true) "Deactivate" else "Reactivate"
         renderButton(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -483,7 +483,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         if (!hasSelection) {
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -497,7 +497,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         }
 
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -509,7 +509,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         )
         val triggerRect = triggerFieldRect(detailPanel)
         renderField(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -521,7 +521,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         )
 
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -533,7 +533,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         )
         val commandRect = commandFieldRect(detailPanel)
         renderField(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -545,7 +545,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         )
 
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -557,7 +557,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         )
         val testRect = testFieldRect(detailPanel)
         renderField(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -570,7 +570,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         val (matchText, matchColor) = regexMatchStatus(selectedMacro.trigger, testInputFor(selectedIndex))
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -583,7 +583,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun renderButton(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -604,10 +604,10 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         }
         val text = if (enabled) Color(246, 227, 233, 255).rgb else Color(155, 115, 128, 255).rgb
 
-        GuiUtils.renderRoundedRectangle(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, fill)
-        GuiUtils.renderRoundedOutline(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, 1, border)
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fill)
+        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, 1, border)
         drawCenteredText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -620,7 +620,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun renderField(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -630,9 +630,9 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         focused: Boolean,
         field: InputField
     ) {
-        GuiUtils.renderRoundedRectangle(guiGraphics, rect.x, rect.y, rect.width, rect.height, 2, Color(31, 11, 17, 214).rgb)
+        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, Color(31, 11, 17, 214).rgb)
         GuiUtils.renderRoundedOutline(
-            guiGraphics,
+            GuiGraphicsExtractor,
             rect.x,
             rect.y,
             rect.width,
@@ -649,7 +649,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         if (value.isEmpty() && !focused) {
             drawText(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 sw,
                 sh,
                 scale,
@@ -679,7 +679,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
                     val selectionX = textX + measureTextWidth(beforeText, scale)
                     val selectionWidth = measureTextWidth(selectedText, scale).coerceAtLeast(1f)
                     GuiUtils.renderRectangle(
-                        guiGraphics,
+                        GuiGraphicsExtractor,
                         selectionX.toInt(),
                         rect.y + 3,
                         selectionWidth.toInt(),
@@ -697,7 +697,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         }
 
         drawText(
-            guiGraphics,
+            GuiGraphicsExtractor,
             sw,
             sh,
             scale,
@@ -713,7 +713,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
             val prefix = value.substring(viewport.startIndex, caretInViewport)
             val caretX = textX + measureTextWidth(prefix, scale)
             GuiUtils.renderRectangle(
-                guiGraphics,
+                GuiGraphicsExtractor,
                 caretX.toInt(),
                 rect.y + 4,
                 1,
@@ -724,7 +724,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun drawText(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -734,8 +734,9 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         size: Float,
         color: Int
     ) {
+        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.text(
                 text = text,
                 x = x * scale,
@@ -748,7 +749,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun drawCenteredText(
-        guiGraphics: GuiGraphicsExtractor,
+        GuiGraphicsExtractor: GuiGraphicsExtractor,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -758,8 +759,9 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         size: Float,
         color: Int
     ) {
+        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.textCentered(
                 text = text,
                 cx = cx * scale,

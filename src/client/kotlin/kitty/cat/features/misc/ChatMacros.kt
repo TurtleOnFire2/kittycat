@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.chatmacros.ChatMacrosScreen
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.gui.screens.Screen

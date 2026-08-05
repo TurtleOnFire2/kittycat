@@ -5,11 +5,11 @@ import com.google.gson.GsonBuilder
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.bestiaryesp.BestiaryESPScreen
 import kitty.cat.gui.categories.Categories
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import kitty.cat.utils.Mob
+import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.renderTracer
 import kitty.cat.utils.allMobs
-import kitty.cat.utils.drawFilled
-import kitty.cat.utils.drawLineFromCursor
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
@@ -103,10 +103,10 @@ object BestiaryESP : Feature("Bestiary ESP", "", Categories.Category.VISUAL) {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
             espEntities.forEach { (entity, beName) ->
-                ctx.drawFilled(entity.boundingBox, Color(espColors.getOrDefault(beName, 0xFFFFFFFF.toInt()), true), false)
+                ctx.renderBoxBounds(entity.boundingBox, Color(espColors.getOrDefault(beName, 0xFFFFFFFF.toInt()), true), phase = false)
             }
             tracerEntities.forEach { (entity, beName) ->
-                ctx.drawLineFromCursor(
+                ctx.renderTracer(
                     entity.position().add(0.0, entity.bbHeight / 2.0, 0.0),
                     Color(tracerColors.getOrDefault(beName, 0xFFFFFFFF.toInt()), true),
                     3.0f

@@ -1,4 +1,4 @@
-package kitty.cat.gui.features.settings
+package kitty.cat.features.settings
 
 class ActionSetting(
     override val name: String,

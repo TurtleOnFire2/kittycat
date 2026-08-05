@@ -39,6 +39,7 @@ object GuiUtils {
             guiGraphics.fill(left, top, right, bottom, color)
             return
         }
+        guiGraphics.fill(left, top, right, bottom, color)
         drawWithNanoVG(guiGraphics) { scale ->
             NVGRenderer.roundedRect(
                 x = left * scale,
@@ -73,6 +74,7 @@ object GuiUtils {
         val outlineThickness = thickness.coerceAtLeast(1).coerceAtMost(minOf(rectWidth, rectHeight) / 2)
         val outerRadius = radius.coerceIn(0, minOf(rectWidth, rectHeight) / 2)
 
+        guiGraphics.outline(left, top, rectWidth, rectHeight, color)
         drawWithNanoVG(guiGraphics) { scale ->
             NVGRenderer.roundedRectStroke(
                 x = left * scale,

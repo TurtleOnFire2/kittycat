@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import kitty.cat.gui.features.Feature
+import kitty.cat.features.Feature
 import net.fabricmc.loader.api.FabricLoader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -100,6 +100,13 @@ object ConfigManager {
                     strings.addProperty(setting.name, setting.value)
                 }
                 featureObject.add("strings", strings)
+                val orders = JsonObject()
+                feature.orderSettings.forEach { setting ->
+                    val values = JsonArray()
+                    setting.order.forEach { values.add(it) }
+                    orders.add(setting.name, values)
+                }
+                featureObject.add("orders", orders)
 
                 featuresObject.add(featureId(feature), featureObject)
             }
@@ -176,6 +183,11 @@ object ConfigManager {
             val strings = featureObject.objectOrNull("strings")
             feature.stringSettings.forEach { setting ->
                 strings?.stringOrNull(setting.name)?.let { setting.setValue(it) }
+            }
+            val orders = featureObject.objectOrNull("orders")
+            feature.orderSettings.forEach { setting ->
+                val saved = orders?.arrayOrNull(setting.name)?.asSequence()?.mapNotNull { it.stringOrNull() }?.toList() ?: return@forEach
+                setting.setOrder(saved)
             }
         }
     }

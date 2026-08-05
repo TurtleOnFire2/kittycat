@@ -1,4 +1,4 @@
-package kitty.cat.utils
+package kitty.cat.render.world
 
 import net.minecraft.client.renderer.rendertype.OutputTarget
 import net.minecraft.client.renderer.rendertype.RenderSetup

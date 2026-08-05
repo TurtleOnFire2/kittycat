@@ -9,13 +9,39 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(ItemStackRenderState.LayerRenderState.class)
 public class LayerRenderStateMixin {
     @ModifyArg(
-            method = "submit",
+            method = {
+                    "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V",
+                    "method_65614(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V",
+                    "a(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"
+            },
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;submitItem(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V"
             ),
-            index = 5
+            index = 5,
+            require = 0
     )
+    private int[] kittycat$tintHeldItemNamed(int[] tints) {
+        return kittycat$tintHeldItem(tints);
+    }
+
+    @ModifyArg(
+            method = {
+                    "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V",
+                    "method_65614(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V",
+                    "a(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"
+            },
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/renderer/SubmitNodeCollector;a(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V"
+            ),
+            index = 5,
+            require = 0
+    )
+    private int[] kittycat$tintHeldItemOfficial(int[] tints) {
+        return kittycat$tintHeldItem(tints);
+    }
+
     private int[] kittycat$tintHeldItem(int[] tints) {
         if (!Storm.tintBow()) return tints;
         int n = Math.max(tints.length, 8);

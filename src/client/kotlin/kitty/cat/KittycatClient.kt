@@ -9,6 +9,8 @@ import kitty.cat.features.dungeons.Relics
 import kitty.cat.features.dungeons.Storm
 import kitty.cat.features.dungeons.Terminals
 import kitty.cat.features.huds.BestiaryHud
+import kitty.cat.utils.BoneUtils
+import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.visual.ArrowTracers
@@ -17,11 +19,14 @@ import kitty.cat.features.visual.CustomESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
-import kitty.cat.gui.features.Feature
-import kitty.cat.gui.features.settings.KeybindSetting
+import kitty.cat.features.Feature
+import kitty.cat.features.huds.BackboneHud
+import kitty.cat.features.kuudra.Stun
+import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
+import kitty.cat.render.world.RenderLayers
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument
@@ -60,6 +65,10 @@ object KittycatClient : ClientModInitializer {
 	var keybindShowHud: KeyMapping? = null
 
 	override fun onInitializeClient() {
+		// Force class-init so the custom render pipelines are registered before the
+		// renderer precompiles static pipelines, not lazily mid-frame on first draw.
+		RenderLayers.LINES_THROUGH_WALLS
+
 		PictureInPictureRendererRegistry.register { NVGPIPRenderer() }
 
 		ConfigManager.initialize(featureList)
@@ -252,6 +261,7 @@ object KittycatClient : ClientModInitializer {
 			)
 		}
 
+		RendMacro.register()
 		ArrowTracers.register()
 		AutoLB.register()
 		Pests.register()
@@ -266,5 +276,9 @@ object KittycatClient : ClientModInitializer {
 		Terminals.register()
 		LeverTriggerbot.register()
 		LocationUtils.register()
+		BoneUtils.register()
+		Stun.register()
+
+		BackboneHud
 	}
 }

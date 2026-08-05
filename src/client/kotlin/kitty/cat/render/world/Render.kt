@@ -1,8 +1,9 @@
-package kitty.cat.utils
+package kitty.cat.render.world
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import kitty.cat.KittycatClient.mc
+import kitty.cat.utils.renderPos
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
@@ -392,4 +393,49 @@ inline fun PoseStack.poseScope(block: (PoseStack) -> Unit) {
     this.pushPose()
     block(this)
     this.popPose()
+}
+
+object Render3D {
+    fun LevelRenderContext.renderBoxBounds(
+        minX: Double,
+        minY: Double,
+        minZ: Double,
+        maxX: Double,
+        maxY: Double,
+        maxZ: Double,
+        outlineColor: Color,
+        fillColor: Color = Color(outlineColor.red, outlineColor.green, outlineColor.blue, 128),
+        outline: Boolean = true,
+        fill: Boolean = true,
+        phase: Boolean = false,
+        lineWidth: Number = 2.5
+    ) {
+        val bounds = AABB(minX, minY, minZ, maxX, maxY, maxZ)
+        if (fill) drawFilled(bounds, fillColor, !phase)
+        if (outline) drawLineBox(bounds, outlineColor, lineWidth.toFloat(), !phase)
+    }
+
+    fun LevelRenderContext.renderBoxBounds(
+        aabb: AABB,
+        outlineColor: Color,
+        fillColor: Color = Color(outlineColor.red, outlineColor.green, outlineColor.blue, 128),
+        outline: Boolean = true,
+        fill: Boolean = true,
+        phase: Boolean = false,
+        lineWidth: Number = 2.5
+    ) = renderBoxBounds(
+        aabb.minX, aabb.minY, aabb.minZ, aabb.maxX, aabb.maxY, aabb.maxZ,
+        outlineColor, fillColor, outline, fill, phase, lineWidth
+    )
+
+    fun LevelRenderContext.renderString(
+        text: String,
+        pos: Vec3,
+        color: Color = Color.WHITE,
+        scale: Number = 1f,
+        phase: Boolean = false
+    ) = text(text, pos, color.rgb, scale.toFloat(), !phase)
+
+    fun LevelRenderContext.renderTracer(point: Vec3, color: Color, thickness: Number = 2.5) =
+        drawLineFromCursor(point, color, thickness.toFloat())
 }

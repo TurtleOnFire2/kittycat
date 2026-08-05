@@ -48,8 +48,7 @@ object NVGRenderer {
     fun beginFrame(width: Float, height: Float) {
         ensureInit()
         if (drawing) return
-        val dpr = devicePixelRatio()
-        nvgBeginFrame(vg, width / dpr, height / dpr, dpr)
+        nvgBeginFrame(vg, width, height, 1f)
         nvgTextAlign(vg, NVG_ALIGN_LEFT or NVG_ALIGN_TOP)
         drawing = true
     }
@@ -143,7 +142,7 @@ object NVGRenderer {
         if (resourcePaths.isEmpty()) {
             listOf(
                 "assets/kittycat/font/onest_regular.ttf",
-                "font/WinkySans-Regular.ttf"
+                "assets/kittycat/font/WinkySans-Regular.ttf"
             ).forEach { path ->
                 if (findFontResource(path) != null) {
                     resourcePaths += path
@@ -164,7 +163,7 @@ object NVGRenderer {
 
         val fallback = requireFontResource(
             "assets/kittycat/font/onest_regular.ttf",
-            "font/WinkySans-Regular.ttf"
+            "assets/kittycat/font/WinkySans-Regular.ttf"
         )
         discovered["Default"] = NVGFont("Default", fallback)
         return discovered

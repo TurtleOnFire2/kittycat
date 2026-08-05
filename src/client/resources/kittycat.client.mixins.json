@@ -16,6 +16,10 @@
   },
   "mixins": [
     "BowItemMixin",
-    "ConnectionMixin"
+    "ClientLevelMixin",
+    "ConnectionMixin",
+    "EntityRenderDispatcherMixin",
+    "EntityRendererMixin",
+    "LocalPlayerMixin"
   ]
 }
