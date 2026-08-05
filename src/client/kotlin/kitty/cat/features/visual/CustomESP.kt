@@ -77,7 +77,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 entities.removeIf { entity -> !entity.isAlive }
             }
         }
-        LevelRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.COLLECT_SUBMITS.register { ctx ->
             if (debug.value) {
                 mc.level?.entitiesForRendering()?.forEach { e ->
                     if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach
