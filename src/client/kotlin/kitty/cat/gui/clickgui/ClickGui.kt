@@ -2024,17 +2024,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
-        val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
-            NVGRenderer.text(
-                text = text,
-                x = x * scale,
-                y = (y + TEXT_BASELINE_OFFSET) * scale,
-                size = size * scale,
-                color = color,
-                font = font
-            )
-        }
+        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
     }
 
     private fun drawCenteredText(
@@ -2048,17 +2038,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
-        val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
-            NVGRenderer.textCentered(
-                text = text,
-                cx = cx * scale,
-                y = (y + TEXT_BASELINE_OFFSET) * scale,
-                size = size * scale,
-                color = color,
-                font = font
-            )
-        }
+        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
     }
 
     private fun selectCategory(index: Int, playSound: Boolean) {
