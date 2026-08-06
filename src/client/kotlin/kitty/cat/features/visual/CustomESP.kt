@@ -87,7 +87,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                     ctx.renderString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0))
                     ctx.renderString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0))
                     ctx.renderString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0))
-                    ctx.renderBoxBounds(e.boundingBox, Color.WHITE, phase = true)
+                    ctx.renderBoxBounds(e.boundingBox, Color.WHITE, depthTest = false)
                     if (e !is LivingEntity) return@forEach
                     ctx.renderString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0))
                     ctx.renderString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0))
@@ -95,7 +95,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
             }
 
             entities.forEach{
-                ctx.renderBoxBounds(it.boundingBox, color.color, phase = true)
+                ctx.renderBoxBounds(it.boundingBox, color.color, depthTest = false)
             }
             tracers.forEach{
                 val height = it.boundingBox.ysize

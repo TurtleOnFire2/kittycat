@@ -404,14 +404,12 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
     // ── Text ──────────────────────────────────────────────────────────────────
 
     private fun txt(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, text: String, x: Float, y: Float, size: Float, color: Int) {
-        guiGraphics.text(minecraft.font, text, x.toInt(), y.toInt(), color)
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
             NVGRenderer.text(text = text, x = x * sc, y = y * sc, size = size * sc, color = color, font = ClickGuiFeature.selectedFont)
         }
     }
 
     private fun ctxt(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, text: String, cx: Float, y: Float, size: Float, color: Int) {
-        guiGraphics.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
             NVGRenderer.textCentered(text = text, cx = cx * sc, y = y * sc, size = size * sc, color = color, font = ClickGuiFeature.selectedFont)
         }

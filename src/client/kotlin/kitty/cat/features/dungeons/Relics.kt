@@ -39,7 +39,7 @@ object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.D
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled || !renderSpawnBox.value || !render) return@register
             Relic.entries.forEach {
-                ctx.renderBoxBounds(it.aabb, if (it.aabb.canInteract()) Color.GREEN else Color.RED, phase = true)
+                ctx.renderBoxBounds(it.aabb, if (it.aabb.canInteract()) Color.GREEN else Color.RED, depthTest = false)
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->

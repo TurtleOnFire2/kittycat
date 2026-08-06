@@ -43,7 +43,7 @@ object Terminals: Feature("Terminals", "", Categories.Category.DUNGEONS) {
 
                 val color = if (aabb.canInteract()) Color.GREEN else Color.RED
 
-                ctx.renderBoxBounds(aabb, color, phase = true)
+                ctx.renderBoxBounds(aabb, color, depthTest = false)
             }
         }
     }

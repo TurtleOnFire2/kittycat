@@ -12,7 +12,12 @@ object GuiUtils {
         val top = minOf(y, y + height)
         val bottom = maxOf(y, y + height)
 
-        guiGraphics.fill(left, top, right, bottom, color)
+        val rectWidth = right - left
+        val rectHeight = bottom - top
+        if (rectWidth <= 0 || rectHeight <= 0) return
+        drawWithNanoVG(guiGraphics) { scale ->
+            NVGRenderer.roundedRect(left * scale, top * scale, rectWidth * scale, rectHeight * scale, 0f, color)
+        }
     }
 
     fun renderRoundedRectangle(
@@ -36,10 +41,9 @@ object GuiUtils {
 
         val cornerRadius = radius.coerceAtLeast(0).coerceAtMost(minOf(rectWidth, rectHeight) / 2)
         if (cornerRadius == 0) {
-            guiGraphics.fill(left, top, right, bottom, color)
+            renderRectangle(guiGraphics, left, top, rectWidth, rectHeight, color)
             return
         }
-        guiGraphics.fill(left, top, right, bottom, color)
         drawWithNanoVG(guiGraphics) { scale ->
             NVGRenderer.roundedRect(
                 x = left * scale,
@@ -74,7 +78,6 @@ object GuiUtils {
         val outlineThickness = thickness.coerceAtLeast(1).coerceAtMost(minOf(rectWidth, rectHeight) / 2)
         val outerRadius = radius.coerceIn(0, minOf(rectWidth, rectHeight) / 2)
 
-        guiGraphics.outline(left, top, rectWidth, rectHeight, color)
         drawWithNanoVG(guiGraphics) { scale ->
             NVGRenderer.roundedRectStroke(
                 x = left * scale,

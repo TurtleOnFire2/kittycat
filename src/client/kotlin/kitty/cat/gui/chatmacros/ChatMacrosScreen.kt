@@ -734,7 +734,6 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         size: Float,
         color: Int
     ) {
-        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
         NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.text(
@@ -759,7 +758,6 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         size: Float,
         color: Int
     ) {
-        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
         NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.textCentered(

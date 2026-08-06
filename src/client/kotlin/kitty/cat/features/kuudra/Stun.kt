@@ -46,7 +46,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             }
 
             if (stunWaypoint.value) {
-                ctx.renderBoxBounds(mc.player!!.position().add(offset).aabb(0.5), Color.CYAN, phase = true)
+                ctx.renderBoxBounds(mc.player!!.position().add(offset).aabb(0.5), Color.CYAN, depthTest = false)
             }
         }
     }

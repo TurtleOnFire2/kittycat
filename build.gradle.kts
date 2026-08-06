@@ -64,7 +64,7 @@ dependencies {
 
 	runtimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.2")
 
-	// NanoVG for custom font rendering
+	// NanoVG powers Kittycat's self-contained 2D renderer.
 	implementation("org.lwjgl:lwjgl-nanovg:3.3.3")
 	include("org.lwjgl:lwjgl-nanovg:3.3.3")
 	listOf("windows", "linux", "macos", "macos-arm64").forEach { os ->

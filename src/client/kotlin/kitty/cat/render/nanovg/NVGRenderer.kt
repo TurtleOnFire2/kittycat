@@ -61,11 +61,9 @@ object NVGRenderer {
 
     fun text(text: String, x: Float, y: Float, size: Float, color: Int, font: NVGFont = defaultFont) {
         prepareTextState(size, font)
-        val snappedX = snapToPixel(x)
-        val snappedY = snapToPixel(y)
         setColor(color)
         nvgFillColor(vg, nvgColor)
-        nvgText(vg, snappedX, snappedY, text)
+        nvgText(vg, snapToPixel(x), snapToPixel(y), text)
     }
 
     fun textCentered(text: String, cx: Float, y: Float, size: Float, color: Int, font: NVGFont = defaultFont) {
@@ -123,9 +121,7 @@ object NVGRenderer {
         return snappedSize
     }
 
-    private fun snapToPixel(value: Float): Float {
-        return round(value)
-    }
+    private fun snapToPixel(value: Float): Float = round(value)
 
     private fun getFontID(font: NVGFont): Int {
         return fontMap.getOrPut(font) {
@@ -250,4 +246,5 @@ object NVGRenderer {
         }.firstOrNull()
 
     private data class FontEntry(val id: Int, val buffer: ByteBuffer)
+
 }

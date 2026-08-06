@@ -2024,7 +2024,6 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
-        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
         NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.text(
@@ -2049,7 +2048,6 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
-        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
         val font = ClickGuiFeature.selectedFont
         NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
             NVGRenderer.textCentered(

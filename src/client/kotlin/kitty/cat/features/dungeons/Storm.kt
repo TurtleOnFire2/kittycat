@@ -80,8 +80,8 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
                 sneak = true
             }
             if (storm) {
-                ctx.renderBoxBounds(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, phase = false)
-                ctx.renderBoxBounds(stormPos.aabb(0.2), Color.CYAN, phase = false)
+                ctx.renderBoxBounds(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, depthTest = true)
+                ctx.renderBoxBounds(stormPos.aabb(0.2), Color.CYAN, depthTest = true)
 
             }
             if (!aiming) return@register

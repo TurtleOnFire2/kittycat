@@ -413,12 +413,12 @@ object Render3D {
         fillColor: Color = Color(outlineColor.red, outlineColor.green, outlineColor.blue, 128),
         outline: Boolean = true,
         fill: Boolean = true,
-        phase: Boolean = false,
+        depthTest: Boolean = false,
         lineWidth: Number = 2.5
     ) {
         val bounds = AABB(minX, minY, minZ, maxX, maxY, maxZ)
-        if (fill) drawFilled(bounds, fillColor, !phase)
-        if (outline) drawLineBox(bounds, outlineColor, lineWidth.toFloat(), !phase)
+        if (fill) drawFilled(bounds, fillColor, depthTest)
+        if (outline) drawLineBox(bounds, outlineColor, lineWidth.toFloat(), depthTest)
     }
 
     fun LevelRenderContext.renderBoxBounds(
@@ -427,11 +427,11 @@ object Render3D {
         fillColor: Color = Color(outlineColor.red, outlineColor.green, outlineColor.blue, 128),
         outline: Boolean = true,
         fill: Boolean = true,
-        phase: Boolean = false,
+        depthTest: Boolean = false,
         lineWidth: Number = 2.5
     ) = renderBoxBounds(
         aabb.minX, aabb.minY, aabb.minZ, aabb.maxX, aabb.maxY, aabb.maxZ,
-        outlineColor, fillColor, outline, fill, phase, lineWidth
+        outlineColor, fillColor, outline, fill, depthTest, lineWidth
     )
 
     fun LevelRenderContext.renderString(
@@ -439,8 +439,8 @@ object Render3D {
         pos: Vec3,
         color: Color = Color.WHITE,
         scale: Number = 1f,
-        phase: Boolean = false
-    ) = text(text, pos, color.rgb, scale.toFloat(), !phase)
+        depthTest: Boolean = false
+    ) = text(text, pos, color.rgb, scale.toFloat(), depthTest)
 
     fun LevelRenderContext.renderTracer(point: Vec3, color: Color, thickness: Number = 2.5) =
         drawLineFromCursor(point, color, thickness.toFloat())
