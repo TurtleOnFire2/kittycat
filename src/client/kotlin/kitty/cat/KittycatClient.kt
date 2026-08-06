@@ -22,6 +22,7 @@ import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.features.Feature
 import kitty.cat.features.huds.BackboneHud
 import kitty.cat.features.kuudra.Stun
+import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
@@ -278,6 +279,7 @@ object KittycatClient : ClientModInitializer {
 		LocationUtils.register()
 		BoneUtils.register()
 		Stun.register()
+		Safari.register()
 
 		BackboneHud
 	}
