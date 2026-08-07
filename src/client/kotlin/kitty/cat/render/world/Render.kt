@@ -9,8 +9,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.core.BlockPos
-import net.minecraft.network.chat.Style
-import net.minecraft.util.FormattedCharSequence
+import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
@@ -337,33 +336,27 @@ fun LevelRenderContext.text(
     val distFactor = (dist * 0.02f).coerceIn(0.5f, 25f)
     val finalScale = scale * distFactor
 
-    val stack = PoseStack()
-    stack.pushPose()
-
     val s = finalScale * 0.025f
-    with(scale * 0.025f) {
-        stack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-        stack.translate(-camPos.x, -camPos.y, -camPos.z)
-        stack.last().rotate(camera.rotation())
+    poseStack().poseScopeWithCamera { stack ->
+        stack.translate(pos.x, pos.y, pos.z)
+        stack.mulPose(camera.rotation())
         stack.scale(s, -s, s)
-    }
 
-    client.font.let {
-        submitNodeCollector().submitText(
-            stack,
-            -it.width(text) / 2f,
-            0f,
-            FormattedCharSequence.forward(text, Style.EMPTY),
-            shadow,
-            if (depth) Font.DisplayMode.NORMAL else Font.DisplayMode.SEE_THROUGH,
-            color,
-            0,
-            FULL_BRIGHT,
-            0
-        )
+        client.font.let {
+            submitNodeCollector().submitText(
+                stack,
+                -it.width(text) / 2f,
+                0f,
+                Component.literal(text).visualOrderText,
+                shadow,
+                if (depth) Font.DisplayMode.NORMAL else Font.DisplayMode.SEE_THROUGH,
+                FULL_BRIGHT,
+                color,
+                0,
+                0
+            )
+        }
     }
-
-    stack.popPose()
 }
 
 fun LevelRenderContext.drawLineBox(
