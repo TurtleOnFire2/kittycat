@@ -71,6 +71,8 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
         val pos = packet.change.position
 
+        RendMacro.dM(pos.toString())
+
         if (pos.x in -75.0..-71.0 &&
             pos.y == 79.05 &&
             pos.z in -104.0..-101.0
