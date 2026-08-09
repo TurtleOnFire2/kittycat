@@ -35,7 +35,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
     val autoJump = booleanSetting("Auto jump", false)
     val autoHollowWand = booleanSetting("Auto hollow wand", false)
-    val secondClickDelay = numberSetting("Click delay hollow", 1.0, 10.0, 1.0, "", 1.0)
+    val firstClickDelay = numberSetting("Click delay first hollow click", 1.0, 10.0, 1.0, "", 1.0)
+    val secondClickDelay = numberSetting("Click delay second hollow click", 1.0, 10.0, 1.0, "", 1.0)
     val clickOrder = orderSetting("Click order", listOf("Left click", "Right click"))
     val autoRod = booleanSetting("Auto rod", false)
     val autoThrowBone = booleanSetting("Auto throw bone", false)
@@ -127,11 +128,13 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             dM("Auto hollow start")
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
                 dM("Hollow in hand -> clicking")
-                clickByString(clickOrder.options[0])
-                schedule(secondClickDelay.value) {
-                    clickByString(clickOrder.options[1])
-                    schedule(2) {
-                        startSequence()
+                schedule(firstClickDelay.value) {
+                    clickByString(clickOrder.options[0])
+                    schedule(secondClickDelay.value) {
+                        clickByString(clickOrder.options[1])
+                        schedule(2) {
+                            startSequence()
+                        }
                     }
                 }
             } else {
@@ -148,11 +151,11 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 dM("Hollow found -> swapping and clicking")
 
                 mc.player!!.inventory.selectedSlot = slot
-                schedule(1) {
+                schedule(firstClickDelay.value) {
                     clickByString(clickOrder.options[0])
-                    schedule(1) {
+                    schedule(secondClickDelay.value) {
                         clickByString(clickOrder.options[1])
-                        schedule(1) {
+                        schedule(2) {
                             startSequence()
                         }
                     }
@@ -179,6 +182,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (autoRod.value) mc.player!!.inventory.selectedSlot = rodSlot
         schedule(1) {
             if (autoRod.value) {
+                dM("Throwing rod")
                 mc.options.keyUse.clickCount++
                 rodThrow = System.currentTimeMillis()
             }
@@ -272,6 +276,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             }
         }
     }
+
     private fun clickByString(string: String) {
         if (string == "Left click") {
             mc.options.keyAttack.clickCount++
@@ -300,11 +305,13 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             dM("Auto hollow start")
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
                 dM("Hollow in hand -> clicking")
-                clickByString(clickOrder.options[0])
-                schedule(secondClickDelay.value) {
-                    clickByString(clickOrder.options[1])
-                    schedule(2) {
-                        startSequence()
+                schedule(firstClickDelay.value) {
+                    clickByString(clickOrder.options[0])
+                    schedule(secondClickDelay.value) {
+                        clickByString(clickOrder.options[1])
+                        schedule(2) {
+                            startSequence()
+                        }
                     }
                 }
             } else {
@@ -321,11 +328,11 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 dM("Hollow found -> swapping and clicking")
 
                 mc.player!!.inventory.selectedSlot = slot
-                schedule(1) {
+                schedule(firstClickDelay.value) {
                     clickByString(clickOrder.options[0])
-                    schedule(1) {
+                    schedule(secondClickDelay.value) {
                         clickByString(clickOrder.options[1])
-                        schedule(1) {
+                        schedule(2) {
                             startSequence()
                         }
                     }
