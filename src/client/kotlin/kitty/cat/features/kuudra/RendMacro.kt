@@ -5,6 +5,7 @@ import kitty.cat.features.Feature
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.dps
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.stun
@@ -32,6 +33,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
     val autoJump = booleanSetting("Auto jump", false)
     val autoHollowWand = booleanSetting("Auto hollow wand", false)
+    val secondClickDelay = numberSetting("Click delay hollow", 1.0, 10.0, 1.0, "", 1.0)
     val clickOrder = orderSetting("Click order", listOf("Left click", "Right click"))
     val autoRod = booleanSetting("Auto rod", false)
     val autoThrowBone = booleanSetting("Auto throw bone", false)
@@ -48,6 +50,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoPull = booleanSetting("Auto pull on ice spray", false)
     val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
 
+    val debug = booleanSetting("Debug", false)
     val key = keybindSetting("Trigger")
 
     override fun onKeybindPressed(setting: KeybindSetting) {
@@ -92,31 +95,41 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (pos.y > 10) return
 
         if (autoSneak.value) {
+            dM("Sneaking")
             mc.options.keyShift.isDown = true
             schedule(2) { mc.options.keyShift.isDown = false }
         }
         if (autoJump.value) {
+            dM("Jumping")
             edging = true
         }
         if (autoThrowBone.value) {
+            dM("Preparing throw bone")
             throwBone = true
         }
         if (autoHollowWand.value) {
+            dM("Auto hollow start")
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
+                dM("Hollow in hand -> clicking")
                 clickByString(clickOrder.options[0])
-                schedule(2) {
-                    clickByString(clickOrder.options[1] )
+                schedule(secondClickDelay.value) {
+                    clickByString(clickOrder.options[1])
                     schedule(2) {
                         startSequence()
                     }
                 }
             } else {
+                dM("Searching hollow")
                 val slot = hotbarSlotFromID("HOLLOW_WAND")
 
                 if (slot == null) {
+                    dM("Hollow not found skipping")
+
                     startSequence()
                     return
                 }
+
+                dM("Hollow found -> swapping and clicking")
 
                 mc.player!!.inventory.selectedSlot = slot
                 schedule(1) {
@@ -129,16 +142,24 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                     }
                 }
             }
+        } else {
+            startSequence()
         }
     }
 
     fun startSequence() {
         if (!enabled) return
 
-        if (!dps()) return
+        if (!dps() || !stun()) return
+
+        dM("Sequence starting")
+
+        dM("Looking for rod and bone")
 
         val rodSlot = hotbarSlotFromItem(Items.FISHING_ROD) ?: return
+        dM("Rod found")
         val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return
+        dM("Bone found")
         if (autoRod.value) mc.player!!.inventory.selectedSlot = rodSlot
         schedule(1) {
             if (autoRod.value) {
@@ -160,6 +181,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         val blockPos = BlockPos.containing(pos)
 
         if (mc.level?.getBlockState(blockPos.below())?.isAir == true && edging) {
+            dM("Jumping")
             mc.options.keyJump.isDown = true
             edging = false
             schedule(3) { mc.options.keyJump.isDown = false }
@@ -172,6 +194,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         ) {
             if (System.currentTimeMillis() - rodThrow < boneDelay.value * 50) return
             if (mc.player?.mainHandItem?.uuid() != "STARRED_BONE_BOOMERANG") return
+            dM("Throwing Bone")
             mc.options.keyUse.clickCount++
             throwBone = false
         }
@@ -186,21 +209,26 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         val item = player.getItemInHand(interactionHand)
         if (item.uuid() == "STARRED_BONE_BOOMERANG" && autoHalberd.value) {
+            dM("Threw bone")
             val slot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return
             mc.player?.inventory?.selectedSlot = slot
             schedule(1) {
+                dM("Throwing aots")
                 mc.options.keyUse.clickCount++
             }
         }
 
         if (item.uuid() == "AXE_OF_THE_SHREDDED") {
+            dM("Threw aots")
             if (autoLoadout.value) {
+                dM("Opening loadout")
                 mc.connection?.sendCommand("loadout")
                 clickLoadout = true
             }
         }
 
         if (item.uuid() == "STARRED_ICE_SPRAY_WAND") {
+            dM("Used ice spray")
             if (autoPull.value) {
                mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
                 schedule(2) {
@@ -240,31 +268,41 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (!enabled) return
 
         if (autoSneak.value) {
+            dM("Sneaking")
             mc.options.keyShift.isDown = true
             schedule(2) { mc.options.keyShift.isDown = false }
         }
         if (autoJump.value) {
+            dM("Jumping")
             edging = true
         }
         if (autoThrowBone.value) {
+            dM("Preparing throw bone")
             throwBone = true
         }
         if (autoHollowWand.value) {
+            dM("Auto hollow start")
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
+                dM("Hollow in hand -> clicking")
                 clickByString(clickOrder.options[0])
-                schedule(2) {
+                schedule(secondClickDelay.value) {
                     clickByString(clickOrder.options[1])
                     schedule(2) {
                         startSequence()
                     }
                 }
             } else {
+                dM("Searching hollow")
                 val slot = hotbarSlotFromID("HOLLOW_WAND")
 
                 if (slot == null) {
+                    dM("Hollow not found skipping")
+
                     startSequence()
                     return
                 }
+
+                dM("Hollow found -> swapping and clicking")
 
                 mc.player!!.inventory.selectedSlot = slot
                 schedule(1) {
@@ -277,6 +315,13 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                     }
                 }
             }
+        } else {
+            startSequence()
         }
+    }
+
+    private fun dM(string: String) {
+        if (!debug.value) return
+        Chat.send(string)
     }
 }
