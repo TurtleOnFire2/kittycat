@@ -22,7 +22,7 @@ object Safari : Feature("Safari", "", Categories.Category.MISC) {
 
             mc.level?.entitiesForRendering()?.filterIsInstance<Display.ItemDisplay>()?.forEach { display ->
                 if (display.itemStack.item == Items.STRING) {
-                    ctx.renderBoxBounds(display.blockPosition().aabb().move(0.0, 1.0, 0.0).flatten(0.1), highlightColor.color.setAlpha(0), highlightColor.color, phase = true)
+                    ctx.renderBoxBounds(display.blockPosition().aabb().move(0.0, 1.0, 0.0).flatten(0.1), highlightColor.color.setAlpha(0), highlightColor.color, depthTest = false)
                 }
             }
         }
