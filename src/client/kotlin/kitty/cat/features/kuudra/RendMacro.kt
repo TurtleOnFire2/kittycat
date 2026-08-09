@@ -17,8 +17,10 @@ import kitty.cat.utils.hotbarSlotFromItem
 import kitty.cat.utils.renderPos
 import kitty.cat.utils.setAlpha
 import kitty.cat.utils.uuid
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
@@ -64,6 +66,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     private var throwBone = false
     private var rodThrow = System.currentTimeMillis()
 
+    private var down = false
+
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.level == null || mc.player == null) return@register
@@ -82,6 +86,15 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             )
             ctx.renderBoxBounds(aabb, Color.WHITE.setAlpha(0), Color.RED.setAlpha(64), phase = true)
         }
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, level ->
+            clickLoadout = false
+
+            edging = false
+            throwBone = false
+            rodThrow = System.currentTimeMillis()
+
+            down = false
+        }
     }
 
     fun onPositionChange(packet: ClientboundPlayerPositionPacket) {
@@ -90,6 +103,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (!stun() && !dps()) return
 
         if (!kuudra()) return
+
+        if (down) return
+        down = true
 
         val pos = packet.change.position
         if (pos.y > 10) return
@@ -320,7 +336,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         }
     }
 
-    private fun dM(string: String) {
+    fun dM(string: String) {
         if (!debug.value) return
         Chat.send(string)
     }
