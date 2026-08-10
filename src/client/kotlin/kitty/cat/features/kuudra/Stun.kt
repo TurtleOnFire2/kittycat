@@ -91,8 +91,8 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
                 //pos == Vec3(-155.5, 29.05, -156.5) && stun() &&
                 if (pos !in listOf<Vec3>(
                         Vec3(-155.5, 29.05, -156.5),
-                        Vec3(-153.5, 28.05, -172.5),
-                        Vec3(-153.5, 28.05, -173.5)
+                        Vec3(-152.5, 28.05, -172.5),
+                        Vec3(-153.5, 28.05, -172.5)
                 )) return
 
                 var slot: Int? = null
