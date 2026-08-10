@@ -2,6 +2,7 @@ package kitty.cat.features.visual
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import jdk.internal.org.jline.utils.Colors.h
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
@@ -16,9 +17,12 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
+import net.minecraft.world.entity.Display
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.Interaction
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.ai.attributes.Attributes
+import net.minecraft.world.entity.animal.fish.TropicalFish
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.player.Player
@@ -32,6 +36,7 @@ import kotlin.io.path.exists
 object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     val color = colorSetting("Color")
     val debug = booleanSetting("Debug", false)
+    val debug2 = booleanSetting("Debug 2", false)
     val skipArmorStands = booleanSetting("Skip ArmorStands", false)
 
     private val configPath = FabricLoader.getInstance().configDir.resolve("kittycat/custom_esp.json")
@@ -91,6 +96,20 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                     if (e !is LivingEntity) return@forEach
                     ctx.renderString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0))
                     ctx.renderString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0))
+                }
+            }
+
+            if (debug2.value) {
+                mc.level?.entitiesForRendering()?.forEach { e ->
+                    val h = e.bbHeight
+                    when (e) {
+                        is TropicalFish -> {
+                            ctx.renderString(e.baseColor.name, e.position().add(0.0, 1.4 + h, 0.0))
+                        }
+                        is Display.ItemDisplay -> {
+                            ctx.renderString(e.itemStack.itemName.string, e.position().add(0.0, 1.2 + h, 0.0))
+                        }
+                    }
                 }
             }
 

@@ -1719,62 +1719,75 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private fun renderHueBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, step: Int) {
         val safeStep = step.coerceAtLeast(1)
-        var offset = 0
-        while (offset < rect.width) {
-            val segmentWidth = minOf(safeStep, rect.width - offset)
-            val hue = (offset.toFloat() / rect.width.toFloat()) * 360f
-            GuiUtils.renderRectangle(
-                GuiGraphicsExtractor,
-                rect.x + offset,
-                rect.y,
-                segmentWidth,
-                rect.height,
-                hsvToArgb(hue, 1f, 1f, 255)
-            )
-            offset += safeStep
+        val window = minecraft!!.window
+        val guiScale = window.guiScale.toFloat()
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, window.guiScaledWidth, window.guiScaledHeight) {
+            var offset = 0
+            while (offset < rect.width) {
+                val segmentWidth = minOf(safeStep, rect.width - offset)
+                val hue = (offset.toFloat() / rect.width.toFloat()) * 360f
+                NVGRenderer.roundedRect(
+                    (rect.x + offset) * guiScale,
+                    rect.y * guiScale,
+                    segmentWidth * guiScale,
+                    rect.height * guiScale,
+                    0f,
+                    hsvToArgb(hue, 1f, 1f, 255)
+                )
+                offset += safeStep
+            }
         }
     }
 
     private fun renderAlphaBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting, step: Int) {
         val safeStep = step.coerceAtLeast(1)
         val rgb = (setting.red shl 16) or (setting.green shl 8) or setting.blue
-        var offset = 0
-        while (offset < rect.width) {
-            val segmentWidth = minOf(safeStep, rect.width - offset)
-            val alpha = (offset.toFloat() / rect.width.toFloat() * 255f).toInt().coerceIn(0, 255)
-            GuiUtils.renderRectangle(
-                GuiGraphicsExtractor,
-                rect.x + offset,
-                rect.y,
-                segmentWidth,
-                rect.height,
-                (alpha shl 24) or rgb
-            )
-            offset += safeStep
+        val window = minecraft!!.window
+        val guiScale = window.guiScale.toFloat()
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, window.guiScaledWidth, window.guiScaledHeight) {
+            var offset = 0
+            while (offset < rect.width) {
+                val segmentWidth = minOf(safeStep, rect.width - offset)
+                val alpha = (offset.toFloat() / rect.width.toFloat() * 255f).toInt().coerceIn(0, 255)
+                NVGRenderer.roundedRect(
+                    (rect.x + offset) * guiScale,
+                    rect.y * guiScale,
+                    segmentWidth * guiScale,
+                    rect.height * guiScale,
+                    0f,
+                    (alpha shl 24) or rgb
+                )
+                offset += safeStep
+            }
         }
     }
 
     private fun renderSaturationBrightnessBox(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting) {
         val safeStep = COLOR_PICKER_SB_STEP.coerceAtLeast(1)
-        var localY = 0
-        while (localY < rect.height) {
-            val blockHeight = minOf(safeStep, rect.height - localY)
-            val brightness = (1.0 - localY.toDouble() / (rect.height - 1).coerceAtLeast(1).toDouble()).toFloat()
-            var localX = 0
-            while (localX < rect.width) {
-                val blockWidth = minOf(safeStep, rect.width - localX)
-                val saturation = (localX.toDouble() / (rect.width - 1).coerceAtLeast(1).toDouble()).toFloat()
-                GuiUtils.renderRectangle(
-                    GuiGraphicsExtractor,
-                    rect.x + localX,
-                    rect.y + localY,
-                    blockWidth,
-                    blockHeight,
-                    hsvToArgb(setting.hue, saturation, brightness, 255)
-                )
-                localX += safeStep
+        val hue = setting.hue
+        val window = minecraft!!.window
+        val guiScale = window.guiScale.toFloat()
+        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, window.guiScaledWidth, window.guiScaledHeight) {
+            var localY = 0
+            while (localY < rect.height) {
+                val blockHeight = minOf(safeStep, rect.height - localY)
+                val brightness = (1.0 - localY.toDouble() / (rect.height - 1).coerceAtLeast(1).toDouble()).toFloat()
+                var localX = 0
+                while (localX < rect.width) {
+                    val blockWidth = minOf(safeStep, rect.width - localX)
+                    val saturation = (localX.toDouble() / (rect.width - 1).coerceAtLeast(1).toDouble()).toFloat()
+                    NVGRenderer.roundedRect(
+                        (rect.x + localX) * guiScale,
+                        (rect.y + localY) * guiScale,
+                        blockWidth * guiScale,
+                        blockHeight * guiScale,
+                        0f,
+                        hsvToArgb(hue, saturation, brightness, 255)
+                    )
+                    localX += safeStep
+                }
+                localY += safeStep
             }
-            localY += safeStep
         }
     }
 
