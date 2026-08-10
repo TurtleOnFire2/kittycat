@@ -371,7 +371,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun getRotationGoal() {
         if (!autoRotate.value) return
         schedule(delay.value) {
-            val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube -> cube.isAlive || cube.size != 30 }?.position() ?: return@schedule
+            val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube -> cube.isAlive && cube.size != 30 }?.position() ?: return@schedule
+
+            dM("Found")
 
             when {
                 pos.x < -128.0 -> {handleRotation(Vec3(-80.5, 13.0, -104.5), -30f)} //Left
@@ -390,10 +392,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             Chat.send("Lock in twin")
             return
         }
+        dM("Rotating")
         RotationUtils.lookAt(goal, RotationUtils.Profile(minSpeed.value.toFloat() + adjustment, maxSpeed.value.toFloat() + adjustment))
     }
-
-
 
     fun dM(string: String) {
         if (!debug.value) return
