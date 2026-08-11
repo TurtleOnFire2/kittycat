@@ -86,38 +86,38 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             schedule(1) {
                 mc.options.keyUse.clickCount++
             }
+        }
 
-            if (autoPickobulus.value) {
-                //pos == Vec3(-155.5, 29.05, -156.5) && stun() &&
-                if (pos !in listOf<Vec3>(
-                        Vec3(-155.5, 29.05, -156.5),
-                        Vec3(-152.5, 28.05, -172.5),
-                        Vec3(-153.5, 28.05, -172.5)
+        if (autoPickobulus.value) {
+            //pos == Vec3(-155.5, 29.05, -156.5) && stun() &&
+            if (pos !in listOf<Vec3>(
+                    Vec3(-155.5, 29.05, -156.5),
+                    Vec3(-152.5, 28.05, -172.5),
+                    Vec3(-153.5, 28.05, -172.5)
                 )) return
 
-                var slot: Int? = null
+            var slot: Int? = null
 
-                for (i in 1..7) {
-                    val lore = mc.player!!.inventory.getItem(i).lore
+            for (i in 1..7) {
+                val lore = mc.player!!.inventory.getItem(i).lore
 
-                    lore.forEach {
-                        if (it.string.contains("Ability: Pickobulus")) {
-                            slot = i
-                        }
+                lore.forEach {
+                    if (it.string.contains("Ability: Pickobulus")) {
+                        slot = i
                     }
                 }
+            }
 
-                slot ?: return
+            slot ?: return
 
-                if (mc.player?.inventory?.selectedSlot == slot) {
-                    mc.options.keyUse.clickCount++
-                    return
-                }
+            if (mc.player?.inventory?.selectedSlot == slot) {
+                mc.options.keyUse.clickCount++
+                return
+            }
 
-                mc.player?.inventory?.selectedSlot = slot
-                schedule(1) {
-                    mc.options.keyUse.clickCount++
-                }
+            mc.player?.inventory?.selectedSlot = slot
+            schedule(1) {
+                mc.options.keyUse.clickCount++
             }
         }
     }
