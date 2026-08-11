@@ -21,20 +21,17 @@ import java.awt.Color
 object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val autoOpenShop = booleanSetting("Auto open shop", false)
     val autoCloseShop = booleanSetting("Auto close shop", false)
-    val clickThroughCannon = booleanSetting("Click through cannon", false)
     val blindnessAlert = booleanSetting("Blindness alert", false, "Doesnt do anything yet...")
     val stunWaypoint = booleanSetting("Stun waypoint", false)
     val autoPickobulus = booleanSetting("Auto pickobulus", false)
 
     var purchased = false
-    var clickThrough = false
 
     val offset = Vec3(5.5, -20.5, 29.5)
 
     fun register() {
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
             purchased = false
-            clickThrough = true
         }
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.level == null || mc.player == null || !enabled) return@register
@@ -54,7 +51,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     fun handleChat(unformatted: String) {
         if (unformatted == "You purchased Human Cannonball!") {
             purchased = true
-            clickThrough = false
             if (mc.player?.containerMenu != null && autoCloseShop.value) {
                 mc.player!!.closeContainer()
             }
@@ -77,10 +73,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             pos.y == 79.05 &&
             pos.z in -104.0..-101.0
         ) {
-            if (clickThroughCannon.value) {
-                clickThrough = true
-            }
-
             if (!autoOpenShop.value) return
 
             if (mc.player?.mainHandItem?.uuid() == "KUUDRA_SHOP_ITEM") {
@@ -94,31 +86,38 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             schedule(1) {
                 mc.options.keyUse.clickCount++
             }
+        }
 
-            if (pos == Vec3(-155.5, 29.05, -156.5) && stun() && autoPickobulus.value) {
-                var slot: Int? = null
+        if (autoPickobulus.value) {
+            if (pos !in listOf(
+                    Vec3(-155.5, 29.05, -156.5),
+                    Vec3(-152.5, 28.05, -172.5),
+                    Vec3(-153.5, 28.05, -172.5)
+                )
+            ) return
 
-                for (i in 1..7) {
-                    val lore = mc.player!!.inventory.getItem(i).lore
+            var slot: Int? = null
 
-                    lore.forEach {
-                        if (it.string.contains("Ability: Pickobulus")) {
-                            slot = i
-                        }
+            for (i in 1..7) {
+                val lore = mc.player!!.inventory.getItem(i).lore
+
+                lore.forEach {
+                    if (it.string.contains("Ability: Pickobulus")) {
+                        slot = i
                     }
                 }
+            }
 
-                slot ?: return
+            slot ?: return
 
-                if (mc.player?.inventory?.selectedSlot == slot) {
-                    mc.options.keyUse.clickCount++
-                    return
-                }
+            if (mc.player?.inventory?.selectedSlot == slot) {
+                mc.options.keyUse.clickCount++
+                return
+            }
 
-                mc.player?.inventory?.selectedSlot = slot
-                schedule(1) {
-                    mc.options.keyUse.clickCount++
-                }
+            mc.player?.inventory?.selectedSlot = slot
+            schedule(1) {
+                mc.options.keyUse.clickCount++
             }
         }
     }
@@ -133,7 +132,4 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         return autoCloseShop.value
     }
 
-    fun clickThrough(): Boolean {
-        return clickThrough && clickThroughCannon.value && enabled
-    }
 }

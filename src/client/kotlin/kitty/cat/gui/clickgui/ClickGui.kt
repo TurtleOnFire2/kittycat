@@ -3,6 +3,23 @@ package kitty.cat.gui.clickgui
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
+import kitty.cat.features.debug.ExampleFeature
+import kitty.cat.features.dungeons.AutoLB
+import kitty.cat.features.dungeons.LeverTriggerbot
+import kitty.cat.features.dungeons.Relics
+import kitty.cat.features.dungeons.Storm
+import kitty.cat.features.dungeons.Terminals
+import kitty.cat.features.kuudra.BackboneAlert
+import kitty.cat.features.kuudra.Fixes
+import kitty.cat.features.kuudra.HideTags
+import kitty.cat.features.kuudra.KuudraDev
+import kitty.cat.features.kuudra.RendMacro
+import kitty.cat.features.kuudra.Stun
+import kitty.cat.features.kuudra.TinyMobs
+import kitty.cat.features.misc.BestiaryHud
+import kitty.cat.features.misc.ChatMacros
+import kitty.cat.features.misc.Pests
+import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.ActionSetting
 import kitty.cat.features.settings.BooleanSetting
 import kitty.cat.features.settings.ColorSetting
@@ -12,6 +29,9 @@ import kitty.cat.features.settings.OrderSetting
 import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
+import kitty.cat.features.visual.ArrowTracers
+import kitty.cat.features.visual.BestiaryESP
+import kitty.cat.features.visual.CustomESP
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils
@@ -23,7 +43,6 @@ import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.sounds.SoundEvents
 import org.lwjgl.glfw.GLFW
-import org.reflections.Reflections
 import java.awt.Color
 
 class ClickGui : Screen(Component.literal("Kittycat Gui")) {
@@ -203,16 +222,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var featureScrollOffset = 0
     private var maxFeatureScroll = 0
 
-    val featureList: List<Feature> =
-        Reflections("kitty.cat.features")
-            .getSubTypesOf(Feature::class.java)
-            .mapNotNull { clazz ->
-                try {
-                    clazz.getField("INSTANCE").get(null) as Feature
-                } catch (_: Exception) {
-                    null
-                }
-            }
+    val featureList: List<Feature> = listOf(
+        Safari, ArrowTracers, CustomESP, BestiaryESP, ClickGuiFeature,
+        Storm, AutoLB, Relics, LeverTriggerbot, Terminals,
+        RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes,
+        BestiaryHud, Pests, ChatMacros,
+        ExampleFeature
+    )
 
     var activeFeatures: List<Feature> = emptyList()
     private val expandedFeatures = mutableSetOf<Feature>()

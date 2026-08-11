@@ -5,6 +5,7 @@
   "client": [
     "ClientPlayNetworkHandleMixin",
     "ExampleClientMixin",
+    "GameRendererMixin",
     "ItemInHandRendererMixin",
     "LayerRenderStateMixin",
     "MultiPlayerGameModeMixin",

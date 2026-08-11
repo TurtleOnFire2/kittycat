@@ -9,6 +9,7 @@ import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.dps
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.stun
+import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.clickSlot
 import kitty.cat.utils.getLoadoutIndex
@@ -20,36 +21,42 @@ import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
-import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.monster.cubemob.MagmaCube
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Items
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import java.awt.Color
 
 object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
+    val autoRotate = booleanSetting("Auto rotate", false)
+    val minSpeed = numberSetting("Min speed", 100.0, 400.0, 165.0, "", 1.0)
+    val maxSpeed = numberSetting("Max speed", 100.0, 400.0, 165.0, "", 1.0)
+    val delay = numberSetting("Rotation delay", 1.0, 20.0, 5.0, "t", 1.0)
     val autoJump = booleanSetting("Auto jump", false)
     val autoHollowWand = booleanSetting("Auto hollow wand", false)
-    val firstClickDelay = numberSetting("Click delay first hollow click", 1.0, 10.0, 1.0, "", 1.0)
-    val secondClickDelay = numberSetting("Click delay second hollow click", 1.0, 10.0, 1.0, "", 1.0)
+    val firstClickDelay = numberSetting("Click delay first hollow click", 1.0, 10.0, 1.0, "t", 1.0)
+    val secondClickDelay = numberSetting("Click delay second hollow click", 1.0, 10.0, 1.0, "t", 1.0)
     val clickOrder = orderSetting("Click order", listOf("Left click", "Right click"))
     val autoRod = booleanSetting("Auto rod", false)
+    val triggerOnRod = booleanSetting("Trigger rest of macro on rod", false)
     val autoThrowBone = booleanSetting("Auto throw bone", false)
     val offsetRight = numberSetting("Offset right",  -2.5, 2.5, 0.0)
     val offsetLeft = numberSetting("Offset left",  -2.5, 2.5, 0.0)
     val offsetBack = numberSetting("Offset back",  -2.5, 2.5, 0.0)
     val offsetFront = numberSetting("Offset front",  -2.5, 2.5, 0.0)
     val renderArea = booleanSetting("Render area", false, "Rendering is broken only for this? Idk why")
-    val boneDelay = numberSetting("Bone delay", 1.0, 20.0, 6.0, "", 1.0)
+    val boneDelay = numberSetting("Bone delay", 1.0, 20.0, 6.0, "t", 1.0)
     val autoHalberd = booleanSetting("Auto halberd", false)
     val autoLoadout = booleanSetting("Auto loadout", false)
     val loadoutSlot = numberSetting("Loadout slot", 1.0, 14.0, 1.0, "", 1.0)
-    val clickDelay = numberSetting("Click delay", 1.0, 10.0, 1.0, "", 1.0)
+    val clickDelay = numberSetting("Click delay", 1.0, 10.0, 1.0, "t", 1.0)
     val autoPull = booleanSetting("Auto pull on ice spray", false)
     val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
 
@@ -107,6 +114,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         if (down) return
         down = true
+
+        getRotationGoal()
 
         val pos = packet.change.position
         if (pos.y > 10) return
@@ -186,9 +195,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 mc.options.keyUse.clickCount++
                 rodThrow = System.currentTimeMillis()
             }
-            schedule(2) {
-                mc.player!!.inventory.selectedSlot = boneSlot
-            }
         }
     }
 
@@ -253,6 +259,21 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
                 schedule(2) {
                     mc.options.keyAttack.clickCount++
+                }
+            }
+        }
+
+        if (item.item == Items.FISHING_ROD) {
+            if (autoRod.value && System.currentTimeMillis() - rodThrow > 500) {
+                schedule(2) {
+                    val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return@schedule
+                    mc.player!!.inventory.selectedSlot = boneSlot
+                }
+            } else if (triggerOnRod.value) {
+                rodThrow = System.currentTimeMillis()
+                schedule(2) {
+                    val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return@schedule
+                    mc.player!!.inventory.selectedSlot = boneSlot
                 }
             }
         }
@@ -342,6 +363,43 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             startSequence()
         }
     }
+
+    fun getRotationGoal() {
+        if (!autoRotate.value) return
+        schedule(delay.value) {
+            val pos = mc.level?.entitiesForRendering()
+                ?.filterIsInstance<MagmaCube>()
+                ?.find { cube -> cube.isAlive && cube.size != 30 }
+                ?.position()
+                ?: return@schedule
+
+            dM("Found")
+
+            when {
+                pos.x < -128.0 -> handleRotation(Vec3(-80.5, 13.0, -104.5), -30f)
+                pos.z > -84.0 -> handleRotation(Vec3(-102.5, 13.0, -82.5), -30f)
+                pos.x > -72.0 -> handleRotation(Vec3(-123.5, 13.0, -105.5), 0f)
+                pos.z < -132.0 -> handleRotation(Vec3(-99.5, 13.0, -129.5), 30f)
+                else -> Chat.send("No valid kuudra spots found!")
+            }
+        }
+    }
+
+    fun handleRotation(goal: Vec3, adjustment: Float) {
+        if (minSpeed.value > maxSpeed.value) {
+            Chat.send("Lock in twin")
+            return
+        }
+        dM("Rotating")
+        RotationUtils.lookAt(
+            goal,
+            RotationUtils.Profile(
+                minSpeed.value.toFloat() + adjustment,
+                maxSpeed.value.toFloat() + adjustment
+            )
+        )
+    }
+
     fun dM(string: String) {
         if (!debug.value) return
         Chat.send(string)

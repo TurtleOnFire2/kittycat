@@ -30,7 +30,6 @@ import net.minecraft.world.entity.monster.Silverfish
 import net.minecraft.world.entity.monster.creaking.Creaking
 import net.minecraft.world.entity.monster.spider.CaveSpider
 import net.minecraft.world.entity.monster.zombie.Zombie
-import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.DyeColor
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Blocks
