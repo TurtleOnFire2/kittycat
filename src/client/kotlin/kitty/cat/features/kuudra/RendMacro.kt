@@ -116,8 +116,12 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         if (!kuudra()) return
 
+        dM("Is down: $down")
+
         if (down) return
         down = true
+
+        dM("Down")
 
         getRotationGoal()
 
@@ -373,7 +377,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         schedule(delay.value) {
             val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube -> cube.isAlive && cube.size != 30 }?.position() ?: return@schedule
 
-            dM("Found")
+            dM("Found at ${pos.x}, ${pos.z}")
 
             when {
                 pos.x < -128.0 -> {handleRotation(Vec3(-80.5, 13.0, -104.5), -30f)} //Left
