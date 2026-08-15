@@ -286,11 +286,7 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
                 if (active) Color(204, 84, 116, 255).rgb else Color(45, 20, 28, 255).rgb)
             GuiUtils.renderRoundedOutline(context, boxX, boxY, 10, 10, 2, 1, Color(235, 140, 166, 220).rgb)
             if (active) GuiUtils.renderRectangle(context, boxX + 3, boxY + 3, 4, 4, Color.WHITE.rgb)
-            NVGPIPRenderer.draw(context, 0, 0, width, height) {
-                NVGRenderer.text(condition.displayName, (boxX + 16) * minecraft.window.guiScale.toFloat(),
-                    (rowY + 4) * minecraft.window.guiScale.toFloat(), 9f * minecraft.window.guiScale.toFloat(),
-                    Color(246, 227, 233, 255).rgb, ClickGuiFeature.selectedFont)
-            }
+            context.text(minecraft.font, condition.displayName, boxX + 16, rowY + 4, Color(246, 227, 233, 255).rgb)
         }
     }
 }

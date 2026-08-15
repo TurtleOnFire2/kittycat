@@ -10,7 +10,8 @@
     "LayerRenderStateMixin",
     "MultiPlayerGameModeMixin",
     "gui.GuiGraphicsAccessor",
-    "gui.GuiScissorStackAccessor"
+    "gui.GuiScissorStackAccessor",
+    "gui.PictureInPictureRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

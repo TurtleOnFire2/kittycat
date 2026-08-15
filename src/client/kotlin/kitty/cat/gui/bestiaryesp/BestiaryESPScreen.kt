@@ -67,6 +67,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
     // ── Render ───────────────────────────────────────────────────────────────
 
     override fun extractRenderState(GuiGraphicsExtractor: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
+        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
         val names = filtered
         val panel = panel(); val rows = rowsRect(panel)
         val vis   = visRows(rows.height)
@@ -111,7 +112,6 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         GuiGraphicsExtractor.disableScissor()
 
         renderPicker(GuiGraphicsExtractor, sw, sh, sc, panel)
-        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────
@@ -362,7 +362,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         txt(GuiGraphicsExtractor, sw, sh, sc, searchQuery, tx, ty, TEXT_SZ, Color(246, 227, 233, 255).rgb)
         if (searchFocused && (ticks / 8) % 2 == 0) {
             val prefix = searchQuery.substring(0, caretPos.coerceIn(0, searchQuery.length))
-            val cx = if (prefix.isEmpty()) 0f else NVGRenderer.textWidth(prefix, TEXT_SZ * sc, ClickGuiFeature.selectedFont) / sc
+            val cx = minecraft.font.width(prefix).toFloat()
             GuiUtils.renderRectangle(GuiGraphicsExtractor, (tx + cx).toInt(), r.y + 4, 1, r.height - 8, Color(246, 227, 233, 255).rgb)
         }
     }
@@ -404,14 +404,10 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
     // ── Text ──────────────────────────────────────────────────────────────────
 
     private fun txt(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, text: String, x: Float, y: Float, size: Float, color: Int) {
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
-            NVGRenderer.text(text = text, x = x * sc, y = y * sc, size = size * sc, color = color, font = ClickGuiFeature.selectedFont)
-        }
+        guiGraphics.text(minecraft.font, text, x.toInt(), y.toInt(), color)
     }
 
     private fun ctxt(guiGraphics: GuiGraphicsExtractor, sw: Int, sh: Int, sc: Float, text: String, cx: Float, y: Float, size: Float, color: Int) {
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
-            NVGRenderer.textCentered(text = text, cx = cx * sc, y = y * sc, size = size * sc, color = color, font = ClickGuiFeature.selectedFont)
-        }
+        guiGraphics.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
     }
 }

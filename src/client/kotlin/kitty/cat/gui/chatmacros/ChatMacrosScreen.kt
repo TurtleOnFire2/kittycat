@@ -82,6 +82,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     override fun extractRenderState(GuiGraphicsExtractor: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
+        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
         val macros = ChatMacros.listMacros()
         pruneTestInputs(macros.size)
         clampSelectedIndex(macros.size)
@@ -117,8 +118,6 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         renderListPanel(GuiGraphicsExtractor, sw, sh, scale, listPanel, listRows, macros)
         renderDetailPanel(GuiGraphicsExtractor, sw, sh, scale, detailPanel, macros, mouseX.toDouble(), mouseY.toDouble())
-
-        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
     }
 
     override fun mouseClicked(mouseButtonEvent: MouseButtonEvent, doubled: Boolean): Boolean {
@@ -734,17 +733,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         size: Float,
         color: Int
     ) {
-        val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
-            NVGRenderer.text(
-                text = text,
-                x = x * scale,
-                y = y * scale,
-                size = size * scale,
-                color = color,
-                font = font
-            )
-        }
+        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
     }
 
     private fun drawCenteredText(
@@ -758,17 +747,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
         size: Float,
         color: Int
     ) {
-        val font = ClickGuiFeature.selectedFont
-        NVGPIPRenderer.draw(GuiGraphicsExtractor, 0, 0, sw, sh) {
-            NVGRenderer.textCentered(
-                text = text,
-                cx = cx * scale,
-                y = y * scale,
-                size = size * scale,
-                color = color,
-                font = font
-            )
-        }
+        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
     }
 
     private fun panelRect(): Rect {
@@ -932,9 +911,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
     private fun measureTextWidth(text: String, scale: Float): Float {
         if (text.isEmpty()) return 0f
-        val font = ClickGuiFeature.selectedFont
-        val widthPx = NVGRenderer.textWidth(text, TEXT_SIZE * scale, font)
-        return widthPx / scale
+        return minecraft.font.width(text).toFloat()
     }
 
     private fun viewportFromStart(value: String, maxWidth: Float, scale: Float): FieldViewport {
