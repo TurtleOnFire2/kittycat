@@ -103,7 +103,7 @@ object BestiaryESP : Feature("Bestiary ESP", "", Categories.Category.VISUAL) {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
             espEntities.forEach { (entity, beName) ->
-                ctx.renderBoxBounds(entity.boundingBox, Color(espColors.getOrDefault(beName, 0xFFFFFFFF.toInt()), true), depthTest = true)
+                ctx.renderBoxBounds(entity.boundingBox, Color(espColors.getOrDefault(beName, 0xFFFFFFFF.toInt()), true), depthTest = false)
             }
             tracerEntities.forEach { (entity, beName) ->
                 ctx.renderTracer(

@@ -2,6 +2,8 @@ package kitty.cat.utils
 
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
+import kitty.cat.render.skija.SkijaRenderer
+import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 
@@ -16,7 +18,7 @@ object GuiUtils {
         val rectHeight = bottom - top
         if (rectWidth <= 0 || rectHeight <= 0) return
         drawWithNanoVG(guiGraphics) { scale ->
-            NVGRenderer.roundedRect(left * scale, top * scale, rectWidth * scale, rectHeight * scale, 0f, color)
+            roundedRect(left * scale, top * scale, rectWidth * scale, rectHeight * scale, 0f, color)
         }
     }
 
@@ -45,7 +47,7 @@ object GuiUtils {
             return
         }
         drawWithNanoVG(guiGraphics) { scale ->
-            NVGRenderer.roundedRect(
+            roundedRect(
                 x = left * scale,
                 y = top * scale,
                 width = rectWidth * scale,
@@ -79,7 +81,7 @@ object GuiUtils {
         val outerRadius = radius.coerceIn(0, minOf(rectWidth, rectHeight) / 2)
 
         drawWithNanoVG(guiGraphics) { scale ->
-            NVGRenderer.roundedRectStroke(
+            roundedRectStroke(
                 x = left * scale,
                 y = top * scale,
                 width = rectWidth * scale,
@@ -99,6 +101,22 @@ object GuiUtils {
 
         NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
             draw(scale)
+        }
+    }
+
+    private fun roundedRect(x: Float, y: Float, width: Float, height: Float, radius: Float, color: Int) {
+        if (RenderSystem.outputColorTextureOverride?.texture()?.let(SkijaRenderer::supports) == true) {
+            SkijaRenderer.roundedRect(x, y, width, height, radius, color)
+        } else {
+            NVGRenderer.roundedRect(x, y, width, height, radius, color)
+        }
+    }
+
+    private fun roundedRectStroke(x: Float, y: Float, width: Float, height: Float, radius: Float, strokeWidth: Float, color: Int) {
+        if (RenderSystem.outputColorTextureOverride?.texture()?.let(SkijaRenderer::supports) == true) {
+            SkijaRenderer.roundedRectStroke(x, y, width, height, radius, strokeWidth, color)
+        } else {
+            NVGRenderer.roundedRectStroke(x, y, width, height, radius, strokeWidth, color)
         }
     }
 }
