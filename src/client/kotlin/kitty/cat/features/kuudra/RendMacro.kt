@@ -104,8 +104,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             edging = false
             throwBone = false
             rodThrow = System.currentTimeMillis()
-
-            down = false
         }
     }
 
@@ -116,17 +114,19 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         if (!kuudra()) return
 
+        val pos = packet.change.position
+
+        if (pos.y > 20) {
+            down = false
+            return
+        }
+
         dM("Is down: $down")
 
         if (down) return
         down = true
 
-        dM("Down")
-
         getRotationGoal()
-
-        val pos = packet.change.position
-        if (pos.y > 10) return
 
         if (autoSneak.value) {
             dM("Sneaking")
@@ -237,11 +237,12 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
         if (!enabled) return
 
-        if (!dps()) return
+        if (!kuudra() || player.y > 20) return
 
-        if (result !is InteractionResult.Pass) return
+        if (result !is InteractionResult.Pass && result !is InteractionResult.Success) return
 
         val item = player.getItemInHand(interactionHand)
+
         if (item.uuid() == "STARRED_BONE_BOOMERANG" && autoHalberd.value) {
             dM("Threw bone")
             val slot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return
@@ -272,16 +273,21 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         }
 
         if (item.item == Items.FISHING_ROD) {
-            if (autoRod.value && System.currentTimeMillis() - rodThrow > 500) {
+            dM("Rod thrown")
+            if (autoRod.value && System.currentTimeMillis() - rodThrow < 1000) {
                 schedule(2) {
                     val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return@schedule
                     mc.player!!.inventory.selectedSlot = boneSlot
+                    schedule(boneDelay.value) {
+                        mc.options.keyUse.clickCount++
+                    }
                 }
             } else if (triggerOnRod.value) {
                 rodThrow = System.currentTimeMillis()
                 schedule(2) {
                     val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return@schedule
                     mc.player!!.inventory.selectedSlot = boneSlot
+                    schedule(boneDelay.value)
                 }
             }
         }
@@ -375,15 +381,16 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun getRotationGoal() {
         if (!autoRotate.value) return
         schedule(delay.value) {
+            dM("Searching for kuudra...")
             val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube -> cube.isAlive && cube.size != 30 }?.position() ?: return@schedule
 
             dM("Found at ${pos.x}, ${pos.z}")
 
             when {
-                pos.x < -128.0 -> {handleRotation(Vec3(-80.5, 13.0, -104.5), -30f)} //Left
-                pos.z > -84.0 -> {handleRotation(Vec3(-102.5, 13.0, -82.5), -30f)} //Front
-                pos.x > -72 -> {handleRotation(Vec3(-123.5, 13.0, -105.5), 0f)} //Right
-                pos.z < -132 -> {handleRotation(Vec3(-99.5, 13.0, -129.5), +30f)} //Back
+                pos.x < -128.0 -> {handleRotation(Vec3(-123.5, 16.0, -105.5), 0f)}//Right
+                pos.x > -72 -> {handleRotation(Vec3(-80.5, 16.0, -104.5), 0f)} //Left
+                pos.z > -84.0 -> {handleRotation(Vec3(-102.5, 16.0, -82.5), -30f)} //Front
+                pos.z < -132 -> {handleRotation(Vec3(-99.5, 16.0, -129.5), +30f)} //Back
                 else -> {
                     Chat.send("No valid kuudra spots found!")
                 }
@@ -397,7 +404,10 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             return
         }
         dM("Rotating")
-        RotationUtils.lookAt(goal, RotationUtils.Profile(minSpeed.value.toFloat() + adjustment, maxSpeed.value.toFloat() + adjustment))
+        RotationUtils.lookAt(goal, pitch = -30f, RotationUtils.Profile(minSpeed.value.toFloat() + adjustment, maxSpeed.value.toFloat() + adjustment), walk = true, onComplete = {
+            mc.options.keyUp.isDown = true
+            Chat.send("yo")
+        })
     }
 
     fun dM(string: String) {

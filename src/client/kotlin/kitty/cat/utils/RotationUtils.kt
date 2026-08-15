@@ -28,9 +28,9 @@
         ) {
             init {
                 require(minSpeed > 0f && maxSpeed >= minSpeed)
-                require(minDuration >= 0f && maxDuration >= minDuration)
+                require(minDuration in 0f..maxDuration)
                 require(overshootChance in 0f..1f && flickChance in 0f..1f)
-                require(minOvershoot >= 0f && maxOvershoot >= minOvershoot)
+                require(minOvershoot in 0f..maxOvershoot)
                 require(maxFlick >= 0f && microCorrection >= 0f)
                 require(timeout > 0f)
             }
@@ -55,6 +55,9 @@
             val yawFrequency: Float,
             val pitchFrequency: Float,
             val worldTarget: Vec3?,
+            val trackTargetYaw: Boolean,
+            val trackTargetPitch: Boolean,
+            val movementKeys: MovementKeys?,
             val startedAtNanos: Long,
             val timeoutNanos: Long,
             val onComplete: (() -> Unit)?,
@@ -63,6 +66,13 @@
         ) {
             val duration get() = mainTime + correctionTime
         }
+
+        private data class MovementKeys(
+            val forward: Boolean,
+            val back: Boolean,
+            val left: Boolean,
+            val right: Boolean,
+        )
 
         var defaultProfile = Profile()
         val isRotating get() = current != null
@@ -78,18 +88,24 @@
             onComplete: (() -> Unit)? = null,
             onTimeout: (() -> Unit)? = null,
         ) {
-            startRotation(yaw, pitch, null, profile, onComplete, onTimeout)
+            startRotation(yaw, pitch, null, false, false, false, profile, onComplete, onTimeout)
         }
 
         private fun startRotation(
             yaw: Float,
             pitch: Float,
             worldTarget: Vec3?,
+            trackTargetYaw: Boolean,
+            trackTargetPitch: Boolean,
+            walk: Boolean,
             profile: Profile,
             onComplete: (() -> Unit)?,
             onTimeout: (() -> Unit)?,
         ) {
             val player = mc.player ?: return
+            restoreMovement(current)
+            current = null
+
             val startYaw = player.yRot
             val startPitch = player.xRot
             val goalYaw = startYaw + Mth.wrapDegrees(yaw - startYaw)
@@ -101,6 +117,7 @@
             if (distance < 0.01f) {
                 applyGcd(goalYaw, goalPitch)
                 current = null
+                lastFrameNanos = 0L
                 onComplete?.invoke()
                 return
             }
@@ -122,7 +139,7 @@
             val side = if (Random.nextBoolean()) 1f else -1f
 
             val now = System.nanoTime()
-            current = Rotation(
+            val rotation = Rotation(
                 startYaw,
                 startPitch,
                 goalYaw,
@@ -141,27 +158,78 @@
                 random(1.7f, 2.8f),
                 random(2.0f, 3.2f),
                 worldTarget,
+                trackTargetYaw,
+                trackTargetPitch,
+                if (walk) captureMovement() else null,
                 now,
                 (profile.timeout * NANOS_PER_SECOND).toLong(),
                 onComplete,
                 onTimeout,
             )
+            current = rotation
             lastFrameNanos = now
+            updateMovement(rotation, player.yRot)
         }
 
-        /** Rotates from the player's eyes toward a fixed world-space point. */
+        /**
+         * Rotates from the player's eyes toward a fixed world-space point.
+         * When [walk] is enabled, movement is aimed toward the target until the rotation finishes.
+         */
         fun lookAt(
             target: Vec3,
             profile: Profile = defaultProfile,
+            walk: Boolean = false,
             onComplete: (() -> Unit)? = null,
             onTimeout: (() -> Unit)? = null,
         ) {
             val player = mc.player ?: return
             val (yaw, pitch) = target.getLook(player.getEyePosition(framePartialTick()))
-            startRotation(yaw, pitch, target, profile, onComplete, onTimeout)
+            startRotation(yaw, pitch, target, true, true, walk, profile, onComplete, onTimeout)
+        }
+
+        /** Rotates yaw toward [target]'s X/Z coordinates while rotating to an explicit [pitch]. */
+        fun lookAt(
+            target: Vec3,
+            pitch: Float,
+            profile: Profile = defaultProfile,
+            walk: Boolean = false,
+            onComplete: (() -> Unit)? = null,
+            onTimeout: (() -> Unit)? = null,
+        ) {
+            val player = mc.player ?: return
+            val yaw = target.getLook(player.getEyePosition(framePartialTick())).first
+            startRotation(yaw, pitch, target, true, false, walk, profile, onComplete, onTimeout)
+        }
+
+        /** Convenience overload for a horizontal target supplied as separate coordinates. */
+        fun lookAt(
+            targetX: Double,
+            targetZ: Double,
+            pitch: Float,
+            profile: Profile = defaultProfile,
+            walk: Boolean = false,
+            onComplete: (() -> Unit)? = null,
+            onTimeout: (() -> Unit)? = null,
+        ) {
+            lookAt(Vec3(targetX, 0.0, targetZ), pitch, profile, walk, onComplete, onTimeout)
+        }
+
+        /** Rotates to an explicit [yaw] while pitch tracks the world-space [target]. */
+        fun lookAtWithYaw(
+            target: Vec3,
+            yaw: Float,
+            profile: Profile = defaultProfile,
+            walk: Boolean = false,
+            onComplete: (() -> Unit)? = null,
+            onTimeout: (() -> Unit)? = null,
+        ) {
+            val player = mc.player ?: return
+            val pitch = target.getLook(player.getEyePosition(framePartialTick())).second
+            startRotation(yaw, pitch, target, false, true, walk, profile, onComplete, onTimeout)
         }
 
         fun cancel() {
+            restoreMovement(current)
             current = null
             lastFrameNanos = 0L
         }
@@ -178,6 +246,7 @@
 
             val now = System.nanoTime()
             if (now - state.startedAtNanos >= state.timeoutNanos) {
+                restoreMovement(state)
                 current = null
                 lastFrameNanos = 0L
                 state.onTimeout?.invoke()
@@ -194,13 +263,19 @@
             // Keep a world-space look target correct while the player is running or otherwise moving.
             state.worldTarget?.let { target ->
                 val (yaw, pitch) = target.getLook(player.getEyePosition(framePartialTick()))
-                state.goalYaw += Mth.wrapDegrees(yaw - state.goalYaw)
-                state.goalPitch = pitch.coerceIn(-90f, 90f)
+                if (state.trackTargetYaw) {
+                    state.goalYaw += Mth.wrapDegrees(yaw - state.goalYaw)
+                }
+                if (state.trackTargetPitch) {
+                    state.goalPitch = pitch.coerceIn(-90f, 90f)
+                }
             }
 
             if (state.elapsed >= state.duration) {
                 applyGcd(state.goalYaw, state.goalPitch)
+                restoreMovement(state)
                 current = null
+                lastFrameNanos = 0L
                 state.onComplete?.invoke()
                 return
             }
@@ -229,6 +304,48 @@
                 baseYaw + state.flickYaw * flick + yawNoise,
                 basePitch + state.flickPitch * flick + pitchNoise,
             )
+            updateMovement(state, player.yRot)
+        }
+
+        private fun captureMovement() = MovementKeys(
+            mc.options.keyUp.isDown,
+            mc.options.keyDown.isDown,
+            mc.options.keyLeft.isDown,
+            mc.options.keyRight.isDown,
+        )
+
+        private fun updateMovement(state: Rotation, playerYaw: Float) {
+            if (state.movementKeys == null) return
+            val target = state.worldTarget ?: return
+            val player = mc.player ?: return
+            val dx = target.x - player.x
+            val dz = target.z - player.z
+
+            if (dx * dx + dz * dz < 0.0001) {
+                setMovement(forward = false, back = false, left = false, right = false)
+                return
+            }
+
+            val targetYaw = Math.toDegrees(kotlin.math.atan2(-dx, dz)).toFloat()
+            val direction = round(Mth.wrapDegrees(targetYaw - playerYaw) / 45f).toInt()
+            setMovement(
+                forward = direction in -1..1,
+                back = direction <= -3 || direction >= 3,
+                left = direction in -3..-1,
+                right = direction in 1..3,
+            )
+        }
+
+        private fun restoreMovement(state: Rotation?) {
+            val keys = state?.movementKeys ?: return
+            setMovement(keys.forward, keys.back, keys.left, keys.right)
+        }
+
+        private fun setMovement(forward: Boolean, back: Boolean, left: Boolean, right: Boolean) {
+            mc.options.keyUp.isDown = forward
+            mc.options.keyDown.isDown = back
+            mc.options.keyLeft.isDown = left
+            mc.options.keyRight.isDown = right
         }
 
         /** Quantizes each delta to the same step produced by Minecraft's mouse sensitivity. */

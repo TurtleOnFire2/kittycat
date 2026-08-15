@@ -4,6 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.stun
 import kitty.cat.utils.Schedule.schedule
@@ -89,8 +90,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         }
 
         if (autoPickobulus.value) {
-            //pos == Vec3(-155.5, 29.05, -156.5) && stun() &&
-            if (pos !in listOf<Vec3>(
+            if (pos !in listOf(
                     Vec3(-155.5, 29.05, -156.5),
                     Vec3(-152.5, 28.05, -172.5),
                     Vec3(-153.5, 28.05, -172.5)

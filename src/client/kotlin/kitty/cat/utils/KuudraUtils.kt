@@ -12,7 +12,7 @@ object KuudraUtils {
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (mc.player == null) return@register
-            if (client.player!!.y < 10 || phase == Phase.STUN) {
+            if (client.player!!.y < 20 || phase == Phase.STUN) {
                 phase = Phase.DPS
             }
         }
