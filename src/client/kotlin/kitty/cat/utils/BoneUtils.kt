@@ -2,6 +2,7 @@ package kitty.cat.utils
 
 import kitty.cat.features.huds.BackboneHud
 import kitty.cat.features.kuudra.BackboneAlert
+import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.utils.Schedule.schedule
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.world.InteractionHand
@@ -90,6 +91,7 @@ object BoneUtils {
                     if (dot < 0.995) {
                         returning = true
                         if (curr == null) return
+                        RendMacro.onBackbone()
                         BackboneHud.render = true
                         schedule(BackboneAlert.time.value) {
                             BackboneHud.render = false

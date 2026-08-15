@@ -1,6 +1,7 @@
 package kitty.cat
 
 import com.mojang.blaze3d.platform.InputConstants
+import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import kitty.cat.config.ConfigManager
 import kitty.cat.features.dungeons.AutoLB
@@ -28,6 +29,7 @@ import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
 import kitty.cat.render.world.RenderLayers
+import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument
@@ -152,6 +154,21 @@ object KittycatClient : ClientModInitializer {
 						openGui = true
 						1
 					}
+			)
+			dispatcher.register(
+				literal("rotate")
+					.then(
+						argument("yaw", FloatArgumentType.floatArg())
+							.then(
+								argument("pitch", FloatArgumentType.floatArg())
+									.executes { ctx ->
+										val yaw = FloatArgumentType.getFloat(ctx, "yaw")
+										val pitch = FloatArgumentType.getFloat(ctx, "pitch")
+										RotationUtils.rotate(yaw, pitch)
+										1
+									}
+							)
+					)
 			)
 			dispatcher.register(
 				literal("cesp")
