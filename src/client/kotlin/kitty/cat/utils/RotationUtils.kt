@@ -237,6 +237,7 @@
         /** Renderer hook: advances the active rotation exactly once per rendered frame. */
         @JvmStatic
         fun onFrame() {
+            if (mc.screen != null) return
             val state = current ?: return
             val player = mc.player
             if (player == null || mc.level == null) {

@@ -2,7 +2,6 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
-import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Chat
@@ -21,7 +20,7 @@ import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
-import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.commands.arguments.SlotArgument.slot
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
@@ -33,7 +32,6 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
-import kotlin.math.min
 
 object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
@@ -49,34 +47,28 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val secondClickDelay = numberSetting("Click delay second hollow click", 1.0, 10.0, 1.0, "t", 1.0)
     val clickOrder = orderSetting("Click order", listOf("Left click", "Right click"))
     val autoRod = booleanSetting("Auto rod", false)
-    val triggerOnRod = booleanSetting("Trigger rest of macro on rod", false)
-    val autoThrowBone = booleanSetting("Auto throw bone", false)
     val offsetRight = numberSetting("Offset right",  -2.5, 2.5, 0.0)
     val offsetLeft = numberSetting("Offset left",  -2.5, 2.5, 0.0)
     val offsetBack = numberSetting("Offset back",  -2.5, 2.5, 0.0)
     val offsetFront = numberSetting("Offset front",  -2.5, 2.5, 0.0)
     val renderArea = booleanSetting("Render area", false, "Rendering is broken only for this? Idk why")
+    val autoBone = booleanSetting("Auto bone", false)
     val boneDelay = numberSetting("Bone delay", 1.0, 20.0, 6.0, "t", 1.0)
     val autoHalberd = booleanSetting("Auto halberd", false)
     val autoLoadout = booleanSetting("Auto loadout", false)
     val loadoutSlot = numberSetting("Loadout slot", 1.0, 14.0, 1.0, "", 1.0)
     val clickDelay = numberSetting("Click delay", 1.0, 10.0, 1.0, "t", 1.0)
-    val autoPull = booleanSetting("Auto pull on ice spray", false)
+    val autoPull = booleanSetting("Auto pull on backbone", false)
     val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
+    val pullDelay = numberSetting("Pull delay", 1.0, 20.0, 1.0, "t", 1.0)
 
     val debug = booleanSetting("Debug", false)
     val key = keybindSetting("Trigger")
 
-    override fun onKeybindPressed(setting: KeybindSetting) {
-        if (!enabled) return
-        triggerMacro()
-    }
-
     private var clickLoadout = false
 
     private var edging = false
-    private var throwBone = false
-    private var rodThrow = System.currentTimeMillis()
+    private var throwRod = false
 
     private var down = false
 
@@ -84,7 +76,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.level == null || mc.player == null) return@register
 
-            checkBoneAndEdge()
+            checkRodAndEdge()
 
             if (!renderArea.value) return@register
 
@@ -102,17 +94,14 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             clickLoadout = false
 
             edging = false
-            throwBone = false
-            rodThrow = System.currentTimeMillis()
+            throwRod = false
         }
     }
 
     fun onPositionChange(packet: ClientboundPlayerPositionPacket) {
-        if (!enabled) return
+        if (!enabled || !kuudra()) return
 
         if (!stun() && !dps()) return
-
-        if (!kuudra()) return
 
         val pos = packet.change.position
 
@@ -137,10 +126,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             dM("Jumping")
             edging = true
         }
-        if (autoThrowBone.value) {
-            dM("Preparing throw bone")
-            throwBone = true
-        }
         if (autoHollowWand.value) {
             dM("Auto hollow start")
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
@@ -150,7 +135,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                     schedule(secondClickDelay.value) {
                         clickByString(clickOrder.options[1])
                         schedule(2) {
-                            startSequence()
+                            prepareRod()
                         }
                     }
                 }
@@ -161,7 +146,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 if (slot == null) {
                     dM("Hollow not found skipping")
 
-                    startSequence()
+                    prepareRod()
                     return
                 }
 
@@ -173,40 +158,32 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                     schedule(secondClickDelay.value) {
                         clickByString(clickOrder.options[1])
                         schedule(2) {
-                            startSequence()
+                            prepareRod()
                         }
                     }
                 }
             }
         } else {
-            startSequence()
+            prepareRod()
         }
     }
 
-    fun startSequence() {
+    fun prepareRod() {
         if (!enabled) return
 
         if (!dps() || !stun()) return
 
-        dM("Sequence starting")
-
-        dM("Looking for rod and bone")
+        dM("Looking for rod")
 
         val rodSlot = hotbarSlotFromItem(Items.FISHING_ROD) ?: return
         dM("Rod found")
-        val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return
-        dM("Bone found")
-        if (autoRod.value) mc.player!!.inventory.selectedSlot = rodSlot
-        schedule(1) {
-            if (autoRod.value) {
-                dM("Throwing rod")
-                mc.options.keyUse.clickCount++
-                rodThrow = System.currentTimeMillis()
-            }
+        if (autoRod.value) {
+            throwRod = true
+            mc.player!!.inventory.selectedSlot = rodSlot
         }
     }
 
-    fun checkBoneAndEdge() {
+    fun checkRodAndEdge() {
         if (!enabled) return
 
         if (!dps()) return
@@ -222,15 +199,14 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         }
 
         if (
-            throwBone && (
+            throwRod && (
                     pos.x !in (-111.0 - offsetRight.value)..(-95.0 + offsetLeft.value)
                             || pos.z !in (-118.0 - offsetBack.value)..(-97.0 + offsetFront.value))
         ) {
-            if (System.currentTimeMillis() - rodThrow < boneDelay.value * 50) return
-            if (mc.player?.mainHandItem?.uuid() != "STARRED_BONE_BOOMERANG") return
-            dM("Throwing Bone")
+            if (mc.player?.mainHandItem?.item != Items.FISHING_ROD) return
+            dM("Throwing rod")
             mc.options.keyUse.clickCount++
-            throwBone = false
+            throwRod = false
         }
     }
 
@@ -262,32 +238,14 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             }
         }
 
-        if (item.uuid() == "STARRED_ICE_SPRAY_WAND") {
-            dM("Used ice spray")
-            if (autoPull.value) {
-               mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
-                schedule(2) {
-                    mc.options.keyAttack.clickCount++
-                }
-            }
-        }
-
         if (item.item == Items.FISHING_ROD) {
             dM("Rod thrown")
-            if (autoRod.value && System.currentTimeMillis() - rodThrow < 1000) {
-                schedule(2) {
-                    val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return@schedule
-                    mc.player!!.inventory.selectedSlot = boneSlot
-                    schedule(boneDelay.value) {
-                        mc.options.keyUse.clickCount++
-                    }
-                }
-            } else if (triggerOnRod.value) {
-                rodThrow = System.currentTimeMillis()
-                schedule(2) {
-                    val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return@schedule
-                    mc.player!!.inventory.selectedSlot = boneSlot
-                    schedule(boneDelay.value)
+
+            if (autoBone.value) {
+                val boneSlot = hotbarSlotFromID("STARRED_BONE_BOOMERANG") ?: return
+                mc.player!!.inventory.selectedSlot = boneSlot
+                schedule(boneDelay.value) {
+                    mc.options.keyUse.clickCount++
                 }
             }
         }
@@ -313,68 +271,11 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     }
 
     private fun clickByString(string: String) {
+        dM(string)
         if (string == "Left click") {
             mc.options.keyAttack.clickCount++
         } else if (string == "Right click") {
             mc.options.keyUse.clickCount++
-        }
-    }
-
-    fun triggerMacro() {
-        if (!enabled) return
-
-        if (autoSneak.value) {
-            dM("Sneaking")
-            mc.options.keyShift.isDown = true
-            schedule(2) { mc.options.keyShift.isDown = false }
-        }
-        if (autoJump.value) {
-            dM("Jumping")
-            edging = true
-        }
-        if (autoThrowBone.value) {
-            dM("Preparing throw bone")
-            throwBone = true
-        }
-        if (autoHollowWand.value) {
-            dM("Auto hollow start")
-            if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
-                dM("Hollow in hand -> clicking")
-                schedule(firstClickDelay.value) {
-                    clickByString(clickOrder.options[0])
-                    schedule(secondClickDelay.value) {
-                        clickByString(clickOrder.options[1])
-                        schedule(2) {
-                            startSequence()
-                        }
-                    }
-                }
-            } else {
-                dM("Searching hollow")
-                val slot = hotbarSlotFromID("HOLLOW_WAND")
-
-                if (slot == null) {
-                    dM("Hollow not found skipping")
-
-                    startSequence()
-                    return
-                }
-
-                dM("Hollow found -> swapping and clicking")
-
-                mc.player!!.inventory.selectedSlot = slot
-                schedule(firstClickDelay.value) {
-                    clickByString(clickOrder.options[0])
-                    schedule(secondClickDelay.value) {
-                        clickByString(clickOrder.options[1])
-                        schedule(2) {
-                            startSequence()
-                        }
-                    }
-                }
-            }
-        } else {
-            startSequence()
         }
     }
 
@@ -408,6 +309,16 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             mc.options.keyUp.isDown = true
             Chat.send("yo")
         })
+    }
+
+    fun onBackbone() {
+        if (!kuudra() || !enabled || !dps() || !autoPull.value || mc.screen != null) return
+
+        mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
+
+        schedule(pullDelay.value) {
+            mc.options.keyAttack.clickCount++
+        }
     }
 
     fun dM(string: String) {
