@@ -233,6 +233,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 dM("Opening loadout")
                 mc.connection?.sendCommand("loadout")
                 clickLoadout = true
+                mc.options.keyUp.isDown = false
             }
         }
 
