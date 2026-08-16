@@ -2,6 +2,7 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.RangeSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Chat
@@ -36,10 +37,13 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
 
     val autoRotate = booleanSetting("Auto rotate", false)
-    val minSpeed = numberSetting("Min speed", 100.0, 400.0, 165.0, "", 1.0)
-    val maxSpeed = numberSetting("Max speed", 100.0, 400.0, 165.0, "", 1.0)
+    val front = rangeSetting("Front" , 50.0, 500.0, 85.0, 145.0, "", 1.0)
+    val right = rangeSetting("Right" , 50.0, 500.0, 235.0, 295.0, "", 1.0)
+    val left = rangeSetting("Left" , 50.0, 500.0, 235.0, 295.0, "", 1.0)
+    val back = rangeSetting("Back" , 50.0, 500.0, 285.0, 345.0, "", 1.0)
 
-    val delay =  numberSetting("Rotation delay", 1.0, 20.0, 5.0, "t", 1.0)
+    val delay = numberSetting("Rotation delay", 1.0, 20.0, 5.0, "t", 1.0)
+    val autoWalk = booleanSetting("Auto walk", false)
     val autoJump = booleanSetting("Auto jump", false)
     val autoHollowWand = booleanSetting("Auto hollow wand", false)
     val firstClickDelay = numberSetting("Click delay first hollow click", 1.0, 10.0, 1.0, "t", 1.0)
@@ -234,6 +238,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 dM("Opening loadout")
                 mc.connection?.sendCommand("loadout")
                 clickLoadout = true
+                mc.options.keyUp.isDown = false
             }
         }
 
@@ -287,10 +292,10 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             dM("Found at ${pos.x}, ${pos.z}")
 
             when {
-                pos.x < -128.0 -> {handleRotation(Vec3(-123.5, 16.0, -105.5), 0f)}//Right
-                pos.x > -72 -> {handleRotation(Vec3(-80.5, 16.0, -104.5), 0f)} //Left
-                pos.z > -84.0 -> {handleRotation(Vec3(-102.5, 16.0, -82.5), -30f)} //Front
-                pos.z < -132 -> {handleRotation(Vec3(-99.5, 16.0, -129.5), +30f)} //Back
+                pos.x < -128.0 -> {handleRotation(Vec3(-123.5, 16.0, -105.5), right)}//Right
+                pos.x > -72 -> {handleRotation(Vec3(-80.5, 16.0, -104.5), left)} //Left
+                pos.z > -84.0 -> {handleRotation(Vec3(-104.5, 16.0, -82.5), front)} //Front
+                pos.z < -132 -> {handleRotation(Vec3(-98.5, 16.0, -129.5), back)} //Back
                 else -> {
                     Chat.send("No valid kuudra spots found!")
                 }
@@ -298,13 +303,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         }
     }
 
-    fun handleRotation(goal: Vec3, adjustment: Float) {
-        if (minSpeed.value > maxSpeed.value) {
-            Chat.send("Lock in twin")
-            return
-        }
+    fun handleRotation(goal: Vec3, c: RangeSetting) {
         dM("Rotating")
-        RotationUtils.lookAt(goal, pitch = -30f, RotationUtils.Profile(minSpeed.value.toFloat() + adjustment, maxSpeed.value.toFloat() + adjustment), walk = true, onComplete = {
+        RotationUtils.lookAt(goal, pitch = -30f, RotationUtils.Profile(c.lowerValue.toFloat(), c.upperValue.toFloat()), walk = autoWalk.value, onComplete = {
             mc.options.keyUp.isDown = true
             Chat.send("yo")
         })

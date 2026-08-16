@@ -26,6 +26,7 @@ import kitty.cat.features.settings.ColorSetting
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.features.settings.NumberSetting
 import kitty.cat.features.settings.OrderSetting
+import kitty.cat.features.settings.RangeSetting
 import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
@@ -98,7 +99,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val selected: Boolean
     )
 
-    private enum class TextInputKind { NUMBER, COLOR_CHANNEL, STRING }
+    private enum class TextInputKind { NUMBER, RANGE, COLOR_CHANNEL, STRING }
+
+    private enum class RangeHandle { LOWER, UPPER }
+
+    private data class RangeDrag(val setting: RangeSetting, val handle: RangeHandle)
 
     private enum class ColorChannel {
         RED, GREEN, BLUE, ALPHA
@@ -145,6 +150,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         const val NUMBER_UNIT_SLOT_WIDTH = 18
         const val NUMBER_TEXT_HEIGHT = 12
         const val NUMBER_SLIDER_HEIGHT = 6
+        const val RANGE_TEXT_WIDTH = 76
+        const val RANGE_HANDLE_SIZE = 8
 
         const val SELECTOR_VALUE_X = 72
         const val SELECTOR_VALUE_HEIGHT = 12
@@ -205,6 +212,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var settingHoverStartMs: Long = 0L
 
     private var draggingNumberSetting: NumberSetting? = null
+    private var draggingRange: RangeDrag? = null
     private var draggingHueSetting: ColorSetting? = null
     private var draggingAlphaSetting: ColorSetting? = null
     private var draggingSaturationBrightnessSetting: ColorSetting? = null
@@ -583,6 +591,27 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
     }
 
+    private fun rangeTextRect(layout: SettingLayout): Rect {
+        return Rect(
+            x = layout.x + layout.width - RANGE_TEXT_WIDTH - 2,
+            y = layout.y + 1,
+            width = RANGE_TEXT_WIDTH,
+            height = NUMBER_TEXT_HEIGHT
+        )
+    }
+
+    private fun rangeSliderRect(layout: SettingLayout): Rect {
+        val textRect = rangeTextRect(layout)
+        val sliderX = layout.x + NUMBER_VALUE_X
+        val sliderWidth = (textRect.x - sliderX - 6).coerceAtLeast(12)
+        return Rect(
+            x = sliderX,
+            y = layout.y + (FEATURE_SETTING_ROW_HEIGHT - RANGE_HANDLE_SIZE) / 2,
+            width = sliderWidth,
+            height = RANGE_HANDLE_SIZE
+        )
+    }
+
     private fun selectorBaseRect(layout: SettingLayout): Rect {
         return Rect(
             x = layout.x + SELECTOR_VALUE_X,
@@ -755,6 +784,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val session = textInputSession ?: return false
         val success = when (session.kind) {
             TextInputKind.NUMBER -> (session.setting as? NumberSetting)?.setFromText(session.buffer.trim()) ?: false
+            TextInputKind.RANGE -> (session.setting as? RangeSetting)?.setFromText(session.buffer.trim()) ?: false
             TextInputKind.COLOR_CHANNEL -> {
                 val setting = session.setting as? ColorSetting ?: return false
                 val channel = session.colorChannel ?: return false
@@ -785,6 +815,17 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                         (character == '-' && setting.min < 0.0)
                 }
             }
+            TextInputKind.RANGE -> {
+                val setting = session.setting as? RangeSetting
+                if (setting == null) {
+                    character.isDigit() || character == '.' || character == ',' || character == '-'
+                } else {
+                    character.isDigit() ||
+                        (character == '.' && setting.allowsDecimalInput()) ||
+                        (character == '-' && setting.min < 0.0) ||
+                        (character == ',' && !session.buffer.contains(','))
+                }
+            }
             TextInputKind.COLOR_CHANNEL -> character.isDigit()
             TextInputKind.STRING -> {
                 val setting = session.setting as? StringSetting ?: return false
@@ -813,6 +854,38 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private fun updateNumberFromMouse(setting: NumberSetting, sliderRect: Rect, mouseX: Double) {
         val normalized = ((mouseX - sliderRect.x) / sliderRect.width.toDouble()).coerceIn(0.0, 1.0)
         setting.setFromSlider(normalized)
+    }
+
+    private fun rangeHandleForMouse(setting: RangeSetting, sliderRect: Rect, mouseX: Double): RangeHandle {
+        val normalized = rangeSliderPositionForMouse(sliderRect, mouseX)
+        val lowerDistance = kotlin.math.abs(normalized - setting.lowerSliderPosition())
+        val upperDistance = kotlin.math.abs(normalized - setting.upperSliderPosition())
+        return when {
+            lowerDistance < upperDistance -> RangeHandle.LOWER
+            upperDistance < lowerDistance -> RangeHandle.UPPER
+            normalized <= setting.lowerSliderPosition() -> RangeHandle.LOWER
+            else -> RangeHandle.UPPER
+        }
+    }
+
+    private fun updateRangeFromMouse(setting: RangeSetting, handle: RangeHandle, sliderRect: Rect, mouseX: Double) {
+        val normalized = rangeSliderPositionForMouse(sliderRect, mouseX)
+        when (handle) {
+            RangeHandle.LOWER -> setting.setLowerFromSlider(normalized)
+            RangeHandle.UPPER -> setting.setUpperFromSlider(normalized)
+        }
+    }
+
+    private fun rangeSliderPositionForMouse(sliderRect: Rect, mouseX: Double): Double {
+        val trackStart = sliderRect.x + RANGE_HANDLE_SIZE / 2.0
+        val trackWidth = (sliderRect.width - RANGE_HANDLE_SIZE).coerceAtLeast(1)
+        return ((mouseX - trackStart) / trackWidth).coerceIn(0.0, 1.0)
+    }
+
+    private fun rangeHandleX(sliderRect: Rect, position: Double): Int {
+        val trackStart = sliderRect.x + RANGE_HANDLE_SIZE / 2
+        val trackWidth = (sliderRect.width - RANGE_HANDLE_SIZE).coerceAtLeast(1)
+        return trackStart + (trackWidth * position.coerceIn(0.0, 1.0)).toInt()
     }
 
     private fun updateHueFromMouse(setting: ColorSetting, hueRect: Rect, mouseX: Double) {
@@ -1043,6 +1116,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         if (button == LEFT_MOUSE_BUTTON && titleBarRect.contains(mouseX, mouseY)) {
             draggingPanel = true
             draggingNumberSetting = null
+            draggingRange = null
             draggingHueSetting = null
             draggingAlphaSetting = null
             return true
@@ -1140,6 +1214,27 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                             }
                         }
 
+                        is RangeSetting -> {
+                            if (!settingLayout.contains(mouseX, mouseY)) return@forEach
+                            if (button != LEFT_MOUSE_BUTTON) return@forEach
+
+                            val textRect = rangeTextRect(settingLayout)
+                            val sliderRect = rangeSliderRect(settingLayout)
+
+                            when {
+                                textRect.contains(mouseX, mouseY) -> {
+                                    beginTextInput(setting, TextInputKind.RANGE, setting.editableText())
+                                    return true
+                                }
+                                sliderRect.contains(mouseX, mouseY) -> {
+                                    val handle = rangeHandleForMouse(setting, sliderRect, mouseX)
+                                    updateRangeFromMouse(setting, handle, sliderRect, mouseX)
+                                    draggingRange = RangeDrag(setting, handle)
+                                    return true
+                                }
+                            }
+                        }
+
                         is KeybindSetting -> {
                             val bindRect = keybindRect(settingLayout)
                             if (!bindRect.contains(mouseX, mouseY)) return@forEach
@@ -1217,6 +1312,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     override fun mouseReleased(mouseButtonEvent: MouseButtonEvent): Boolean {
         draggingPanel = false
         draggingNumberSetting = null
+        draggingRange = null
         draggingHueSetting = null
         draggingAlphaSetting = null
         draggingSaturationBrightnessSetting = null
@@ -1247,6 +1343,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         draggingNumberSetting?.let { setting ->
             findSettingLayout(setting)?.let { layout ->
                 updateNumberFromMouse(setting, numberSliderRect(layout), mouseX)
+                return true
+            }
+        }
+
+        draggingRange?.let { drag ->
+            findSettingLayout(drag.setting)?.let { layout ->
+                updateRangeFromMouse(drag.setting, drag.handle, rangeSliderRect(layout), mouseX)
                 return true
             }
         }
@@ -1361,6 +1464,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     override fun onClose() {
         draggingPanel = false
         draggingNumberSetting = null
+        draggingRange = null
         draggingHueSetting = null
         draggingAlphaSetting = null
         draggingSaturationBrightnessSetting = null
@@ -1391,6 +1495,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         when (setting) {
             is BooleanSetting -> renderBooleanSetting(GuiGraphicsExtractor, settingLayout, setting)
             is NumberSetting -> renderNumberSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+            is RangeSetting -> renderRangeSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
             is SelectorSetting -> renderSelectorSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
             is KeybindSetting -> renderKeybindSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
             is StringSetting -> renderStringSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
@@ -1482,6 +1587,80 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val valueText = activeTextBufferOrNull(setting) ?: setting.textValue(includeUnit = true)
         drawText(
             GuiGraphicsExtractor,
+            sw,
+            sh,
+            scale,
+            valueText,
+            (textRect.x + 2).toFloat(),
+            (textRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
+            9f,
+            textMutedColor()
+        )
+    }
+
+    private fun renderRangeSetting(
+        graphics: GuiGraphicsExtractor,
+        sw: Int,
+        sh: Int,
+        scale: Float,
+        layout: SettingLayout,
+        setting: RangeSetting
+    ) {
+        val textRect = rangeTextRect(layout)
+        val sliderRect = rangeSliderRect(layout)
+        val trackY = sliderRect.y + (sliderRect.height - NUMBER_SLIDER_HEIGHT) / 2
+
+        GuiUtils.renderRoundedRectangle(
+            graphics,
+            sliderRect.x,
+            trackY,
+            sliderRect.width,
+            NUMBER_SLIDER_HEIGHT,
+            NUMBER_SLIDER_HEIGHT / 2,
+            fieldFillColor(154)
+        )
+
+        val lowerX = rangeHandleX(sliderRect, setting.lowerSliderPosition())
+        val upperX = rangeHandleX(sliderRect, setting.upperSliderPosition())
+        val selectedWidth = (upperX - lowerX).coerceAtLeast(0)
+        if (selectedWidth > 0) {
+            GuiUtils.renderRoundedRectangle(
+                graphics,
+                lowerX,
+                trackY,
+                selectedWidth,
+                NUMBER_SLIDER_HEIGHT,
+                NUMBER_SLIDER_HEIGHT / 2,
+                toggleOnColor()
+            )
+        }
+
+        listOf(lowerX, upperX).forEach { handleX ->
+            GuiUtils.renderRoundedRectangle(
+                graphics,
+                handleX - RANGE_HANDLE_SIZE / 2,
+                sliderRect.y,
+                RANGE_HANDLE_SIZE,
+                RANGE_HANDLE_SIZE,
+                RANGE_HANDLE_SIZE / 2,
+                accentBrightBorderColor()
+            )
+        }
+
+        GuiUtils.renderRoundedOutline(
+            graphics,
+            textRect.x,
+            textRect.y,
+            textRect.width,
+            textRect.height,
+            3,
+            1,
+            if (isTextInputActive(setting)) accentBrightBorderColor() else accentDimColor()
+        )
+
+        val valueText = activeTextBufferOrNull(setting) ?: setting.textValue(includeUnit = true)
+        drawText(
+            graphics,
             sw,
             sh,
             scale,
@@ -2051,6 +2230,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         cancelTextInput()
         openColorPickerFor = null
         draggingNumberSetting = null
+        draggingRange = null
         draggingHueSetting = null
         draggingAlphaSetting = null
         draggingSaturationBrightnessSetting = null
@@ -2072,6 +2252,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             TextInputKind.NUMBER -> {
                 val layout = findSettingLayout(session.setting) ?: return false
                 numberTextRect(layout).contains(mouseX, mouseY)
+            }
+            TextInputKind.RANGE -> {
+                val layout = findSettingLayout(session.setting) ?: return false
+                rangeTextRect(layout).contains(mouseX, mouseY)
             }
             TextInputKind.COLOR_CHANNEL -> {
                 val channel = session.colorChannel ?: return false
