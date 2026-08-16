@@ -70,6 +70,15 @@ object ConfigManager {
                 }
                 featureObject.add("numbers", numbers)
 
+                val ranges = JsonObject()
+                feature.rangeSettings.forEach { setting ->
+                    val values = JsonObject()
+                    values.addProperty("lower", setting.lowerValue)
+                    values.addProperty("upper", setting.upperValue)
+                    ranges.add(setting.name, values)
+                }
+                featureObject.add("ranges", ranges)
+
                 val selectors = JsonObject()
                 feature.selectorSettings.forEach { setting ->
                     val selectedArray = JsonArray()
@@ -153,6 +162,22 @@ object ConfigManager {
             val numbers = featureObject.objectOrNull("numbers")
             feature.numberSettings.forEach { setting ->
                 numbers?.doubleOrNull(setting.name)?.let { setting.setValue(it) }
+            }
+
+            val ranges = featureObject.objectOrNull("ranges")
+            feature.rangeSettings.forEach { setting ->
+                val values = ranges?.objectOrNull(setting.name)
+                if (values != null) {
+                    val lower = values.doubleOrNull("lower") ?: setting.lowerValue
+                    val upper = values.doubleOrNull("upper") ?: setting.upperValue
+                    setting.setValues(lower, upper)
+                } else {
+                    val lower = setting.legacyLowerName?.let { numbers?.doubleOrNull(it) }
+                    val upper = setting.legacyUpperName?.let { numbers?.doubleOrNull(it) }
+                    if (lower != null || upper != null) {
+                        setting.setValues(lower ?: setting.lowerValue, upper ?: setting.upperValue)
+                    }
+                }
             }
 
             val selectors = featureObject.objectOrNull("selectors")

@@ -8,6 +8,7 @@ import kitty.cat.features.settings.ColorSetting
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.features.settings.NumberSetting
 import kitty.cat.features.settings.OrderSetting
+import kitty.cat.features.settings.RangeSetting
 import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
@@ -32,6 +33,9 @@ abstract class Feature {
     private val _numberSettings = mutableListOf<NumberSetting>()
     val numberSettings: List<NumberSetting>
         get() = _numberSettings
+    private val _rangeSettings = mutableListOf<RangeSetting>()
+    val rangeSettings: List<RangeSetting>
+        get() = _rangeSettings
     private val _selectorSettings = mutableListOf<SelectorSetting>()
     val selectorSettings: List<SelectorSetting>
         get() = _selectorSettings
@@ -103,6 +107,35 @@ abstract class Feature {
             description = description
         )
         _numberSettings += setting
+        _settings += setting
+        return setting
+    }
+
+    protected fun rangeSetting(
+        name: String,
+        min: Double,
+        max: Double,
+        defaultLowerValue: Double,
+        defaultUpperValue: Double,
+        unit: String = "",
+        step: Double = 0.0,
+        description: String = "",
+        legacyLowerName: String? = null,
+        legacyUpperName: String? = null
+    ): RangeSetting {
+        val setting = RangeSetting(
+            name = name,
+            min = min,
+            max = max,
+            defaultLowerValue = defaultLowerValue,
+            defaultUpperValue = defaultUpperValue,
+            unit = unit,
+            step = step,
+            description = description,
+            legacyLowerName = legacyLowerName,
+            legacyUpperName = legacyUpperName
+        )
+        _rangeSettings += setting
         _settings += setting
         return setting
     }
