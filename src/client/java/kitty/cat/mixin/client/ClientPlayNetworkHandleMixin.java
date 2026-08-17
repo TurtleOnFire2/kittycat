@@ -4,6 +4,7 @@ import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
+import kitty.cat.features.kuudra.PearlWaypoints;
 import kitty.cat.features.kuudra.RendMacro;
 import kitty.cat.features.kuudra.Stun;
 import kitty.cat.features.misc.ChatMacros;
@@ -71,5 +72,10 @@ public class ClientPlayNetworkHandleMixin {
     void handleMovePlayer(ClientboundPlayerPositionPacket packet, CallbackInfo ci) {
         RendMacro.INSTANCE.onPositionChange(packet);
         Stun.INSTANCE.onPositionChange(packet);
+    }
+
+    @Inject(method = "setTitleText", at = @At("HEAD"), cancellable = true)
+    void handleSetTitleText(ClientboundSetTitleTextPacket clientboundSetTitleTextPacket, CallbackInfo ci) {
+        PearlWaypoints.INSTANCE.handleTitle(clientboundSetTitleTextPacket);
     }
 }

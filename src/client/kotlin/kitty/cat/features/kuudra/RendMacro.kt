@@ -26,6 +26,7 @@ import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.monster.cubemob.MagmaCube
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Items
@@ -108,15 +109,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         val pos = packet.change.position
 
-        if (pos.y > 20) {
-            down = false
-            return
-        }
-
-        dM("Is down: $down")
-
-        if (down) return
-        down = true
+        val x = pos.x; val y = pos.y; val z = pos.z
+        if (x !in -102.0..-101.0 || y !in 5.0..7.0 || z !in -106.0..-105.0) return
 
         getRotationGoal()
 
@@ -174,7 +168,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun prepareRod() {
         if (!enabled) return
 
-        if (!dps() || !stun()) return
+        if (!dps() && !stun()) return
 
         dM("Looking for rod")
 
@@ -238,7 +232,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 dM("Opening loadout")
                 mc.connection?.sendCommand("loadout")
                 clickLoadout = true
-                mc.options.keyUp.isDown = false
             }
         }
 
@@ -287,15 +280,19 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (!autoRotate.value) return
         schedule(delay.value) {
             dM("Searching for kuudra...")
-            val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube -> cube.isAlive && cube.size != 30 }?.position() ?: return@schedule
+            val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube ->
+                cube.isAlive &&
+                        cube.size == 30 &&
+                        cube.getAttributeBaseValue(Attributes.MAX_HEALTH) == 100_000.0
+            }?.position() ?: return@schedule
 
             dM("Found at ${pos.x}, ${pos.z}")
 
             when {
-                pos.x < -128.0 -> {handleRotation(Vec3(-123.5, 16.0, -105.5), right)}//Right
-                pos.x > -72 -> {handleRotation(Vec3(-80.5, 16.0, -104.5), left)} //Left
-                pos.z > -84.0 -> {handleRotation(Vec3(-104.5, 16.0, -82.5), front)} //Front
-                pos.z < -132 -> {handleRotation(Vec3(-98.5, 16.0, -129.5), back)} //Back
+                pos.x < -128.0 -> handleRotation(Vec3(-123.5, 16.0, -105.5), right)
+                pos.z > -84.0  -> handleRotation(Vec3(-104.5, 16.0, -82.5), front)
+                pos.x > -72.0  -> handleRotation(Vec3(-80.5, 16.0, -104.5), left)
+                pos.z < -132.0 -> handleRotation(Vec3(-98.5, 16.0, -129.5), back)
                 else -> {
                     Chat.send("No valid kuudra spots found!")
                 }
@@ -306,7 +303,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun handleRotation(goal: Vec3, c: RangeSetting) {
         dM("Rotating")
         RotationUtils.lookAt(goal, pitch = -30f, RotationUtils.Profile(c.lowerValue.toFloat(), c.upperValue.toFloat()), walk = autoWalk.value, onComplete = {
-            mc.options.keyUp.isDown = true
+            if (autoWalk.value) mc.options.keyUp.isDown = true
             Chat.send("yo")
         })
     }
