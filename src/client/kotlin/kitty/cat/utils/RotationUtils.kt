@@ -350,7 +350,7 @@
         }
 
         /** Quantizes each delta to the same step produced by Minecraft's mouse sensitivity. */
-        private fun applyGcd(yaw: Float, pitch: Float) {
+        fun applyGcd(yaw: Float, pitch: Float) {
             val player = mc.player ?: return
             val sensitivity = mc.options.sensitivity().get().toFloat()
             val multiplier = sensitivity * 0.6f + 0.2f
