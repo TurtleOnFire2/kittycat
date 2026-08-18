@@ -313,10 +313,12 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun onBackbone() {
         if (!kuudra() || !enabled || !dps() || !autoPull.value || mc.gui.screen() != null) return
 
-        mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
-
         schedule(pullDelay.value) {
-            mc.options.keyAttack.clickCount++
+            mc.player?.inventory?.selectedSlot = pullItemSlot.value.toInt() - 1
+
+            schedule(2) {
+                mc.options.keyAttack.clickCount++
+            }
         }
     }
 

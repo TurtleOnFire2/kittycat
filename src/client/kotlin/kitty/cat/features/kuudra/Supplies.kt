@@ -48,7 +48,7 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
                     )
                     ctx.renderBeaconBeam(center, supplyBeaconColor.color)
                 } else if (e is Zombie) {
-                    if (e.y in 75.0..77.0) {
+                    if (e.y in 74.0..77.0) {
                         val color = if (hr?.entity === e) hoveredColor.color else supplyBeaconColor.color
                         ctx.renderBoxBounds(e.boundingBox, color, color.setAlpha(64))
                     }
