@@ -96,20 +96,11 @@ object GuiUtils {
         }
     }
 
-    /** Draws many rectangles in a single PIP render target. */
+    /** Draws a precomputed group of rectangles through the native GUI batch. */
     fun renderRectangles(guiGraphics: GuiGraphicsExtractor, rectangles: Iterable<ColoredRect>) {
-        drawWithNanoVG(guiGraphics) { scale ->
-            rectangles.forEach { rect ->
-                if (rect.width > 0 && rect.height > 0) {
-                    roundedRect(
-                        rect.x * scale,
-                        rect.y * scale,
-                        rect.width * scale,
-                        rect.height * scale,
-                        0f,
-                        rect.color
-                    )
-                }
+        rectangles.forEach { rect ->
+            if (rect.width > 0 && rect.height > 0) {
+                guiGraphics.fill(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, rect.color)
             }
         }
     }
