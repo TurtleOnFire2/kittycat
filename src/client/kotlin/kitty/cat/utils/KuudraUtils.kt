@@ -23,6 +23,7 @@ object KuudraUtils {
     var phase: Phase = Phase.NONE
     var activeDropOffs = mutableListOf<Triple<String, Vec3, Color>>()
     var square: Supply = Supply.None
+    var isDead = false
 
     private val partyRegex = Regex("No (X Cannon|Triangle|X|Equals|Slash|xCannon|Shop)")
 
@@ -35,12 +36,13 @@ object KuudraUtils {
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             phase = Phase.NONE
+            isDead = false
             activeDropOffs = dropOffs.toMutableList()
         }
     }
 
     fun addEntity(entity: Entity) {
-        if (entity is ArmorStand  && supplies()) {
+        if (entity is ArmorStand && supplies()) {
             schedule(1) {
                 handleArmorStand(entity.id)
             }
@@ -53,6 +55,8 @@ object KuudraUtils {
             "[NPC] Elle: OMG! Great work collecting my supplies!" -> phase = Phase.BUILD
             "[NPC] Elle: Phew! The Ballista is finally ready! It should be strong enough to tank Kuudra's blows now!" -> phase = Phase.STUN
         }
+
+        if (unformatted.contains("was FINAL KILLED by Kuudra!")) isDead = true
 
         val match = partyRegex.find(unformatted)?.groupValues ?: return
         var string = match.lastOrNull()

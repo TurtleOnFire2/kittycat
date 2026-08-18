@@ -24,12 +24,14 @@ import kitty.cat.features.Feature
 import kitty.cat.features.huds.BackboneHud
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.Stun
+import kitty.cat.features.kuudra.Supplies
 import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
 import kitty.cat.render.world.RenderLayers
+import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
@@ -280,7 +282,9 @@ object KittycatClient : ClientModInitializer {
 			)
 		}
 
+		KuudraUtils.register()
 		PearlWaypoints.register()
+		Supplies.register()
 		RendMacro.register()
 		ArrowTracers.register()
 		AutoLB.register()

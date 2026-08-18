@@ -7,6 +7,7 @@ import kitty.cat.utils.renderPos
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
+import net.minecraft.client.renderer.blockentity.BeaconRenderer
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -382,6 +383,32 @@ fun LevelRenderContext.drawFilled(
     }
 }
 
+fun LevelRenderContext.drawBeaconBeam(
+    pos: Vec3,
+    color: Color,
+    height: Int = BeaconRenderer.MAX_RENDER_Y,
+    radiusScale: Float = 1.0f
+) {
+    if (height <= 0) return
+
+    poseStack().poseScopeWithCamera { stack ->
+        // BeaconRenderer builds its beam around the center of a block (0.5, 0.5).
+        stack.translate(pos.x - 0.5, pos.y, pos.z - 0.5)
+        BeaconRenderer.submitBeaconBeam(
+            stack,
+            submitNodeCollector(),
+            BeaconRenderer.BEAM_LOCATION,
+            1.0f,
+            (mc.level?.gameTime ?: 0L).toFloat() + mc.deltaTracker.getGameTimeDeltaPartialTick(true),
+            0,
+            height,
+            color.rgb,
+            BeaconRenderer.SOLID_BEAM_RADIUS * radiusScale,
+            BeaconRenderer.BEAM_GLOW_RADIUS * radiusScale
+        )
+    }
+}
+
 inline fun PoseStack.poseScopeWithCamera(block: (PoseStack) -> Unit) = poseScope {
     val camera = mc.gameRenderer.mainCamera().position()
     it.translate(-camera.x, -camera.y, -camera.z)
@@ -437,4 +464,11 @@ object Render3D {
 
     fun LevelRenderContext.renderTracer(point: Vec3, color: Color, thickness: Number = 2.5) =
         drawLineFromCursor(point, color, thickness.toFloat())
+
+    fun LevelRenderContext.renderBeaconBeam(
+        pos: Vec3,
+        color: Color,
+        height: Int = BeaconRenderer.MAX_RENDER_Y,
+        radiusScale: Number = 1.0f
+    ) = drawBeaconBeam(pos, color, height, radiusScale.toFloat())
 }

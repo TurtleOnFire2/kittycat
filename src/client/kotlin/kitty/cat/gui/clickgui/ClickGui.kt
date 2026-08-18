@@ -16,6 +16,7 @@ import kitty.cat.features.kuudra.KuudraDev
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.features.kuudra.Stun
+import kitty.cat.features.kuudra.Supplies
 import kitty.cat.features.kuudra.TinyMobs
 import kitty.cat.features.misc.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
@@ -233,7 +234,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     val featureList: List<Feature> = listOf(
         Safari, ArrowTracers, CustomESP, BestiaryESP, ClickGuiFeature,
         Storm, AutoLB, Relics, LeverTriggerbot, Terminals,
-        RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints,
+        RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, Supplies,
         BestiaryHud, Pests, ChatMacros,
         ExampleFeature
     )
@@ -1915,30 +1916,35 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private fun renderHueBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, step: Int) {
         val safeStep = step.coerceAtLeast(1)
+        val segments = mutableListOf<GuiUtils.ColoredRect>()
         var offset = 0
         while (offset < rect.width) {
             val segmentWidth = minOf(safeStep, rect.width - offset)
             val hue = (offset.toFloat() / rect.width.toFloat()) * 360f
-            GuiUtils.renderRectangle(GuiGraphicsExtractor, rect.x + offset, rect.y, segmentWidth, rect.height, hsvToArgb(hue, 1f, 1f, 255))
+            segments += GuiUtils.ColoredRect(rect.x + offset, rect.y, segmentWidth, rect.height, hsvToArgb(hue, 1f, 1f, 255))
             offset += safeStep
         }
+        GuiUtils.renderRectangles(GuiGraphicsExtractor, segments)
     }
 
     private fun renderAlphaBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting, step: Int) {
         val safeStep = step.coerceAtLeast(1)
         val rgb = (setting.red shl 16) or (setting.green shl 8) or setting.blue
+        val segments = mutableListOf<GuiUtils.ColoredRect>()
         var offset = 0
         while (offset < rect.width) {
             val segmentWidth = minOf(safeStep, rect.width - offset)
             val alpha = (offset.toFloat() / rect.width.toFloat() * 255f).toInt().coerceIn(0, 255)
-            GuiUtils.renderRectangle(GuiGraphicsExtractor, rect.x + offset, rect.y, segmentWidth, rect.height, (alpha shl 24) or rgb)
+            segments += GuiUtils.ColoredRect(rect.x + offset, rect.y, segmentWidth, rect.height, (alpha shl 24) or rgb)
             offset += safeStep
         }
+        GuiUtils.renderRectangles(GuiGraphicsExtractor, segments)
     }
 
     private fun renderSaturationBrightnessBox(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting) {
         val safeStep = COLOR_PICKER_SB_STEP.coerceAtLeast(1)
         val hue = setting.hue
+        val cells = mutableListOf<GuiUtils.ColoredRect>()
         var localY = 0
         while (localY < rect.height) {
             val blockHeight = minOf(safeStep, rect.height - localY)
@@ -1947,11 +1953,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             while (localX < rect.width) {
                 val blockWidth = minOf(safeStep, rect.width - localX)
                 val saturation = (localX.toDouble() / (rect.width - 1).coerceAtLeast(1).toDouble()).toFloat()
-                GuiUtils.renderRectangle(GuiGraphicsExtractor, rect.x + localX, rect.y + localY, blockWidth, blockHeight, hsvToArgb(hue, saturation, brightness, 255))
+                cells += GuiUtils.ColoredRect(rect.x + localX, rect.y + localY, blockWidth, blockHeight, hsvToArgb(hue, saturation, brightness, 255))
                 localX += safeStep
             }
             localY += safeStep
         }
+        GuiUtils.renderRectangles(GuiGraphicsExtractor, cells)
     }
 
     private fun renderColorSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: ColorSetting) {
