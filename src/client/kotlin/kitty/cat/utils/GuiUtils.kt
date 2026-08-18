@@ -6,6 +6,14 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 
 object GuiUtils {
+    data class ColoredRect(
+        val x: Int,
+        val y: Int,
+        val width: Int,
+        val height: Int,
+        val color: Int
+    )
+
     fun renderRectangle(guiGraphics: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int, color: Int) {
         val left = minOf(x, x + width)
         val right = maxOf(x, x + width)
@@ -85,6 +93,24 @@ object GuiUtils {
                 strokeWidth = outlineThickness * scale,
                 color = color
             )
+        }
+    }
+
+    /** Draws many rectangles in a single PIP render target. */
+    fun renderRectangles(guiGraphics: GuiGraphicsExtractor, rectangles: Iterable<ColoredRect>) {
+        drawWithNanoVG(guiGraphics) { scale ->
+            rectangles.forEach { rect ->
+                if (rect.width > 0 && rect.height > 0) {
+                    roundedRect(
+                        rect.x * scale,
+                        rect.y * scale,
+                        rect.width * scale,
+                        rect.height * scale,
+                        0f,
+                        rect.color
+                    )
+                }
+            }
         }
     }
 

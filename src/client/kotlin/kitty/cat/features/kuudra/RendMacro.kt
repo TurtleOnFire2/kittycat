@@ -6,6 +6,7 @@ import kitty.cat.features.settings.RangeSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Chat
+import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.dps
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.stun
@@ -75,7 +76,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     private var edging = false
     private var throwRod = false
 
-    private var down = false
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
@@ -107,6 +107,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (!enabled || !kuudra()) return
 
         if (!stun() && !dps()) return
+
+        if (KuudraUtils.isDead) return
 
         val pos = packet.change.position
 

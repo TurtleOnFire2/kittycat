@@ -8,6 +8,7 @@ import kitty.cat.utils.addColor
 import kitty.cat.utils.setAlpha
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
 import net.minecraft.client.gui.Font
+import net.minecraft.client.renderer.blockentity.BeaconRenderer
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.LightCoordsUtil
@@ -23,6 +24,39 @@ import kotlin.math.sin
 //FULLY PASTED FROM NOAMM. Meow :3
 
 object Render3D {
+    fun LevelRenderContext.renderBeaconBeam(
+        pos: Vec3,
+        color: Color,
+        height: Int = BeaconRenderer.MAX_RENDER_Y,
+        radiusScale: Number = 1.0f
+    ) {
+        if (height <= 0) return
+
+        val matrixStack = poseStack()
+        val camera = mc.gameRenderer.mainCamera
+        val scale = radiusScale.toFloat()
+
+        matrixStack.pushPose()
+        matrixStack.translate(
+            pos.x - camera.position().x - 0.5,
+            pos.y - camera.position().y,
+            pos.z - camera.position().z - 0.5
+        )
+        BeaconRenderer.submitBeaconBeam(
+            matrixStack,
+            submitNodeCollector(),
+            BeaconRenderer.BEAM_LOCATION,
+            1.0f,
+            (mc.level?.gameTime ?: 0L).toFloat() + mc.deltaTracker.getGameTimeDeltaPartialTick(true),
+            0,
+            height,
+            color.rgb,
+            BeaconRenderer.SOLID_BEAM_RADIUS * scale,
+            BeaconRenderer.BEAM_GLOW_RADIUS * scale
+        )
+        matrixStack.popPose()
+    }
+
     fun LevelRenderContext.renderBlock(
         pos: BlockPos,
         outlineColor: Color,
