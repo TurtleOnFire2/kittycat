@@ -5,6 +5,7 @@ import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.ContainerInput
@@ -183,4 +184,35 @@ fun BlockPos.aabb(): AABB {
 
 fun AABB.flatten(y: Double = minY): AABB {
     return AABB(minX, minY, minZ, maxX, minY + y, maxZ)
+}
+fun Vec3.lookinAt(padding: Double, range: Double): Boolean {
+    val box = AABB(
+        x - padding,
+        y - padding,
+        z - padding,
+        x + padding,
+        y + padding,
+        z + padding,
+    )
+
+    val eye = mc.player!!.getEyePosition(1f)
+    val angle = mc.player!!.lookAngle
+
+    return box.clip(eye, eye.add(angle.scale(range))).isPresent
+}
+
+fun Vec3.getRotation(): Pair<Float, Float> {
+    val player = mc.player ?: return 0f to 0f
+    val eye = player.eyePosition
+
+    val dx = x - eye.x
+    val dy = y - eye.y
+    val dz = z - eye.z
+
+    val horizontalDistance = sqrt(dx * dx + dz * dz)
+
+    val yaw = Math.toDegrees(atan2(dz, dx)).toFloat() - 90f
+    val pitch = -Math.toDegrees(atan2(dy, horizontalDistance)).toFloat()
+
+    return Mth.wrapDegrees(yaw) to Mth.wrapDegrees(pitch)
 }

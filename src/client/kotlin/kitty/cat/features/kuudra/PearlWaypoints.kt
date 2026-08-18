@@ -14,6 +14,7 @@ import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.TrajectorySolver
 import kitty.cat.utils.TrajectorySolver.toAimPoint
 import kitty.cat.utils.aabb
+import kitty.cat.utils.lookinAt
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
@@ -63,21 +64,49 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
                 solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - 200, it.third, sol.yaw, sol.pitch))
             }
         }
-        LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!enabled || solutions.isEmpty() || !kuudra() || !supplies()) return@register
-            solutions.forEach {
-                ctx.renderBoxBounds(it.pos.aabb(0.1), it.color)
-                val delay = 4250 - it.time + offset.value.toInt()
-                val time = if (delay - timeSincePickUp <= 0) "§2Ready" else (delay - timeSincePickUp).toString() + "ms"
-                if (delay - timeSincePickUp < snapAt.value && snap.value && lookinAt(it.pos, range.value)) {
-                    RotationUtils.applyGcd(it.yaw, it.pitch)
+        LevelRenderEvents.END_MAIN.register render@{ ctx ->
+            if (!enabled || solutions.isEmpty() || !kuudra() || !supplies()) {
+                return@render
+            }
+
+            val iterator = solutions.iterator()
+
+            while (iterator.hasNext()) {
+                val solution = iterator.next()
+
+                ctx.renderBoxBounds(solution.pos.aabb(0.1), solution.color)
+
+                val delay = 4250 - solution.time + offset.value.toInt()
+                val remaining = delay - timeSincePickUp
+                val time = if (remaining <= 0) {
+                    "§2Ready"
+                } else {
+                    "${remaining}ms"
                 }
-                if (triggerbot.value && time == "§2Ready" && lookinAt(it.pos, 0.2)) {
+
+                if (
+                    remaining < snapAt.value &&
+                    snap.value &&
+                    solution.pos.lookinAt(range.value, 35.0)
+                ) {
+                    RotationUtils.applyGcd(solution.yaw, solution.pitch)
+                }
+
+                if (
+                    triggerbot.value &&
+                    remaining <= 0 &&
+                    solution.pos.lookinAt(0.2, 35.0)
+                ) {
                     mc.options.keyUse.clickCount++
-                    solutions.remove(it)
-                    return@forEach
+                    iterator.remove()
+                    break
                 }
-                ctx.renderString("${it.name}: $time", it.pos.add(0.0, -0.2, 0.0), scale = 4f)
+
+                ctx.renderString(
+                    "${solution.name}: $time",
+                    solution.pos.add(0.0, -0.2, 0.0),
+                    scale = 4f
+                )
             }
         }
     }
@@ -118,22 +147,6 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
         if (tracking && timeSincePickUp >= 0) {
             timeSincePickUp += 50
         }
-    }
-
-    private fun lookinAt(pos: Vec3, padding: Double): Boolean {
-        val box = AABB(
-            pos.x - padding,
-            pos.y - padding,
-            pos.z - padding,
-            pos.x + padding,
-            pos.y + padding,
-            pos.z + padding,
-        )
-
-        val eye = mc.player!!.getEyePosition(1f)
-        val angle = mc.player!!.lookAngle
-
-        return box.clip(eye, eye.add(angle.scale(15.0))).isPresent
     }
 
     private data class AimPoint(

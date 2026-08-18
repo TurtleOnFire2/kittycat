@@ -1,6 +1,7 @@
 package kitty.cat.mixin.client;
 
 import kitty.cat.features.dungeons.Storm;
+import kitty.cat.features.kuudra.AutoGFS;
 import kitty.cat.utils.BoneUtils;
 import kitty.cat.features.kuudra.RendMacro;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
@@ -19,5 +20,6 @@ public class MultiPlayerGameModeMixin {
         Storm.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         BoneUtils.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         RendMacro.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
+        AutoGFS.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
     }
 }

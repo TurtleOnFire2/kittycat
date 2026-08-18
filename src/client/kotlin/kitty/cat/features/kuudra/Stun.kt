@@ -7,9 +7,12 @@ import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.stun
+import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
+import kitty.cat.utils.getRotation
 import kitty.cat.utils.hotbarSlotFromID
+import kitty.cat.utils.lookinAt
 import kitty.cat.utils.lore
 import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
@@ -22,11 +25,14 @@ import java.awt.Color
 object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val autoOpenShop = booleanSetting("Auto open shop", false)
     val autoCloseShop = booleanSetting("Auto close shop", false)
-    val blindnessAlert = booleanSetting("Blindness alert", false, "Doesnt do anything yet...")
+    val noBlind = booleanSetting("No blindness", false)
     val stunWaypoint = booleanSetting("Stun waypoint", false)
+    val snapToWaypoint = booleanSetting("Snap waypoint", false)
+    val snapRange = numberSetting("Snap range", 0.0, 2.0, 0.2, "", 0.1)
     val autoPickobulus = booleanSetting("Auto pickobulus", false)
 
     var purchased = false
+    var snap = false
 
     val offset = Vec3(5.5, -20.5, 29.5)
 
@@ -44,7 +50,13 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             }
 
             if (stunWaypoint.value) {
-                ctx.renderBoxBounds(mc.player!!.position().add(offset).aabb(0.5), Color.CYAN, phase = true)
+                val pos = mc.player!!.position().add(offset)
+                ctx.renderBoxBounds(pos.aabb(0.5), Color.CYAN, phase = true)
+                if (snapToWaypoint.value) {
+                    if (pos.lookinAt(snapRange.value, 50.0)) {
+                        RotationUtils.applyGcd(pos.getRotation().first, pos.getRotation().second)
+                    }
+                }
             }
         }
     }
@@ -74,6 +86,8 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             pos.y == 79.05 &&
             pos.z in -104.0..-101.0
         ) {
+            snap = false
+
             if (!autoOpenShop.value) return
 
             if (mc.player?.mainHandItem?.uuid() == "KUUDRA_SHOP_ITEM") {
