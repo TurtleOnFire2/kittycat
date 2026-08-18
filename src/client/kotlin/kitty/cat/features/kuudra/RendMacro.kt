@@ -2,6 +2,7 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.features.settings.RangeSetting
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
@@ -50,7 +51,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoHollowWand = booleanSetting("Auto hollow wand", false)
     val firstClickDelay = numberSetting("Click delay first hollow click", 1.0, 10.0, 1.0, "t", 1.0)
     val secondClickDelay = numberSetting("Click delay second hollow click", 1.0, 10.0, 1.0, "t", 1.0)
-    val clickOrder = orderSetting("Click order", listOf("Left click", "Right click"))
+    val ragingWind = booleanSetting("Raging wind", false)
     val autoRod = booleanSetting("Auto rod", false)
     val offsetRight = numberSetting("Offset right",  -2.5, 2.5, 0.0)
     val offsetLeft = numberSetting("Offset left",  -2.5, 2.5, 0.0)
@@ -129,15 +130,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             dM("Auto hollow start")
             if (mc.player?.mainHandItem?.uuid() == "HOLLOW_WAND") {
                 dM("Hollow in hand -> clicking")
-                schedule(firstClickDelay.value) {
-                    clickByString(clickOrder.options[0])
-                    schedule(secondClickDelay.value) {
-                        clickByString(clickOrder.options[1])
-                        schedule(2) {
-                            prepareRod()
-                        }
-                    }
-                }
+                schedule(firstClickDelay.value) { castHollow() }
+
             } else {
                 dM("Searching hollow")
                 val slot = hotbarSlotFromID("HOLLOW_WAND")
@@ -152,15 +146,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                 dM("Hollow found -> swapping and clicking")
 
                 mc.player!!.inventory.selectedSlot = slot
-                schedule(firstClickDelay.value) {
-                    clickByString(clickOrder.options[0])
-                    schedule(secondClickDelay.value) {
-                        clickByString(clickOrder.options[1])
-                        schedule(2) {
-                            prepareRod()
-                        }
-                    }
-                }
+                schedule(1 + firstClickDelay.value) { castHollow() }
             }
         } else {
             prepareRod()
@@ -269,12 +255,13 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         }
     }
 
-    private fun clickByString(string: String) {
-        dM(string)
-        if (string == "Left click") {
-            mc.options.keyAttack.clickCount++
-        } else if (string == "Right click") {
-            mc.options.keyUse.clickCount++
+    private fun castHollow() {
+        if (ragingWind.value) mc.options.keyUse.clickCount++ else mc.options.keyAttack.clickCount++
+        schedule(secondClickDelay.value) {
+            if (ragingWind.value) mc.options.keyAttack.clickCount++ else mc.options.keyUse.clickCount++
+            schedule(2) {
+                prepareRod()
+            }
         }
     }
 
@@ -325,5 +312,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun dM(string: String) {
         if (!debug.value) return
         Chat.send(string)
+    }
+
+    override fun onKeybindPressed(setting: KeybindSetting) {
+        castHollow()
     }
 }

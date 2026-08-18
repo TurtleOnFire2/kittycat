@@ -4,6 +4,7 @@ import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
+import kitty.cat.features.kuudra.AutoGFS;
 import kitty.cat.features.kuudra.PearlWaypoints;
 import kitty.cat.features.kuudra.RendMacro;
 import kitty.cat.features.kuudra.Stun;
@@ -53,6 +54,7 @@ public class ClientPlayNetworkHandleMixin {
         Relics.INSTANCE.handleChat(unformatted);
         LocationUtils.INSTANCE.handleChat(unformatted);
         KuudraUtils.INSTANCE.handleChat(unformatted);
+        AutoGFS.INSTANCE.handleChat(unformatted);
         Stun.INSTANCE.handleChat(unformatted);
     }
 
