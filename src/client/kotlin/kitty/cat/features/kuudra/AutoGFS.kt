@@ -14,7 +14,7 @@ object AutoGFS : Feature("Auto GFS", "", Categories.Category.KUUDRA) {
     val toxicArrowPoison = booleanSetting("Toxic arrow poison", true)
     val amountTap = numberSetting("Tap amount", 16.0, 32.0, 64.0, "", 1.0)
     val twilightArrowPoison = booleanSetting("Twilight arrow poison", true)
-    val amountTwap = numberSetting("Twap amount", 4.0, 32.0, 8.0, "", 1.0)
+    val amountTwap = numberSetting("Twap amount", 2.0, 32.0, 8.0, "", 1.0)
 
     var lastGFS = System.currentTimeMillis()
 
