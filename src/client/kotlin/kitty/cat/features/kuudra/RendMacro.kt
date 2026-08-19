@@ -295,7 +295,6 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         dM("Rotating")
         RotationUtils.lookAt(goal, pitch = -30f, RotationUtils.Profile(c.lowerValue.toFloat(), c.upperValue.toFloat()), walk = autoWalk.value, onComplete = {
             if (autoWalk.value) mc.options.keyUp.isDown = true
-            Chat.send("yo")
         })
     }
 

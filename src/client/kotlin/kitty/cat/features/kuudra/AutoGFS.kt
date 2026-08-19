@@ -32,7 +32,7 @@ object AutoGFS : Feature("Auto GFS", "", Categories.Category.KUUDRA) {
     }
 
     fun handleChat(unformatted: String) {
-        if (unformatted.contains("The Ballista is finally ready!")) {
+        if (unformatted.contains("The Ballista is finally ready!") && enabled) {
             if (twilightArrowPoison.value) { mc.connection?.sendCommand("gfs twilight_arrow_poison ${amountTwap.value.toInt()}") }
             if (toxicArrowPoison.value) { mc.connection?.sendCommand("gfs toxic_arrow_poison ${amountTap.value.toInt()}") }
         }
