@@ -57,6 +57,8 @@
             val worldTarget: Vec3?,
             val trackTargetYaw: Boolean,
             val trackTargetPitch: Boolean,
+            val targetYawOffset: Float,
+            val targetPitchOffset: Float,
             val movementKeys: MovementKeys?,
             val startedAtNanos: Long,
             val timeoutNanos: Long,
@@ -88,7 +90,7 @@
             onComplete: (() -> Unit)? = null,
             onTimeout: (() -> Unit)? = null,
         ) {
-            startRotation(yaw, pitch, null, false, false, false, profile, onComplete, onTimeout)
+            startRotation(yaw, pitch, null, false, false, 0f, 0f, false, profile, onComplete, onTimeout)
         }
 
         private fun startRotation(
@@ -97,6 +99,8 @@
             worldTarget: Vec3?,
             trackTargetYaw: Boolean,
             trackTargetPitch: Boolean,
+            targetYawOffset: Float,
+            targetPitchOffset: Float,
             walk: Boolean,
             profile: Profile,
             onComplete: (() -> Unit)?,
@@ -160,6 +164,8 @@
                 worldTarget,
                 trackTargetYaw,
                 trackTargetPitch,
+                targetYawOffset,
+                targetPitchOffset,
                 if (walk) captureMovement() else null,
                 now,
                 (profile.timeout * NANOS_PER_SECOND).toLong(),
@@ -184,13 +190,15 @@
         ) {
             val player = mc.player ?: return
             val (yaw, pitch) = target.getLook(player.getEyePosition(framePartialTick()))
-            startRotation(yaw, pitch, target, true, true, walk, profile, onComplete, onTimeout)
+            startRotation(yaw, pitch, target, true, true, 0f, 0f, walk, profile, onComplete, onTimeout)
         }
 
         /** Rotates yaw toward [target]'s X/Z coordinates while rotating to an explicit [pitch]. */
         fun lookAt(
             target: Vec3,
             pitch: Float,
+            yawOffset: Float = 0f,
+            pitchOffset: Float = 0f,
             profile: Profile = defaultProfile,
             walk: Boolean = false,
             onComplete: (() -> Unit)? = null,
@@ -198,7 +206,19 @@
         ) {
             val player = mc.player ?: return
             val yaw = target.getLook(player.getEyePosition(framePartialTick())).first
-            startRotation(yaw, pitch, target, true, false, walk, profile, onComplete, onTimeout)
+            startRotation(
+                yaw + yawOffset,
+                pitch + pitchOffset,
+                target,
+                true,
+                false,
+                yawOffset,
+                pitchOffset,
+                walk,
+                profile,
+                onComplete,
+                onTimeout,
+            )
         }
 
         /** Convenience overload for a horizontal target supplied as separate coordinates. */
@@ -211,7 +231,7 @@
             onComplete: (() -> Unit)? = null,
             onTimeout: (() -> Unit)? = null,
         ) {
-            lookAt(Vec3(targetX, 0.0, targetZ), pitch, profile, walk, onComplete, onTimeout)
+            lookAt(Vec3(targetX, 0.0, targetZ), pitch, profile = profile, walk = walk, onComplete = onComplete, onTimeout = onTimeout)
         }
 
         /** Rotates to an explicit [yaw] while pitch tracks the world-space [target]. */
@@ -225,7 +245,7 @@
         ) {
             val player = mc.player ?: return
             val pitch = target.getLook(player.getEyePosition(framePartialTick())).second
-            startRotation(yaw, pitch, target, false, true, walk, profile, onComplete, onTimeout)
+            startRotation(yaw, pitch, target, false, true, 0f, 0f, walk, profile, onComplete, onTimeout)
         }
 
         fun cancel() {
@@ -265,10 +285,10 @@
             state.worldTarget?.let { target ->
                 val (yaw, pitch) = target.getLook(player.getEyePosition(framePartialTick()))
                 if (state.trackTargetYaw) {
-                    state.goalYaw += Mth.wrapDegrees(yaw - state.goalYaw)
+                    state.goalYaw += Mth.wrapDegrees(yaw + state.targetYawOffset - state.goalYaw)
                 }
                 if (state.trackTargetPitch) {
-                    state.goalPitch = pitch.coerceIn(-90f, 90f)
+                    state.goalPitch = (pitch + state.targetPitchOffset).coerceIn(-90f, 90f)
                 }
             }
 

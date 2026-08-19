@@ -35,11 +35,14 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
+import kotlin.random.Random
 
 object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoSneak = booleanSetting("Auto sneak", false)
 
     val autoRotate = booleanSetting("Auto rotate", false)
+    val yawOffset = rangeSetting("Yaw offset", -10.0, 10.0, 0.0, 0.0, "°", 0.1)
+    val pitchOffset = rangeSetting("Pitch offset", -10.0, 10.0, 0.0, 0.0, "°", 0.1)
     val front = rangeSetting("Front" , 50.0, 500.0, 85.0, 145.0, "", 1.0)
     val right = rangeSetting("Right" , 50.0, 500.0, 235.0, 295.0, "", 1.0)
     val left = rangeSetting("Left" , 50.0, 500.0, 235.0, 295.0, "", 1.0)
@@ -291,9 +294,23 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
     fun handleRotation(goal: Vec3, c: RangeSetting) {
         dM("Rotating")
-        RotationUtils.lookAt(goal, pitch = -30f, RotationUtils.Profile(c.lowerValue.toFloat(), c.upperValue.toFloat()), walk = autoWalk.value, onComplete = {
+        RotationUtils.lookAt(
+            goal,
+            pitch = -30f,
+            yawOffset = randomOffset(yawOffset),
+            pitchOffset = randomOffset(pitchOffset),
+            profile = RotationUtils.Profile(c.lowerValue.toFloat(), c.upperValue.toFloat()),
+            walk = autoWalk.value,
+            onComplete = {
             if (autoWalk.value) mc.options.keyUp.isDown = true
-        })
+            },
+        )
+    }
+
+    private fun randomOffset(setting: RangeSetting): Float = if (setting.lowerValue < setting.upperValue) {
+        Random.nextDouble(setting.lowerValue, setting.upperValue).toFloat()
+    } else {
+        setting.lowerValue.toFloat()
     }
 
     fun onBackbone() {
