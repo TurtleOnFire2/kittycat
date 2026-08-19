@@ -33,9 +33,7 @@ object BoneUtils {
         if (!awaitBone) return
         if (entity is Display.ItemDisplay) {
             val relPos = throwOrigin?.subtract(entity.position()) ?: return
-            if (relPos.x in -0.3..0.3 && relPos.z in -0.3..0.3 && awaitBone) {
-                Chat.send("BONE FOUND")
-                Schedule.schedule(1) {
+            if (relPos.x in -0.3..0.3 && relPos.z in -0.3..0.3 && awaitBone) { schedule(1) {
                     addBone(entity)
                 }
             }

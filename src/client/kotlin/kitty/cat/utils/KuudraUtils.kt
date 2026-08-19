@@ -32,7 +32,6 @@ object KuudraUtils {
             if (mc.player == null) return@register
             if ((client.player!!.y < 20 && phase == Phase.STUN) && phase != Phase.DPS) {
                 phase = Phase.DPS
-                Chat.send("Dps")
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
@@ -54,15 +53,12 @@ object KuudraUtils {
         when (unformatted) {
             "[NPC] Elle: Talk with me to begin!" -> {
                 phase = Phase.SUPPLIES
-                Chat.send("Supplies")
             }
             "[NPC] Elle: OMG! Great work collecting my supplies!" -> {
                 phase = Phase.BUILD
-                Chat.send("Build")
             }
             "[NPC] Elle: Phew! The Ballista is finally ready! It should be strong enough to tank Kuudra's blows now!" -> {
                 phase = Phase.STUN
-                Chat.send("Stun")
             }
         }
 
