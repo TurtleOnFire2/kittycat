@@ -62,7 +62,7 @@ object KuudraUtils {
             }
         }
 
-        if (unformatted.contains("was FINAL KILLED by Kuudra!")) isDead = true
+        if (unformatted.contains("${mc.player?.name?.string ?: return} was FINAL KILLED by Kuudra!")) isDead = true
 
         val match = partyRegex.find(unformatted)?.groupValues ?: return
         var string = match.lastOrNull()

@@ -22,6 +22,7 @@ import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.features.Feature
 import kitty.cat.features.huds.BackboneHud
+import kitty.cat.features.huds.SupplyHud
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.Stun
 import kitty.cat.features.kuudra.Supplies
@@ -305,5 +306,6 @@ object KittycatClient : ClientModInitializer {
 		Safari.register()
 
 		BackboneHud
+		SupplyHud
 	}
 }

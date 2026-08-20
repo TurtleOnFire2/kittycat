@@ -18,6 +18,10 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 
@@ -45,7 +49,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             if (!stun() && !build()) return@register
 
             if (autoOpenShop.value) {
-                ctx.renderBoxBounds(-75.0, 79.0, -104.0, -71.0, 79.05, -101.0, Color.CYAN)
+                ctx.renderBoxBounds(-73.0, 79.0, -104.0, -70.0, 79.05, -102.0, Color.CYAN)
             }
 
             if (stunWaypoint.value) {
@@ -72,6 +76,34 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         }
     }
 
+    fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
+        if (!autoOpenShop.value || !build() && !stun()) return
+
+        if (!player.isCrouching) return
+        if (player.mainHandItem.uuid() != "ASPECT_OF_THE_VOID") return
+
+        val start = player.eyePosition
+        val end = start.add(player.lookAngle.scale(50.0))
+
+        val pos = mc.level?.clip(
+            ClipContext(
+                start,
+                end,
+                ClipContext.Block.OUTLINE,
+                ClipContext.Fluid.NONE,
+                player
+                )
+        )?.blockPos ?: return
+
+        if (pos.x in -73..-70 && pos.y == 78 && pos.z in -104..-102) {
+            val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return
+            player.inventory.selectedSlot = slot
+            schedule(1) {
+                mc.options.keyUse.clickCount++
+            }
+        }
+    }
+
     fun onPositionChange(packet: ClientboundPlayerPositionPacket) {
         if (!enabled) return
 
@@ -80,27 +112,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         val pos = packet.change.position
 
         RendMacro.dM(pos.toString())
-
-        if (pos.x in -75.0..-71.0 &&
-            pos.y == 79.05 &&
-            pos.z in -104.0..-101.0
-        ) {
-            snap = false
-
-            if (!autoOpenShop.value) return
-
-            if (mc.player?.mainHandItem?.uuid() == "KUUDRA_SHOP_ITEM") {
-                mc.options.keyUse.clickCount++
-                return
-            }
-
-            val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return
-
-            mc.player?.inventory?.selectedSlot = slot
-            schedule(1) {
-                mc.options.keyUse.clickCount++
-            }
-        }
 
         if (autoPickobulus.value) {
             if (pos !in listOf(
@@ -139,7 +150,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     fun openScreen(packet: ClientboundOpenScreenPacket): Boolean {
         if (!enabled) return false
 
-        if (!stun()) return false
+        if (!stun() && !build()) return false
 
         if (!purchased) return false
 

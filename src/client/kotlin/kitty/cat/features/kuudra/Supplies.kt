@@ -19,6 +19,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
+    val pickUpHud = booleanSetting("Hud for pickup progress", false)
+
     val supplyBeacons = booleanSetting("Supply beacon", false)
     val supplyBeaconColor = colorSetting("Supply beacon color")
     val hoveredColor = colorSetting("Color when hovered")
