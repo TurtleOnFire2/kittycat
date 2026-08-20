@@ -17,7 +17,12 @@ public class LivingEntityMixin {
     private void hasEffect(Holder<MobEffect> effect, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
 
-        if (Stun.INSTANCE.getNoBlind().getValue() && self == Minecraft.getInstance().player && effect.is(MobEffects.BLINDNESS)) {
+        if (
+                Stun.INSTANCE.getNoBlind().getValue() &&
+                        self == Minecraft.getInstance().player &&
+                        effect != null &&
+                        effect.is(MobEffects.BLINDNESS)
+        ) {
             cir.setReturnValue(false);
         }
     }
