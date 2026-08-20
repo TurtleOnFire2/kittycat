@@ -4,6 +4,7 @@ import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
+import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.AutoGFS;
 import kitty.cat.features.kuudra.PearlWaypoints;
 import kitty.cat.features.kuudra.RendMacro;
@@ -79,5 +80,8 @@ public class ClientPlayNetworkHandleMixin {
     @Inject(method = "setTitleText", at = @At("HEAD"), cancellable = true)
     void handleSetTitleText(ClientboundSetTitleTextPacket clientboundSetTitleTextPacket, CallbackInfo ci) {
         PearlWaypoints.INSTANCE.handleTitle(clientboundSetTitleTextPacket);
+        if(SupplyHud.INSTANCE.handleTitle(clientboundSetTitleTextPacket)) {
+            ci.cancel();
+        };
     }
 }

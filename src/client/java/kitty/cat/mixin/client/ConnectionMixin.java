@@ -3,6 +3,7 @@ package kitty.cat.mixin.client;
 import io.netty.channel.ChannelHandlerContext;
 import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Storm;
+import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.PearlWaypoints;
 import kitty.cat.utils.Schedule;
 import net.minecraft.network.Connection;
@@ -24,6 +25,7 @@ public class ConnectionMixin {
             Storm.INSTANCE.serverTick();
             Schedule.INSTANCE.tickServer();
             PearlWaypoints.INSTANCE.serverTick();
+            SupplyHud.INSTANCE.serverTick();
         }
     }
 
