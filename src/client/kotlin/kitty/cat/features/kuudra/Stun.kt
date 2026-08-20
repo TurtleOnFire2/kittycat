@@ -50,7 +50,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
             if (!stun() && !build()) return@register
 
             if (autoOpenShop.value) {
-                ctx.renderBoxBounds(-73.0, 79.0, -104.0, -70.0, 79.05, -102.0, Color.CYAN)
+                ctx.renderBoxBounds(-74.0, 79.0, -104.0, -70.0, 79.05, -102.0, Color.CYAN)
             }
 
             if (stunWaypoint.value) {
@@ -81,7 +81,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         if (!autoOpenShop.value || !build() && !stun()) return
 
         if (!player.isCrouching) return
-        if (player.mainHandItem.uuid() != "ASPECT_OF_THE_VOID") return
+        if (player.mainHandItem.uuid() !in listOf("ETHERWARP_CONDUIT", "ASPECT_OF_THE_VOID")) return
 
         val start = player.eyePosition
         val end = start.add(player.lookAngle.scale(50.0))
@@ -96,7 +96,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
                 )
         )?.blockPos ?: return
 
-        if (pos.x in -73..-70 && pos.y == 78 && pos.z in -104..-102) {
+        if (pos.x in -74..-70 && pos.y == 78 && pos.z in -104..-102) {
             val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return
             player.inventory.selectedSlot = slot
             schedule(1) {
