@@ -21,6 +21,7 @@
     "ConnectionMixin",
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
+    "GuiTextRenderStateMixin",
     "LivingEntityMixin",
     "LocalPlayerMixin"
   ]

@@ -31,6 +31,7 @@ import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
+import kitty.cat.utils.NameChanger
 import kitty.cat.render.world.RenderLayers
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.RotationUtils
@@ -72,6 +73,7 @@ object KittycatClient : ClientModInitializer {
 	var keybindShowHud: KeyMapping? = null
 
 	override fun onInitializeClient() {
+		NameChanger.checkFrostyName()
 		// Force class-init so the custom render pipelines are registered before the
 		// renderer precompiles static pipelines, not lazily mid-frame on first draw.
 		RenderLayers.LINES_THROUGH_WALLS
