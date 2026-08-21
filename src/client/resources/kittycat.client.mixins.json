@@ -22,7 +22,7 @@
     "ConnectionMixin",
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
+    "GuiGraphicsExtractorMixin",
     "LivingEntityMixin",
-    "LocalPlayerMixin"
-  ]
+    "LocalPlayerMixin"]
 }
