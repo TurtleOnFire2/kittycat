@@ -16,6 +16,8 @@ object SupplyHud : Hud.Component("BackboneHud", 0.0, 0.0, 1f, staticRenderCondit
     private var timeSinceLastTitle = 0
 
     fun handleTitle(packet: ClientboundSetTitleTextPacket): Boolean {
+        if (!Supplies.pickUpHud.value) return false
+
         val raw = packet.text.string.replace(colorCodeRegex, "")
 
         if (!raw.contains("[||||||||||||||||||||]")) return false
