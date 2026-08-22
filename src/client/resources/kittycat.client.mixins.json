@@ -24,5 +24,7 @@
     "EntityRendererMixin",
     "GuiGraphicsExtractorMixin",
     "LivingEntityMixin",
-    "LocalPlayerMixin"]
+    "LocalPlayerMixin",
+    "PlayerMixin"
+  ]
 }
