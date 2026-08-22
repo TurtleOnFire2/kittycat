@@ -13,7 +13,6 @@ import kitty.cat.features.settings.RangeSetting
 import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
-import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils
 import net.minecraft.client.gui.GuiGraphicsExtractor

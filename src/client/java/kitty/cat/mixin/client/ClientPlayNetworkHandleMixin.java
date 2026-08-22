@@ -5,10 +5,7 @@ import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
 import kitty.cat.features.huds.SupplyHud;
-import kitty.cat.features.kuudra.AutoGFS;
-import kitty.cat.features.kuudra.PearlWaypoints;
-import kitty.cat.features.kuudra.RendMacro;
-import kitty.cat.features.kuudra.Stun;
+import kitty.cat.features.kuudra.*;
 import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
@@ -84,4 +81,15 @@ public class ClientPlayNetworkHandleMixin {
             ci.cancel();
         };
     }
+
+    @Inject(method = "handleAnimate", at = @At("HEAD"))
+    void handleAnimate(ClientboundAnimatePacket packet, CallbackInfo ci) {
+        RendDamage.INSTANCE.handleAnimation(packet);
+    }
+
+    @Inject(method = "handleSetEntityData", at = @At("HEAD"))
+    void handleSetEntityData(ClientboundSetEntityDataPacket packet, CallbackInfo ci) {
+        RendDamage.INSTANCE.handleSetEntityData(packet);
+    }
+
 }

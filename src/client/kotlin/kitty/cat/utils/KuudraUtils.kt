@@ -2,17 +2,11 @@ package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.kuudra.KuudraDev
-import kitty.cat.utils.BoneUtils.addBone
-import kitty.cat.utils.BoneUtils.awaitBone
-import kitty.cat.utils.BoneUtils.handleBone
-import kitty.cat.utils.BoneUtils.throwOrigin
+import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.utils.Schedule.schedule
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.minecraft.world.entity.Display
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.EntityEvent
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
@@ -32,6 +26,7 @@ object KuudraUtils {
             if (mc.player == null) return@register
             if ((client.player!!.y < 20 && phase == Phase.STUN) && phase != Phase.DPS) {
                 phase = Phase.DPS
+                RendDamage.startTracking()
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
