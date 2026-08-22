@@ -82,14 +82,8 @@ public class ClientPlayNetworkHandleMixin {
         };
     }
 
-    @Inject(method = "handleAnimate", at = @At("HEAD"))
-    void handleAnimate(ClientboundAnimatePacket packet, CallbackInfo ci) {
-        RendDamage.INSTANCE.handleAnimation(packet);
-    }
-
     @Inject(method = "handleSetEntityData", at = @At("HEAD"))
     void handleSetEntityData(ClientboundSetEntityDataPacket packet, CallbackInfo ci) {
         RendDamage.INSTANCE.handleSetEntityData(packet);
     }
-
 }
