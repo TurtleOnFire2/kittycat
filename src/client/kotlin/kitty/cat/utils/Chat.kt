@@ -9,11 +9,24 @@ import net.minecraft.network.chat.Style
 object Chat {
     const val PREFIX = "[KC] "
 
-    fun send(string: Any) {
+    fun send(component: Component) {
         try {
-            val msg = string.toString()
-            mc.player?.sendSystemMessage(Component.literal(PREFIX).append(Component.literal(msg)))
+            mc.player?.sendSystemMessage(Component.literal(PREFIX).append(component))
         } catch (e: Exception) {}
+    }
+
+    fun send(vararg parts: Any?) {
+        val message = Component.empty()
+        parts.forEach { part ->
+            message.append(
+                when (part) {
+                    is Component -> part
+                    null -> Component.literal("null")
+                    else -> Component.literal(part.toString())
+                }
+            )
+        }
+        send(message)
     }
 
     fun sendWithClickable(message: String, vararg buttons: Clickable) {
