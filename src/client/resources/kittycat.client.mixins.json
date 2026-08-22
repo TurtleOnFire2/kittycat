@@ -23,6 +23,7 @@
     "EntityRendererMixin",
     "GuiTextRenderStateMixin",
     "LivingEntityMixin",
-    "LocalPlayerMixin"
+    "LocalPlayerMixin",
+    "PlayerMixin"
   ]
 }
