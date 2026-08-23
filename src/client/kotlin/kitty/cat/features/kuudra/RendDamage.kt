@@ -6,29 +6,24 @@ import kitty.cat.gui.categories.Categories
 import kitty.cat.utils.Chat
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.minecraft.network.protocol.game.ClientboundAnimatePacket
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.world.entity.monster.MagmaCube
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Items
 
 object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
-    private const val READD_COOLDOWN_MS = 2_000L
-
     val range = numberSetting("Range", 200.0, 500.0, 300.0, "ms")
 
     private val swings = mutableMapOf<String, Long>()
-    private val lastAddedAt = mutableMapOf<String, Long>()
 
     var inP4 = false
     var client = 0
     private var lastHealth = 24999f
 
     fun register() {
-        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, event ->
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             inP4 = false
             swings.clear()
-            lastAddedAt.clear()
             lastHealth = 24999f
         }
         ClientTickEvents.END_CLIENT_TICK.register { _ ->
@@ -42,25 +37,21 @@ object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
                 val item = player.mainHandItem.item
                 if (item != Items.BOW && item != Items.BONE) return@forEach
 
-                addSwing(player.name.string)
+                swings[player.name.string] = System.currentTimeMillis()
             }
         }
     }
 
     private fun addSwing(playerName: String) {
         val now = System.currentTimeMillis()
-        val lastAdded = lastAddedAt[playerName]
-        if (lastAdded != null && now - lastAdded < READD_COOLDOWN_MS) return
 
         swings[playerName] = now
-        lastAddedAt[playerName] = now
     }
 
     fun startTracking() {
         inP4 = true
         client = 0
         swings.clear()
-        lastAddedAt.clear()
         lastHealth = 24999f
     }
 
@@ -71,7 +62,11 @@ object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
 
         if (entity.size != 30) return
 
-        val health = (packet.packedItems.find { data -> data.value is Float }?.value as? Float).takeIf { it != null && it < 25000 } ?: return
+        val health = (packet.packedItems
+            .find { it.value is Float }
+            ?.value as? Float)
+            ?.takeIf { it <= 25_000f }
+            ?: return
 
         val diff = maxOf(0f, lastHealth - health)
 
@@ -84,7 +79,7 @@ object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
 
             val validSwings = swings
                 .filter { (_, timestamp) ->
-                    now - timestamp < range.value
+                    now - timestamp <= range.value
                 }
                 .keys
                 .toList()

@@ -7,7 +7,9 @@ import kitty.cat.utils.Schedule.schedule
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.decoration.ArmorStand
+import net.minecraft.world.entity.monster.zombie.Zombie
 import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
@@ -128,6 +130,25 @@ object KuudraUtils {
             }
         }
     }
+
+    fun getSupplyZombies(): List<Zombie> {
+        val level = mc.level ?: return emptyList()
+        val player = mc.player ?: return emptyList()
+
+        return level.entitiesForRendering()
+            .filterIsInstance<Zombie>()
+            .filter {
+                it.isAlive &&
+                        it.y in 60.0..78.0 &&
+                        EquipmentSlot.entries
+                            .filter { slot -> slot.type == EquipmentSlot.Type.HUMANOID_ARMOR }
+                            .all { slot -> it.getItemBySlot(slot).isEmpty }
+            }
+            .sortedBy {
+                it.distanceToSqr(player)
+            }
+    }
+
 
     enum class Supply {
         X, // -> X,
