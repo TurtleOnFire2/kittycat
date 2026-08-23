@@ -2,7 +2,6 @@ package kitty.cat.features.visual
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import jdk.internal.org.jline.utils.Colors.h
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature

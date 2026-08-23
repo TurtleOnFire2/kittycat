@@ -72,13 +72,6 @@ dependencies {
 		include("org.lwjgl:lwjgl-nanovg:3.3.3:natives-$os")
 	}
 
-	// Backend-neutral 2D rendering. The shared API and Windows native are bundled
-	// directly; Kittycat does not depend on Orbis at runtime.
-	implementation("io.github.humbleui:skija-shared:0.143.17")
-	include("io.github.humbleui:skija-shared:0.143.17")
-	implementation("io.github.humbleui:skija-windows-x64:0.143.17")
-	include("io.github.humbleui:skija-windows-x64:0.143.17")
-
 	val includeImplementation = fun(str: String) {
 		implementation(str)
 		include(str)

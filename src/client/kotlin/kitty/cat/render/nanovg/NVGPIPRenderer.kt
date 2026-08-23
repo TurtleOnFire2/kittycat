@@ -7,7 +7,6 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import kitty.cat.mixin.client.gui.GuiGraphicsAccessor
 import kitty.cat.mixin.client.gui.GuiScissorStackAccessor
-import kitty.cat.render.skija.SkijaRenderer
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.navigation.ScreenRectangle
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer
@@ -20,16 +19,6 @@ import org.lwjgl.opengl.GL30C
 class NVGPIPRenderer : PictureInPictureRenderer<NVGPIPRenderer.NVGRenderState>() {
     override fun renderToTexture(state: NVGRenderState, poseStack: PoseStack, submitNodeCollector: SubmitNodeCollector) {
         val colorTex = RenderSystem.outputColorTextureOverride ?: return
-        if (SkijaRenderer.supports(colorTex.texture())) {
-            if (SkijaRenderer.beginFrame(colorTex.texture())) {
-                try {
-                    state.renderContent()
-                } finally {
-                    SkijaRenderer.endFrame()
-                }
-            }
-            return
-        }
         val glColorTex = colorTex.texture() as? GlTexture ?: return
         val glDepthTex = RenderSystem.outputDepthTextureOverride?.texture() as? GlTexture ?: return
         val (width, height) = colorTex.let { it.getWidth(0) to it.getHeight(0) }

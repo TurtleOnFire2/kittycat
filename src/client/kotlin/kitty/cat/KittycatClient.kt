@@ -27,6 +27,7 @@ import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.features.kuudra.Stun
 import kitty.cat.features.kuudra.Supplies
+import kitty.cat.features.kuudra.SupplyCheats
 import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
@@ -309,6 +310,7 @@ object KittycatClient : ClientModInitializer {
 		Stun.register()
 		Safari.register()
 		RendDamage.register()
+		SupplyCheats.register()
 
 		BackboneHud
 		SupplyHud

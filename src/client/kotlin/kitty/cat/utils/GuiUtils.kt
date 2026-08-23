@@ -1,11 +1,8 @@
 package kitty.cat.utils
 
-import kitty.cat.render.nanovg.NVGPIPRenderer
-import kitty.cat.render.nanovg.NVGRenderer
-import kitty.cat.render.skija.SkijaRenderer
-import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 object GuiUtils {
     data class ColoredRect(
@@ -25,9 +22,7 @@ object GuiUtils {
         val rectWidth = right - left
         val rectHeight = bottom - top
         if (rectWidth <= 0 || rectHeight <= 0) return
-        drawWithNanoVG(guiGraphics) { scale ->
-            roundedRect(left * scale, top * scale, rectWidth * scale, rectHeight * scale, 0f, color)
-        }
+        guiGraphics.fill(left, top, right, bottom, color)
     }
 
     fun renderRoundedRectangle(
@@ -54,16 +49,7 @@ object GuiUtils {
             renderRectangle(guiGraphics, left, top, rectWidth, rectHeight, color)
             return
         }
-        drawWithNanoVG(guiGraphics) { scale ->
-            roundedRect(
-                x = left * scale,
-                y = top * scale,
-                width = rectWidth * scale,
-                height = rectHeight * scale,
-                radius = cornerRadius * scale,
-                color = color
-            )
-        }
+        fillRounded(guiGraphics, left, top, rectWidth, rectHeight, cornerRadius, color)
     }
 
     fun renderRoundedOutline(
@@ -88,61 +74,52 @@ object GuiUtils {
         val outlineThickness = thickness.coerceAtLeast(1).coerceAtMost(minOf(rectWidth, rectHeight) / 2)
         val outerRadius = radius.coerceIn(0, minOf(rectWidth, rectHeight) / 2)
 
-        drawWithNanoVG(guiGraphics) { scale ->
-            roundedRectStroke(
-                x = left * scale,
-                y = top * scale,
-                width = rectWidth * scale,
-                height = rectHeight * scale,
-                radius = outerRadius * scale,
-                strokeWidth = outlineThickness * scale,
-                color = color
-            )
-        }
+        fillRoundedOutline(guiGraphics, left, top, rectWidth, rectHeight, outerRadius, outlineThickness, color)
     }
 
     /** Draws many rectangles in a single PIP render target. */
     fun renderRectangles(guiGraphics: GuiGraphicsExtractor, rectangles: Iterable<ColoredRect>) {
-        drawWithNanoVG(guiGraphics) { scale ->
-            rectangles.forEach { rect ->
-                if (rect.width > 0 && rect.height > 0) {
-                    roundedRect(
-                        rect.x * scale,
-                        rect.y * scale,
-                        rect.width * scale,
-                        rect.height * scale,
-                        0f,
-                        rect.color
-                    )
-                }
+        rectangles.forEach { rect ->
+            if (rect.width > 0 && rect.height > 0) {
+                guiGraphics.fill(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, rect.color)
             }
         }
     }
 
-    private fun drawWithNanoVG(guiGraphics: GuiGraphicsExtractor, draw: (scale: Float) -> Unit) {
-        val window = Minecraft.getInstance().window
-        val sw = window.guiScaledWidth
-        val sh = window.guiScaledHeight
-        val scale = window.guiScale.toFloat()
-
-        NVGPIPRenderer.draw(guiGraphics, 0, 0, sw, sh) {
-            draw(scale)
+    private fun fillRounded(gui: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int, radius: Int, color: Int) {
+        for (row in 0 until height) {
+            val inset = roundedInset(row, height, radius)
+            gui.fill(x + inset, y + row, x + width - inset, y + row + 1, color)
         }
     }
 
-    private fun roundedRect(x: Float, y: Float, width: Float, height: Float, radius: Float, color: Int) {
-        if (RenderSystem.outputColorTextureOverride?.texture()?.let(SkijaRenderer::supports) == true) {
-            SkijaRenderer.roundedRect(x, y, width, height, radius, color)
-        } else {
-            NVGRenderer.roundedRect(x, y, width, height, radius, color)
+    private fun fillRoundedOutline(
+        gui: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int,
+        radius: Int, thickness: Int, color: Int
+    ) {
+        val innerWidth = width - thickness * 2
+        val innerHeight = height - thickness * 2
+        val innerRadius = (radius - thickness).coerceAtLeast(0)
+        for (row in 0 until height) {
+            val outerInset = roundedInset(row, height, radius)
+            val left = x + outerInset
+            val right = x + width - outerInset
+            val innerRow = row - thickness
+            if (innerWidth <= 0 || innerHeight <= 0 || innerRow !in 0 until innerHeight) {
+                gui.fill(left, y + row, right, y + row + 1, color)
+                continue
+            }
+            val innerInset = roundedInset(innerRow, innerHeight, innerRadius)
+            val innerLeft = x + thickness + innerInset
+            val innerRight = x + width - thickness - innerInset
+            if (left < innerLeft) gui.fill(left, y + row, innerLeft, y + row + 1, color)
+            if (innerRight < right) gui.fill(innerRight, y + row, right, y + row + 1, color)
         }
     }
 
-    private fun roundedRectStroke(x: Float, y: Float, width: Float, height: Float, radius: Float, strokeWidth: Float, color: Int) {
-        if (RenderSystem.outputColorTextureOverride?.texture()?.let(SkijaRenderer::supports) == true) {
-            SkijaRenderer.roundedRectStroke(x, y, width, height, radius, strokeWidth, color)
-        } else {
-            NVGRenderer.roundedRectStroke(x, y, width, height, radius, strokeWidth, color)
-        }
+    private fun roundedInset(row: Int, height: Int, radius: Int): Int {
+        if (radius <= 0 || row in radius until (height - radius)) return 0
+        val distanceFromCenter = radius - 0.5 - if (row < radius) row else height - 1 - row
+        return ceil(radius - sqrt(radius * radius - distanceFromCenter * distanceFromCenter)).toInt()
     }
 }
