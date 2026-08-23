@@ -345,9 +345,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 layout.settingLayouts.forEach { settingLayout ->
                     renderSettingRow(GuiGraphicsExtractor, sw, sh, scale, settingLayout)
                 }
-                layout.settingLayouts.forEach { settingLayout ->
-                    val setting = settingLayout.setting as? SelectorSetting ?: return@forEach
-                    if (!setting.dropdownOpen) return@forEach
+            }
+        }
+        // Dropdowns are overlays, so draw them after every feature card.
+        featureLayouts.forEach { layout ->
+            if (!layout.expanded) return@forEach
+            layout.settingLayouts.forEach { settingLayout ->
+                val setting = settingLayout.setting as? SelectorSetting ?: return@forEach
+                if (setting.dropdownOpen) {
                     renderSelectorDropdownOverlay(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
                 }
             }
@@ -1103,6 +1108,25 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             draggingHueSetting = null
             draggingAlphaSetting = null
             return true
+        }
+
+        // Dropdown options visually cover cards below them, so they must also
+        // receive input before those cards and their switches.
+        if (mouseInFeatureArea && button == LEFT_MOUSE_BUTTON) {
+            featureLayouts.asReversed().forEach { layout ->
+                if (!layout.expanded) return@forEach
+                layout.settingLayouts.asReversed().forEach { settingLayout ->
+                    val setting = settingLayout.setting as? SelectorSetting ?: return@forEach
+                    if (!setting.dropdownOpen) return@forEach
+                    setting.options.forEachIndexed { optionIndex, option ->
+                        if (!selectorOptionRect(settingLayout, optionIndex).contains(mouseX, mouseY)) return@forEachIndexed
+                        setting.toggle(option)
+                        if (!setting.allowMultiple) setting.dropdownOpen = false
+                        playClickSound(1.0f)
+                        return true
+                    }
+                }
+            }
         }
 
         if (mouseInFeatureArea) {

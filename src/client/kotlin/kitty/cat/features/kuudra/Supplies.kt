@@ -51,10 +51,11 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
                     )
                     ctx.renderBeaconBeam(center, supplyBeaconColor.color)
                 }
-                getSupplyZombies().forEach { e ->
-                    val color = if (hr?.entity === e) hoveredColor.color else supplyBeaconColor.color
-                    ctx.renderBoxBounds(e.boundingBox, color, color.setAlpha(64))
-                }
+            }
+
+            getSupplyZombies().forEach { zombie ->
+                val color = if (hr?.entity === zombie) hoveredColor.color else supplyBeaconColor.color
+                ctx.renderBoxBounds(zombie.boundingBox, color, color.setAlpha(64))
             }
         }
     }
