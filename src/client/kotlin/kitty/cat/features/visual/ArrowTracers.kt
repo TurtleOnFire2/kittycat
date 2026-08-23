@@ -45,7 +45,14 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
+            if (!enabled) {
+                trackedArrowIds.clear()
+                lastPositions.clear()
+                segments.clear()
+                return@register
+            }
             val toRemove = mutableSetOf<Int>()
+            val now = System.currentTimeMillis()
 
             trackedArrowIds.forEach {
                 val end = mc.level?.getEntity(it)?.position()
@@ -61,7 +68,7 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
                 }
 
                 if (start != end) {
-                    segments[Segment(start, end)] = System.currentTimeMillis()
+                    segments[Segment(start, end)] = now
                     lastPositions[it] = end
                 }
             }
@@ -72,7 +79,7 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
             }
 
             segments.entries.removeIf { (_, time) ->
-                System.currentTimeMillis() - time > duration.value
+                now - time > duration.value
             }
         }
 

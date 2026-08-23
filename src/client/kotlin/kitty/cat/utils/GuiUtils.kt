@@ -87,7 +87,12 @@ object GuiUtils {
     }
 
     private fun fillRounded(gui: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int, radius: Int, color: Int) {
-        for (row in 0 until height) {
+        for (row in 0 until radius) {
+            val inset = roundedInset(row, height, radius)
+            gui.fill(x + inset, y + row, x + width - inset, y + row + 1, color)
+        }
+        if (height > radius * 2) gui.fill(x, y + radius, x + width, y + height - radius, color)
+        for (row in (height - radius) until height) {
             val inset = roundedInset(row, height, radius)
             gui.fill(x + inset, y + row, x + width - inset, y + row + 1, color)
         }
@@ -100,21 +105,36 @@ object GuiUtils {
         val innerWidth = width - thickness * 2
         val innerHeight = height - thickness * 2
         val innerRadius = (radius - thickness).coerceAtLeast(0)
-        for (row in 0 until height) {
-            val outerInset = roundedInset(row, height, radius)
-            val left = x + outerInset
-            val right = x + width - outerInset
-            val innerRow = row - thickness
-            if (innerWidth <= 0 || innerHeight <= 0 || innerRow !in 0 until innerHeight) {
-                gui.fill(left, y + row, right, y + row + 1, color)
-                continue
-            }
-            val innerInset = roundedInset(innerRow, innerHeight, innerRadius)
-            val innerLeft = x + thickness + innerInset
-            val innerRight = x + width - thickness - innerInset
-            if (left < innerLeft) gui.fill(left, y + row, innerLeft, y + row + 1, color)
-            if (innerRight < right) gui.fill(innerRight, y + row, right, y + row + 1, color)
+        val edgeRows = maxOf(radius, thickness).coerceAtMost(height / 2)
+        for (row in 0 until edgeRows) {
+            fillRoundedOutlineRow(gui, x, y, width, height, radius, thickness, innerWidth, innerHeight, innerRadius, row, color)
         }
+        if (height > edgeRows * 2) {
+            gui.fill(x, y + edgeRows, x + thickness, y + height - edgeRows, color)
+            gui.fill(x + width - thickness, y + edgeRows, x + width, y + height - edgeRows, color)
+        }
+        for (row in (height - edgeRows) until height) {
+            fillRoundedOutlineRow(gui, x, y, width, height, radius, thickness, innerWidth, innerHeight, innerRadius, row, color)
+        }
+    }
+
+    private fun fillRoundedOutlineRow(
+        gui: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int, radius: Int, thickness: Int,
+        innerWidth: Int, innerHeight: Int, innerRadius: Int, row: Int, color: Int
+    ) {
+        val outerInset = roundedInset(row, height, radius)
+        val left = x + outerInset
+        val right = x + width - outerInset
+        val innerRow = row - thickness
+        if (innerWidth <= 0 || innerHeight <= 0 || innerRow !in 0 until innerHeight) {
+            gui.fill(left, y + row, right, y + row + 1, color)
+            return
+        }
+        val innerInset = roundedInset(innerRow, innerHeight, innerRadius)
+        val innerLeft = x + thickness + innerInset
+        val innerRight = x + width - thickness - innerInset
+        if (left < innerLeft) gui.fill(left, y + row, innerLeft, y + row + 1, color)
+        if (innerRight < right) gui.fill(innerRight, y + row, right, y + row + 1, color)
     }
 
     private fun roundedInset(row: Int, height: Int, radius: Int): Int {

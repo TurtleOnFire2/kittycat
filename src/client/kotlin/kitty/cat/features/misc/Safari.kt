@@ -4,9 +4,12 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.BoxRender
+import kitty.cat.render.world.Render3D.renderBoxesBounds
 import kitty.cat.utils.aabb
 import kitty.cat.utils.flatten
 import kitty.cat.utils.setAlpha
+import kitty.cat.utils.KuudraUtils
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.player.AbstractClientPlayer
@@ -36,6 +39,7 @@ import net.minecraft.world.level.block.Blocks
 import java.awt.Color
 
 object Safari : Feature("Safari", "", Categories.Category.MISC) {
+    private val boxes = mutableListOf<BoxRender>()
     val floorDropEsp = booleanSetting("Floor drop esp", false)
     val highlightColor = colorSetting("Color")
     val flitter = booleanSetting("Flitter", false)
@@ -96,10 +100,15 @@ object Safari : Feature("Safari", "", Categories.Category.MISC) {
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
+            boxes.clear()
 
-            mc.level?.entitiesForRendering()?.forEach { e ->
+            KuudraUtils.entitiesForRendering().forEach { e ->
                 if (floorDropEsp.value && e is Display.ItemDisplay && e.itemStack.item == Items.STRING) {
-                    ctx.renderBoxBounds(e.blockPosition().aabb().move(0.0, 1.0, 0.0).flatten(0.1), highlightColor.color.setAlpha(0), highlightColor.color, depthTest = false)
+                    boxes += BoxRender(
+                        e.blockPosition().aabb().move(0.0, 1.0, 0.0).flatten(0.1),
+                        highlightColor.color.setAlpha(0),
+                        highlightColor.color
+                    )
                 }
 
                 when (e) {
@@ -158,10 +167,15 @@ object Safari : Feature("Safari", "", Categories.Category.MISC) {
                     is Dolphin -> { if (nozzlenose.value) render(ctx, e, nozzlenoseColor.color) } //Nozzlenose
                 }
             }
+            ctx.renderBoxesBounds(boxes)
         }
     }
 
-    fun render(ctx: LevelRenderContext, entity: Entity, color: Color, customSize: Double = 0.0) {
-        ctx.renderBoxBounds(entity.boundingBox.inflate(customSize).move(0.0, customSize, 0.0), color, color.setAlpha(128), depthTest = false)
+    fun render(@Suppress("UNUSED_PARAMETER") ctx: LevelRenderContext, entity: Entity, color: Color, customSize: Double = 0.0) {
+        boxes += BoxRender(
+            entity.boundingBox.inflate(customSize).move(0.0, customSize, 0.0),
+            color,
+            color.setAlpha(128)
+        )
     }
 }

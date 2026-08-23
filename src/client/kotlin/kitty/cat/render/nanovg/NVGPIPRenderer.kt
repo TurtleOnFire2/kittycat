@@ -17,13 +17,15 @@ import org.joml.Matrix3x2fc
 import org.lwjgl.opengl.GL30C
 
 class NVGPIPRenderer : PictureInPictureRenderer<NVGPIPRenderer.NVGRenderState>() {
+    private var framebuffer = 0
+
     override fun renderToTexture(state: NVGRenderState, poseStack: PoseStack, submitNodeCollector: SubmitNodeCollector) {
         val colorTex = RenderSystem.outputColorTextureOverride ?: return
         val glColorTex = colorTex.texture() as? GlTexture ?: return
         val glDepthTex = RenderSystem.outputDepthTextureOverride?.texture() as? GlTexture ?: return
         val (width, height) = colorTex.let { it.getWidth(0) to it.getHeight(0) }
-        val fbo = GlStateManager.glGenFramebuffers()
-        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, fbo)
+        if (framebuffer == 0) framebuffer = GlStateManager.glGenFramebuffers()
+        GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, framebuffer)
         GlStateManager._glFramebufferTexture2D(GlConst.GL_FRAMEBUFFER, GL30C.GL_COLOR_ATTACHMENT0, GL30C.GL_TEXTURE_2D, glColorTex.glId(), 0)
         GlStateManager._glFramebufferTexture2D(GlConst.GL_FRAMEBUFFER, GL30C.GL_DEPTH_ATTACHMENT, GL30C.GL_TEXTURE_2D, glDepthTex.glId(), 0)
         GlStateManager._viewport(0, 0, width, height)
@@ -35,7 +37,6 @@ class NVGPIPRenderer : PictureInPictureRenderer<NVGPIPRenderer.NVGRenderState>()
         GlStateManager._disableCull()
         GlStateManager._enableBlend(0)
         GlStateManager._blendFuncSeparate(770, 771, 1, 0)
-        GlStateManager._glDeleteFramebuffers(fbo)
     }
 
     override fun getTranslateY(height: Int, windowScaleFactor: Int): Float = height / 2f

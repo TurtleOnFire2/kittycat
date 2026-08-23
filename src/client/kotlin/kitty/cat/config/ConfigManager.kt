@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.Executors
 
 object ConfigManager {
     private const val SAVE_DELAY_TICKS = 10
@@ -18,7 +19,10 @@ object ConfigManager {
     private val configPath: Path = FabricLoader.getInstance().configDir.resolve("kittycat.json")
 
     private var features: List<Feature> = emptyList()
-    private var dirty = false
+    @Volatile private var dirty = false
+    private val writerExecutor = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "kittycat-config-writer").apply { isDaemon = true }
+    }
     private var tickCounter = 0
     private var lastDirtyTick = 0
     private var suppressDirtyTracking = false
@@ -37,7 +41,7 @@ object ConfigManager {
         tickCounter++
         if (!dirty) return
         if (tickCounter - lastDirtyTick < SAVE_DELAY_TICKS) return
-        saveNow()
+        saveNow(async = true)
     }
 
     fun markDirty() {
@@ -46,7 +50,7 @@ object ConfigManager {
         lastDirtyTick = tickCounter
     }
 
-    fun saveNow() {
+    fun saveNow(async: Boolean = false) {
         if (features.isEmpty()) return
 
         try {
@@ -121,16 +125,23 @@ object ConfigManager {
             }
             root.add("features", featuresObject)
 
-            Files.newBufferedWriter(
-                configPath,
-                StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE
-            ).use { writer ->
-                gson.toJson(root, writer)
-            }
+            val json = gson.toJson(root)
             dirty = false
+            val write = writerExecutor.submit {
+                try {
+                    Files.writeString(
+                        configPath,
+                        json,
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.WRITE
+                    )
+                } catch (_: Exception) {
+                    dirty = true
+                }
+            }
+            if (!async) write.get()
         } catch (_: Exception) {
             // Keep dirty=true so the next tick can retry.
         }

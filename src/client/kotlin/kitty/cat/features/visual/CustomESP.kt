@@ -9,8 +9,13 @@ import kitty.cat.utils.Chat
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
 import kitty.cat.render.world.Render3D.renderTracer
+import kitty.cat.render.world.Render3D.BoxRender
+import kitty.cat.render.world.Render3D.renderBoxesBounds
+import kitty.cat.render.world.Render3D.TracerRender
+import kitty.cat.render.world.Render3D.renderTracers
 import kitty.cat.utils.name
 import kitty.cat.utils.round
+import kitty.cat.utils.KuudraUtils
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
@@ -48,6 +53,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     var entities = mutableListOf<Entity>()
     var tracerList = mutableListOf<String>()
     val entityList = mutableListOf<String>()
+    private val textureUrlCache = mutableMapOf<String, String?>()
 
     fun register() {
         loadConfig()
@@ -57,7 +63,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
 
             if (!enabled) return@register
 
-            client.level?.entitiesForRendering()?.forEach { e ->
+            KuudraUtils.entitiesForRendering().forEach { e ->
                 var entity = e
                 val name = entity.name() ?: return@forEach
 
@@ -77,13 +83,11 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 if (tracerList.any { name.contains(it, ignoreCase = true) }) tracers.add(entity)
 
                 entities.add(entity)
-                tracers.removeIf { entity -> !entity.isAlive }
-                entities.removeIf { entity -> !entity.isAlive }
             }
         }
         LevelRenderEvents.COLLECT_SUBMITS.register { ctx ->
             if (debug.value) {
-                mc.level?.entitiesForRendering()?.forEach { e ->
+                KuudraUtils.entitiesForRendering().forEach { e ->
                     if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach
 
                     val h = e.bbHeight
@@ -99,7 +103,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
             }
 
             if (debug2.value) {
-                mc.level?.entitiesForRendering()?.forEach { e ->
+                KuudraUtils.entitiesForRendering().forEach { e ->
                     val h = e.bbHeight
                     when (e) {
                         is TropicalFish -> {
@@ -112,13 +116,11 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 }
             }
 
-            entities.forEach{
-                ctx.renderBoxBounds(it.boundingBox, color.color, depthTest = false)
-            }
-            tracers.forEach{
+            ctx.renderBoxesBounds(entities.map { BoxRender(it.boundingBox, color.color) })
+            ctx.renderTracers(tracers.map {
                 val height = it.boundingBox.ysize
-                ctx.renderTracer(it.position().add(0.0, height / 2.0, 0.0), color.color, 3.0f)
-            }
+                TracerRender(it.position().add(0.0, height / 2.0, 0.0), color.color, 3.0f)
+            })
         }
     }
 
@@ -135,18 +137,23 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
 
         val encoded = player.gameProfile.properties["textures"].firstOrNull()?.value
         if (encoded != null) {
-            val json = String(java.util.Base64.getDecoder().decode(encoded))
-            val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
-            return obj["textures"]?.asJsonObject
-                ?.get("SKIN")?.asJsonObject
-                ?.get("url")?.asString
+            if (textureUrlCache.containsKey(encoded)) return textureUrlCache[encoded]
+            val url = runCatching {
+                val json = String(java.util.Base64.getDecoder().decode(encoded))
+                val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+                obj["textures"]?.asJsonObject
+                    ?.get("SKIN")?.asJsonObject
+                    ?.get("url")?.asString
+            }.getOrNull()
+            textureUrlCache[encoded] = url
+            return url
         }
 
         return null
     }
 
     fun getAllTextureStrings(str: String) {
-        mc.level?.entitiesForRendering()?.forEach { e ->
+        KuudraUtils.entitiesForRendering().forEach { e ->
             val texture = getEntityTextureString(e) ?: return@forEach
             val name = e.name.string ?: return@forEach
 
@@ -160,7 +167,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     }
 
     fun getMobString(str: String) {
-        mc.level?.entitiesForRendering()?.forEach { e ->
+        KuudraUtils.entitiesForRendering().forEach { e ->
             if (e !is LivingEntity) return@forEach
             val name = e.name.string ?: return@forEach
 

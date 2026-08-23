@@ -4,6 +4,9 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
 import kitty.cat.render.world.Render3D.renderTracer
+import kitty.cat.render.world.Render3D.TracerRender
+import kitty.cat.render.world.Render3D.renderTracers
+import kitty.cat.utils.KuudraUtils
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
@@ -20,7 +23,7 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
 
     private val pestSpawnRegex = Regex("YUCK! \\d ൠ Pest have spawned in Plot - (.+)!")
 
-    private val pestSkull: List<String> = listOf(
+    private val pestSkull: Set<String> = setOf(
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQyMzg4OSwKICAicHJvZmlsZUlkIiA6ICIyY2Y2MzExZjUyMTM0NTE2YTEyNTY3NWUwMzk3NmU2MSIsCiAgInByb2ZpbGVOYW1lIiA6ICJmaWdodHN0b2NrIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzNlNTI3ODJkN2YyYWFlZThhZjViYTI5MjhmZWM3ODg1ZTk0ODc5MzM0YzIyOTZiYzllN2UyZGJjNTQxOGU1OGYiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQyMjEzNiwKICAicHJvZmlsZUlkIiA6ICIzNDY4Y2VjMWFlOTY0YWRmYWQyNjEzMGEwZGQ0NjRkYyIsCiAgInByb2ZpbGVOYW1lIiA6ICJzdXJlZWxta18iLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGNlNzllOTBhZGYzNDcxOGYzMTNlYzI0ZDZjNjEzNWI2OWIzNzg4YzYxODQ5ODQ0NmNjYzgzY2E2NDBjMGIxNCIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9",
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQxOTYxMiwKICAicHJvZmlsZUlkIiA6ICI0OWIzODUyNDdhMWY0NTM3YjBmN2MwZTFmMTVjMTc2NCIsCiAgInByb2ZpbGVOYW1lIiA6ICJiY2QyMDMzYzYzZWM0YmY4IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzFlMDRiYjYzNjdjYWE0ZTg4ZjVmZDBlZTgwZjA3NDVkMTM3YTYwNjAyMjNkYmJjNDJhMTY0NzFmZGY2NGJiODMiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
@@ -41,18 +44,19 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!pestEsp.value || !enabled) return@register
-            mc.level?.entitiesForRendering()?.forEach {
-                if (it !is ArmorStand) return@forEach
+            val tracers = KuudraUtils.entitiesForRendering().mapNotNull {
+                if (it !is ArmorStand) return@mapNotNull null
                 val head = it.getItemBySlot(EquipmentSlot.HEAD)
-                if (head.item.asItem() !is PlayerHeadItem) return@forEach
+                if (head.item.asItem() !is PlayerHeadItem) return@mapNotNull null
 
-                val profile = head.get(DataComponents.PROFILE) ?: return@forEach
+                val profile = head.get(DataComponents.PROFILE) ?: return@mapNotNull null
                 val gameProfile = profile.partialProfile()
                 val textures = gameProfile.properties.get("textures").firstOrNull()
                 if (pestSkull.contains(textures?.value)) {
-                    ctx.renderTracer(it.eyePosition, Color(255, 0, 0, 100), 3.0f)
-                }
+                    TracerRender(it.eyePosition, Color(255, 0, 0, 100), 3.0f)
+                } else null
             }
+            ctx.renderTracers(tracers)
         }
     }
 

@@ -16,6 +16,12 @@ import java.awt.Color
 
 object KuudraUtils {
 
+    private val armorSlots = EquipmentSlot.entries.filter { it.type == EquipmentSlot.Type.HUMANOID_ARMOR }
+    private var entityCacheTick = Long.MIN_VALUE
+    private var entityCache = emptyList<Entity>()
+    private var supplyZombieCacheTick = Long.MIN_VALUE
+    private var supplyZombieCache = emptyList<Zombie>()
+
     var phase: Phase = Phase.NONE
     var activeDropOffs = mutableListOf<Triple<String, Vec3, Color>>()
     var square: Supply = Supply.None
@@ -35,6 +41,10 @@ object KuudraUtils {
             phase = Phase.NONE
             isDead = false
             activeDropOffs = dropOffs.toMutableList()
+            entityCacheTick = Long.MIN_VALUE
+            entityCache = emptyList()
+            supplyZombieCacheTick = Long.MIN_VALUE
+            supplyZombieCache = emptyList()
         }
     }
 
@@ -135,18 +145,31 @@ object KuudraUtils {
         val level = mc.level ?: return emptyList()
         val player = mc.player ?: return emptyList()
 
-        return level.entitiesForRendering()
+        entitiesForRendering()
+        if (supplyZombieCacheTick == level.gameTime) return supplyZombieCache
+
+        supplyZombieCache = entityCache
             .filterIsInstance<Zombie>()
             .filter {
                 it.isAlive &&
                         it.y in 60.0..78.0 &&
-                        EquipmentSlot.entries
-                            .filter { slot -> slot.type == EquipmentSlot.Type.HUMANOID_ARMOR }
-                            .all { slot -> it.getItemBySlot(slot).isEmpty }
+                        armorSlots.all { slot -> it.getItemBySlot(slot).isEmpty }
             }
-            .sortedBy {
-                it.distanceToSqr(player)
-            }
+            .sortedBy { it.distanceToSqr(player) }
+        supplyZombieCacheTick = level.gameTime
+        return supplyZombieCache
+    }
+
+    /** A stable entity snapshot shared by all feature scans during one client tick. */
+    fun entitiesForRendering(): List<Entity> {
+        val level = mc.level ?: return emptyList()
+        if (entityCacheTick != level.gameTime) {
+            entityCacheTick = level.gameTime
+            entityCache = level.entitiesForRendering().toList()
+            supplyZombieCacheTick = Long.MIN_VALUE
+            supplyZombieCache = emptyList()
+        }
+        return entityCache
     }
 
 

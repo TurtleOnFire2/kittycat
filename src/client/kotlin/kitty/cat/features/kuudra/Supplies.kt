@@ -5,6 +5,8 @@ import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBeaconBeam
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.BoxRender
+import kitty.cat.render.world.Render3D.renderBoxesBounds
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.getSupplyZombies
 import kitty.cat.utils.KuudraUtils.kuudra
@@ -42,7 +44,7 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
 
             if (!supplyBeacons.value) return@register
 
-            mc.level?.entitiesForRendering()?.forEach { e ->
+            KuudraUtils.entitiesForRendering().forEach { e ->
                 if (e is Giant) {
                     val center = Vec3(
                         e.x + (2.7 * cos((e.yRot + 130) * (Math.PI / 180))),
@@ -51,11 +53,13 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
                     )
                     ctx.renderBeaconBeam(center, supplyBeaconColor.color)
                 }
-                getSupplyZombies().forEach { e ->
-                    val color = if (hr?.entity === e) hoveredColor.color else supplyBeaconColor.color
-                    ctx.renderBoxBounds(e.boundingBox, color, color.setAlpha(64))
-                }
             }
+
+            val boxes = getSupplyZombies().map { zombie ->
+                val color = if (hr?.entity === zombie) hoveredColor.color else supplyBeaconColor.color
+                BoxRender(zombie.boundingBox, color, color.setAlpha(64))
+            }
+            ctx.renderBoxesBounds(boxes)
         }
     }
 }

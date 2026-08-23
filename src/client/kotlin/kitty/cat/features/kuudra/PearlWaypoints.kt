@@ -35,13 +35,16 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     private var timeSincePickUp: Long = 0
     private var timeSinceLastTitle = 0
     private var tracking = false
+    private var lastSolveTick = Long.MIN_VALUE
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (!enabled || !kuudra() || !supplies()) return@register
 
             val pos = mc.player?.position()?.add(0.0, mc.player!!.eyeHeight.toDouble(), 0.0) ?: return@register
-            if (pos == lastPos) return@register
+            val tick = client.level?.gameTime ?: return@register
+            if (tick - lastSolveTick < 2 || lastPos?.distanceToSqr(pos)?.let { it < 0.0025 } == true) return@register
+            lastSolveTick = tick
             lastPos = pos
             solutions.clear()
 

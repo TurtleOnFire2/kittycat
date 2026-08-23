@@ -17,7 +17,7 @@ object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
     val range = numberSetting("Range", 3.0, 5.5, 3.0, "", 0.1)
 
     val aura = booleanSetting("Aura", false)
-    val auraRange = numberSetting("Aura range", 3.0, 8.0, 5.5, "", 0.1)
+    val auraRange = numberSetting("Aura range", 3.0, 8.0, 6.0, "", 0.1)
     val checks = selectorSetting("Checks", listOf("On ground", "Fov check", "On RMB only", "Rod only"), allowMultiple = true)
     val fov = numberSetting("Fov", 10.0, 360.0, 90.0, "°")
     val delay = numberSetting("Delay", 4.0, 30.0, 20.0, "t")

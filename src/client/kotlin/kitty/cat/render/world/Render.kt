@@ -422,6 +422,56 @@ inline fun PoseStack.poseScope(block: (PoseStack) -> Unit) {
 }
 
 object Render3D {
+    data class TracerRender(val point: Vec3, val color: Color, val thickness: Float = 2.5f)
+    data class BoxRender(
+        val bounds: AABB,
+        val outlineColor: Color,
+        val fillColor: Color = Color(outlineColor.red, outlineColor.green, outlineColor.blue, 128),
+        val outline: Boolean = true,
+        val fill: Boolean = true,
+        val depthTest: Boolean = false,
+        val lineWidth: Float = 2.5f
+    )
+
+    /** Batches any number of boxes into at most four geometry submissions. */
+    fun LevelRenderContext.renderBoxesBounds(boxes: Collection<BoxRender>) {
+        if (boxes.isEmpty()) return
+        boxes.groupBy { it.depthTest }.forEach { (depth, group) ->
+            val filled = group.filter { it.fill }
+            if (filled.isNotEmpty()) {
+                poseStack().poseScopeWithCamera { stack ->
+                    val renderType = if (depth) RenderTypes.debugFilledBox() else RenderLayers.QUADS_THROUGH_WALLS
+                    submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer ->
+                        filled.forEach { PrimitiveRenderer.addChainedFilledBoxVertices(pose, buffer, it.bounds, it.fillColor.rgb) }
+                    }
+                }
+            }
+            val outlined = group.filter { it.outline }
+            if (outlined.isNotEmpty()) {
+                poseStack().poseScopeWithCamera { stack ->
+                    val renderType = if (depth) RenderTypes.LINES else RenderLayers.LINES_THROUGH_WALLS
+                    submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer ->
+                        outlined.forEach { PrimitiveRenderer.renderLineBox(pose, buffer, it.bounds, it.outlineColor.rgb, it.lineWidth) }
+                    }
+                }
+            }
+        }
+    }
+
+    fun LevelRenderContext.renderTracers(tracers: Collection<TracerRender>) {
+        if (tracers.isEmpty()) return
+        val start = mc.player?.let { player ->
+            player.renderPos.add(player.forward.add(0.0, player.eyeHeight.toDouble(), 0.0))
+        } ?: return
+        poseStack().poseScopeWithCamera { stack ->
+            submitNodeCollector().submitCustomGeometry(stack, RenderLayers.LINES_THROUGH_WALLS) { pose, buffer ->
+                tracers.forEach {
+                    PrimitiveRenderer.drawLine(pose, buffer, start, it.point, it.color.rgb, it.color.rgb, it.thickness)
+                }
+            }
+        }
+    }
+
     fun LevelRenderContext.renderBoxBounds(
         minX: Double,
         minY: Double,

@@ -8,7 +8,10 @@ import kitty.cat.features.kuudra.RendMacro.offsetRight
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.BoxRender
+import kitty.cat.render.world.Render3D.renderBoxesBounds
 import kitty.cat.utils.canInteract
+import kitty.cat.utils.KuudraUtils
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.world.entity.decoration.ArmorStand
@@ -20,14 +23,14 @@ object Terminals: Feature("Terminals", "", Categories.Category.DUNGEONS) {
     val triggerbot = booleanSetting("Triggerbot", false)
     val showHitbox = booleanSetting("Show Hitbox", false)
 
-    val terminalRegex = Regex("Inactive Terminal|CLICK HERE")
+    private val terminalNames = setOf("Inactive Terminal", "CLICK HERE")
     var previousXZ: Pair<Int, Int>? = null
 
     fun register() {
         ClientTickEvents.START_CLIENT_TICK.register {
              val hr = it.hitResult as? EntityHitResult ?: return@register
 
-            if (!enabled || !triggerbot.value || it.gui.screen() != null || hr.entity !is ArmorStand || !terminalRegex.matches(hr.entity.name.string)) return@register
+            if (!enabled || !triggerbot.value || it.gui.screen() != null || hr.entity !is ArmorStand || hr.entity.name.string !in terminalNames) return@register
             val xy = hr.entity.x.toInt() to hr.entity.z.toInt()
             if (xy == previousXZ) return@register
             previousXZ = xy
@@ -36,15 +39,12 @@ object Terminals: Feature("Terminals", "", Categories.Category.DUNGEONS) {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled || !showHitbox.value) return@register
 
-            mc.level?.entitiesForRendering()?.filterIsInstance<ArmorStand>()?.forEach { entity ->
-                if (!entity.name.string.matches(terminalRegex)) return@forEach
-
+            val boxes = KuudraUtils.entitiesForRendering().mapNotNull { entity ->
+                if (entity !is ArmorStand || entity.name.string !in terminalNames) return@mapNotNull null
                 val aabb = entity.boundingBox
-
-                val color = if (aabb.canInteract()) Color.GREEN else Color.RED
-
-                ctx.renderBoxBounds(aabb, color, depthTest = false)
+                BoxRender(aabb, if (aabb.canInteract()) Color.GREEN else Color.RED)
             }
+            ctx.renderBoxesBounds(boxes)
         }
     }
 }
