@@ -18,7 +18,6 @@ import kitty.cat.utils.lookinAt
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
-import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import java.util.regex.Pattern
@@ -42,9 +41,8 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if (!enabled || !kuudra() || !supplies()) return@register
 
             val pos = mc.player?.position()?.add(0.0, mc.player!!.eyeHeight.toDouble(), 0.0) ?: return@register
-            val tick = client.level?.gameTime ?: return@register
-            if (tick - lastSolveTick < 2 || lastPos?.distanceToSqr(pos)?.let { it < 0.0025 } == true) return@register
-            lastSolveTick = tick
+            if (lastPos?.distanceToSqr(pos)?.let { it < 0.0025 } == true) return@register
+
             lastPos = pos
             solutions.clear()
 
