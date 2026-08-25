@@ -152,6 +152,7 @@ object KuudraUtils {
             .filterIsInstance<Zombie>()
             .filter {
                 it.isAlive &&
+                        !it.isBaby &&
                         it.y in 60.0..78.0 &&
                         armorSlots.all { slot -> it.getItemBySlot(slot).isEmpty }
             }
