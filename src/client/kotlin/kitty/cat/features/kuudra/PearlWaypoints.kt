@@ -5,7 +5,6 @@ import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
-import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.Supply
 import kitty.cat.utils.KuudraUtils.kuudra
@@ -24,6 +23,7 @@ import java.util.regex.Pattern
 
 object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA) {
     val offset = numberSetting("Offset", 0.0, 1000.0, 0.0, "ms")
+    val doubleOffset = numberSetting("Double pearl offset", 0.0, 1000.0, 0.0, "ms")
     val snap = booleanSetting("Snap to waypoint", false)
     val snapAt = numberSetting("Snap at X time left", 0.0, 5000.0, 0.0, "ms")
     val range = numberSetting("Snap range", 0.0, 2.0, 0.0, "", 0.05)
@@ -57,12 +57,12 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             } else {
                 val pearl = KuudraUtils.dropOffs.firstOrNull { it.first == supply.name || (supply == Supply.Square && it.first == square.name) } ?: return@register
                 val sol = TrajectorySolver.solve(false, pos, pearl.second) ?: return@register
-                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime, pearl.third, sol.yaw, sol.pitch))
+                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime + offset.value.toInt(), pearl.third, sol.yaw, sol.pitch))
             }
 
             KuudraUtils.doublePearls.forEach {
                 val sol = TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - 200, it.third, sol.yaw, sol.pitch))
+                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - 200 + doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch))
             }
         }
         LevelRenderEvents.END_MAIN.register render@{ ctx ->
@@ -77,7 +77,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
                 ctx.renderBoxBounds(solution.pos.aabb(0.1), solution.color)
 
-                val delay = 4250 - solution.time + offset.value.toInt()
+                val delay = 4250 - solution.time
                 val remaining = delay - timeSincePickUp
                 val time = if (remaining <= 0) {
                     "§2Ready"
