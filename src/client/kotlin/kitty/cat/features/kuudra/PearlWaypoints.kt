@@ -34,7 +34,6 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     private var timeSincePickUp: Long = 0
     private var timeSinceLastTitle = 0
     private var tracking = false
-    private var lastSolveTick = Long.MIN_VALUE
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->

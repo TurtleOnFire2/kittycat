@@ -108,7 +108,7 @@ object KuudraUtils {
     )
 
     val doublePearls = listOf(
-        Triple("Square DP", Vec3(-141.0, 77.0, -87.0), Color.GREEN),
+        Triple("Square DP", Vec3(-140.0, 77.0, -87.0), Color.GREEN),
         Triple("Shop DP", Vec3(-76.0, 78.0, -136.0), Color.RED)
     )
 
