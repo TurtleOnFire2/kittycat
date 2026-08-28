@@ -75,7 +75,6 @@ object KittycatClient : ClientModInitializer {
 	var keybindShowHud: KeyMapping? = null
 
 	override fun onInitializeClient() {
-		NameChanger.checkFrostyName()
 		// Force class-init so the custom render pipelines are registered before the
 		// renderer precompiles static pipelines, not lazily mid-frame on first draw.
 		RenderLayers.LINES_THROUGH_WALLS

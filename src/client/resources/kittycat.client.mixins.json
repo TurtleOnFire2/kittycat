@@ -16,12 +16,14 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "BakedSheetGlyphInstanceMixin",
+    "BakedSheetGlyphMixin",
     "BowItemMixin",
     "ClientLevelMixin",
     "ConnectionMixin",
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
-    "GuiTextRenderStateMixin",
+    "FontMixin",
     "LivingEntityMixin",
     "LocalPlayerMixin",
     "PlayerMixin"
