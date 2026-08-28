@@ -1,23 +1,116 @@
 package kitty.cat.features.misc
 
 import kitty.cat.KittycatClient.mc
-import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
-import kitty.cat.render.world.Render3D.renderTracer
-import kitty.cat.render.world.Render3D.TracerRender
-import kitty.cat.render.world.Render3D.renderTracers
-import kitty.cat.utils.KuudraUtils
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
-import net.minecraft.core.component.DataComponents
-import net.minecraft.world.entity.EquipmentSlot
+import kitty.cat.gui.categories.Categories
+import kitty.cat.utils.Chat
+import kitty.cat.utils.Schedule.schedule
+import kitty.cat.utils.clickSlot
+import kitty.cat.utils.getLoadoutIndex
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.world.entity.decoration.ArmorStand
-import net.minecraft.world.item.PlayerHeadItem
-import java.awt.Color
+import kotlin.random.Random
 
-object Pests: Feature("Pests", "", Categories.Category.MISC) {
+object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
 
-    val pestEsp = booleanSetting("Pest ESP", false)
-    val color = colorSetting("Color")
+    val autoWarp = booleanSetting("Auto warp", false, "Also sets your spawn beforehand")
+    val autoLoadout = booleanSetting("Auto loadout", false)
+
+    val autoWarpBack = booleanSetting("Auto warp back after pests", false, "Really buggy so idk")
+
+    val spawnSlot = numberSetting("Spawning loadout slot", 1.0, 12.0, 1.0, "", 1.0)
+    val farmSlot = numberSetting("Farming loadout slot", 1.0, 12.0, 1.0, "", 1.0)
+
+    val randomDelay = rangeSetting("Random delay", 0.0, 20.0, 5.0, 10.0)
+
+    val pestCooldown = numberSetting("Pest cooldown", 60.0, 140.0, 130.0, "s")
+
+    private val pestSpawnRegex = Regex("YUCK! (\\d) .+ Pest have spawned in Plot - (.+)!")
+
+    var lastPestSpawn = 0
+    var toClick = -1
+
+    var pests = 9999
+
+    val allPests = Regex("""\b(Beetle|Cricket|Dragonfly|Earthworm|Firefly|Fly|Locust|Mite|Mosquito|Moth|Praying Mantis|Rat|Slug)\b""")
+    fun handleChat(unformatted: String) {
+        if (!enabled) return
+
+        val match = pestSpawnRegex.find(unformatted)?.groupValues
+        val plot = match?.get(2) ?: return
+        val pest = match[1].toIntOrNull() ?: return
+
+        pests = pest
+
+        lastPestSpawn = 0
+
+        if (mc.player?.onGround() != true || !autoWarp.value) return
+
+        schedule(delay(), true) {
+            mc.player!!.connection.sendCommand("sethome")
+            schedule(delay(), true) {
+                mc.player!!.connection.sendCommand("tptoplot $plot")
+                schedule(delay(), true) {
+                    if (autoLoadout.value) {
+                        if (autoLoadout.value) mc.connection?.sendCommand("loadout")
+                        toClick = farmSlot.value.toInt()
+                    }
+                }
+            }
+        }
+    }
+
+    fun serverTick() {
+        lastPestSpawn++
+
+        val amount = pestCooldown.value.toInt() * 20
+
+        if (lastPestSpawn - amount == -20) {
+            if (autoLoadout.value) mc.connection?.sendCommand("loadout")
+            toClick = spawnSlot.value.toInt()
+        }
+    }
+
+    fun openScreen(packet: ClientboundOpenScreenPacket) {
+        if (!enabled || !autoLoadout.value || toClick == -1) return
+
+        if (!packet.title.string.contains("Loadout")) {
+            toClick = -1
+            return
+        }
+
+        schedule(delay(), true) {
+            val sc = mc.gui.screen() as? AbstractContainerScreen<*> ?: return@schedule
+            if (!packet.title.string.contains("Loadout")) return@schedule
+
+            mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(toClick))
+            toClick = -1
+            schedule(delay(), true) {
+                if (mc.player?.containerMenu != null) {
+                    mc.player!!.closeContainer()
+                }
+            }
+        }
+    }
+
+    fun handleEntityRemoved(id: Int) {
+        val entity = mc.level?.getEntity(id)
+
+        if (entity !is ArmorStand) return
+
+        if (entity.distanceToSqr(mc.player ?: return) > 400) return
+
+        if (!allPests.containsMatchIn(entity.name.string)) return
+
+        if (--pests == 0 && autoWarpBack.value) {
+            mc.connection?.sendCommand("warp garden")
+        }
+    }
+
+    private fun delay(): Int {
+        return Random.nextInt(randomDelay.lowerValue.toInt(), randomDelay.upperValue.toInt())
+    }
 
     private val pestSkull: Set<String> = setOf(
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQyMzg4OSwKICAicHJvZmlsZUlkIiA6ICIyY2Y2MzExZjUyMTM0NTE2YTEyNTY3NWUwMzk3NmU2MSIsCiAgInByb2ZpbGVOYW1lIiA6ICJmaWdodHN0b2NrIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzNlNTI3ODJkN2YyYWFlZThhZjViYTI5MjhmZWM3ODg1ZTk0ODc5MzM0YzIyOTZiYzllN2UyZGJjNTQxOGU1OGYiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
@@ -36,23 +129,4 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
         "ewogICJ0aW1lc3RhbXAiIDogMTcyNzkwNDc5NzQ1OSwKICAicHJvZmlsZUlkIiA6ICI0MmIwOTMyZDUwMWI0MWQ1YTM4YjEwOTcxYTYwYmYxMyIsCiAgInByb2ZpbGVOYW1lIiA6ICJBaXJib2x0MDc4IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2YzNzllMDkyNTI4MTczMTRiZDBiNjk0ZjdkNTNiNDhhZjJjN2ZhODQ5OTEwOTgwMmE0MWJiMjk0ZDJmOTNlM2UiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
         "ewogICJ0aW1lc3RhbXAiIDogMTY5NzQ3MDQ1OTc0NywKICAicHJvZmlsZUlkIiA6ICIyNTBlNzc5MjZkNDM0ZDIyYWM2MTQ4N2EyY2M3YzAwNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJMdW5hMTIxMDUiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjQwM2JhNDAyN2EzMzNkOGQyZmQzMmFiNTlkMWNmZGJhYTdkOTA4ZDgwZDIzODFkYjJhNjljYmU2NTQ1MGFkOCIKICAgIH0KICB9Cn0="
     )
-
-    fun register() {
-        LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!pestEsp.value || !enabled) return@register
-            val tracers = KuudraUtils.entitiesForRendering().mapNotNull {
-                if (it !is ArmorStand) return@mapNotNull null
-                val head = it.getItemBySlot(EquipmentSlot.HEAD)
-                if (head.item.asItem() !is PlayerHeadItem) return@mapNotNull null
-
-                val profile = head.get(DataComponents.PROFILE) ?: return@mapNotNull null
-                val gameProfile = profile.partialProfile()
-                val textures = gameProfile.properties.get("textures").firstOrNull()
-                if (pestSkull.contains(textures?.value)) {
-                    TracerRender(it.eyePosition, color.color, 3.0f)
-                } else null
-            }
-            ctx.renderTracers(tracers)
-        }
-    }
 }

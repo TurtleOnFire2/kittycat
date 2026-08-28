@@ -23,6 +23,7 @@ import kitty.cat.features.kuudra.SupplyCheats
 import kitty.cat.features.kuudra.TinyMobs
 import kitty.cat.features.misc.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
+import kitty.cat.features.misc.FarmHelper
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.ActionSetting
@@ -238,7 +239,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         Safari, ArrowTracers, CustomESP, BestiaryESP, ClickGuiFeature,
         Storm, AutoLB, Relics, LeverTriggerbot, Terminals,
         RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, Supplies, AutoGFS, RendDamage, SupplyCheats,
-        BestiaryHud, Pests, ChatMacros,
+        BestiaryHud, Pests, ChatMacros, FarmHelper,
         ExampleFeature
     )
 
