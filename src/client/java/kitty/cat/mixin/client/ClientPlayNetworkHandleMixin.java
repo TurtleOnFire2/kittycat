@@ -7,6 +7,7 @@ import kitty.cat.features.huds.BestiaryHud;
 import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.*;
 import kitty.cat.features.misc.ChatMacros;
+import kitty.cat.features.misc.FarmHelper;
 import kitty.cat.features.misc.Pests;
 import kitty.cat.features.visual.ArrowTracers;
 import kitty.cat.utils.KuudraUtils;
@@ -45,7 +46,6 @@ public class ClientPlayNetworkHandleMixin {
         var message = component.getString();
         var unformatted = ChatFormatting.stripFormatting(message);
 
-        Pests.INSTANCE.handleChat(unformatted);
         AutoLB.INSTANCE.handleChat(unformatted);
         ChatMacros.INSTANCE.handleChat(unformatted);
         Storm.INSTANCE.handleChat(unformatted);
@@ -54,12 +54,14 @@ public class ClientPlayNetworkHandleMixin {
         KuudraUtils.INSTANCE.handleChat(unformatted);
         AutoGFS.INSTANCE.handleChat(unformatted);
         Stun.INSTANCE.handleChat(unformatted);
+        FarmHelper.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)
     void handleOpenScreen(ClientboundOpenScreenPacket clientboundOpenScreenPacket, CallbackInfo ci) {
         Storm.INSTANCE.handleScreen(clientboundOpenScreenPacket);
         RendMacro.INSTANCE.openScreen(clientboundOpenScreenPacket);
+        FarmHelper.INSTANCE.openScreen(clientboundOpenScreenPacket);
 
         var connection = Minecraft.getInstance().getConnection();
         if (Stun.INSTANCE.openScreen(clientboundOpenScreenPacket)) {

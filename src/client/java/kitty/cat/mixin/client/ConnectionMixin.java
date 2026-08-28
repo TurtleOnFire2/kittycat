@@ -5,6 +5,7 @@ import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.PearlWaypoints;
+import kitty.cat.features.misc.FarmHelper;
 import kitty.cat.utils.Schedule;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
@@ -26,6 +27,7 @@ public class ConnectionMixin {
             Schedule.INSTANCE.tickServer();
             PearlWaypoints.INSTANCE.serverTick();
             SupplyHud.INSTANCE.serverTick();
+            FarmHelper.INSTANCE.serverTick();
         }
     }
 
