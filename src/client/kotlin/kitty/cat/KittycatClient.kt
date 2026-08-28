@@ -25,6 +25,7 @@ import kitty.cat.features.huds.BackboneHud
 import kitty.cat.features.huds.SupplyHud
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
+import kitty.cat.features.kuudra.SafeSpots
 import kitty.cat.features.kuudra.Stun
 import kitty.cat.features.kuudra.Supplies
 import kitty.cat.features.kuudra.SupplyCheats
@@ -309,6 +310,7 @@ object KittycatClient : ClientModInitializer {
 		Safari.register()
 		RendDamage.register()
 		SupplyCheats.register()
+		SafeSpots.register()
 
 		BackboneHud
 		SupplyHud
