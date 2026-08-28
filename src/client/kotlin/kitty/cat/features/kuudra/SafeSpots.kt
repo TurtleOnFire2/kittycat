@@ -4,6 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.aabb
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -49,7 +50,7 @@ object SafeSpots : Feature("Safe Spots", "", Categories.Category.KUUDRA) {
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!enabled) return@register
+            if (!enabled || !kuudra()) return@register
             safeSpots.forEach { spot ->
                 val color = if (spot.safe) Color.GREEN else Color.RED
                 ctx.renderBoxBounds(spot.loc.aabb(), color)
