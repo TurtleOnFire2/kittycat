@@ -38,7 +38,7 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
     val range = numberSetting("Range", 0.0, 5.0, 2.0, "", 0.1)
 
     private const val PEARL_TIMEOUT_TICKS = 100L
-    private const val STOP_DISTANCE_SQR = 0.04
+    private const val STOP_DISTANCE_SQR = 0.2
 
     private data class MovementKeys(val forward: Boolean, val back: Boolean, val left: Boolean, val right: Boolean)
     private data class PendingPearl(val supply: Supply, val throwTick: Long)
