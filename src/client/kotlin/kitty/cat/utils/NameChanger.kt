@@ -3,7 +3,6 @@ package kitty.cat.utils
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
 import net.minecraft.util.FormattedCharSequence
-import java.awt.Color
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -11,21 +10,58 @@ import java.net.http.HttpResponse
 
 object NameChanger {
 
-    val names = listOf(
-        Name(
-            checkName("0f888ec4cb044c2a95f78edc75ffcc55"),
-            smoothGradient("autopy", 0x664a00, Color.YELLOW.rgb)
-        ),
-        Name(
-            checkName("e51175776ad44a6fb1b4ecaf94bf4246"),
-            smoothGradient("legitcatgirl", Color.PINK.rgb, Color.MAGENTA.rgb)
-        )
-        ,
-        Name(
-            checkName("1b524fe49c5c4fe599840bdd7c790bf0"),
-            smoothGradient("LarpingJob", Color.GREEN.rgb, 0x056e00)
-        )
-    )
+    private const val NAMES_URL =
+        "https://gist.githubusercontent.com/TurtleOnFire2/87440f6658c41309342f8da644650810/raw/names.json"
+
+    val names: List<Name> = loadNames()
+
+    private fun loadNames(): List<Name> {
+        try {
+            val client = HttpClient.newHttpClient()
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create(NAMES_URL))
+                .GET()
+                .build()
+
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+
+            if (response.statusCode() != 200) {
+                println("Failed to fetch names.json: ${response.statusCode()}")
+                return emptyList()
+            }
+
+            print(response.body())
+
+            return parseEntries(response.body()).map { entry ->
+                Name(
+                    checkName(entry.uuid),
+                    smoothGradient(entry.text, *entry.colors.toIntArray())
+                )
+            }
+        } catch (e: Exception) {
+            println("Error loading names: ${e.message}")
+            return emptyList()
+        }
+    }
+
+    private fun parseEntries(json: String): List<NameEntry> {
+        val objectRegex = Regex("""\{[^{}]*\}""")
+        val uuidRegex = Regex(""""uuid"\s*:\s*"([^"]+)"""")
+        val textRegex = Regex(""""text"\s*:\s*"([^"]+)"""")
+        val colorsRegex = Regex(""""colors"\s*:\s*\[([^\]]*)\]""")
+
+        return objectRegex.findAll(json).mapNotNull { match ->
+            val obj = match.value
+            val uuid = uuidRegex.find(obj)?.groupValues?.get(1) ?: return@mapNotNull null
+            val text = textRegex.find(obj)?.groupValues?.get(1) ?: return@mapNotNull null
+            val colors = colorsRegex.find(obj)?.groupValues?.get(1)
+                ?.split(",")
+                ?.map { it.trim().toInt() }
+                ?: emptyList()
+
+            NameEntry(uuid, text, colors)
+        }.toList()
+    }
 
     /**
      * Creates a left-to-right gradient whose colors are interpolated inside
@@ -208,4 +244,10 @@ object NameChanger {
 data class Name(
     val name: String,
     val replacement: Component
+)
+
+data class NameEntry(
+    val uuid: String,
+    val text: String,
+    val colors: List<Int>
 )
