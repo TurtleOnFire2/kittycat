@@ -61,7 +61,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
             KuudraUtils.doublePearls.forEach {
                 val sol = TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - 200 - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch))
+                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch))
             }
         }
         LevelRenderEvents.END_MAIN.register render@{ ctx ->
