@@ -51,17 +51,17 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if (supply == Supply.Square && square == Supply.None) {
                 KuudraUtils.activeDropOffs.forEach {
                     val sol = TrajectorySolver.solve(false, pos, it.second) ?: return@forEach
-                    solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime + offset.value.toInt(), it.third, sol.yaw, sol.pitch))
+                    solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime - offset.value.toInt(), it.third, sol.yaw, sol.pitch))
                 }
             } else {
                 val pearl = KuudraUtils.dropOffs.firstOrNull { it.first == supply.name || (supply == Supply.Square && it.first == square.name) } ?: return@register
                 val sol = TrajectorySolver.solve(false, pos, pearl.second) ?: return@register
-                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime + offset.value.toInt(), pearl.third, sol.yaw, sol.pitch))
+                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime - offset.value.toInt(), pearl.third, sol.yaw, sol.pitch))
             }
 
             KuudraUtils.doublePearls.forEach {
                 val sol = TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - 200 + doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch))
+                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - 200 - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch))
             }
         }
         LevelRenderEvents.END_MAIN.register render@{ ctx ->
