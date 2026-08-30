@@ -9,6 +9,7 @@
     "ItemInHandRendererMixin",
     "LayerRenderStateMixin",
     "MinecraftMixin",
+    "MouseHandlerMixin",
     "MultiPlayerGameModeMixin",
     "gui.GuiGraphicsAccessor"
   ],
