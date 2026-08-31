@@ -253,7 +253,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             schedule(0) {
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
-
+                }
+                schedule(0) {
                     if (!useIceSpray.value) return@schedule
 
                     val iceSpray = hotbarSlotFromID("ICE_SPRAY_WAND") ?: return@schedule
