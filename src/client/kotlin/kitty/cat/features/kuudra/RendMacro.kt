@@ -253,20 +253,20 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             schedule(0) {
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
-                }
-                schedule(0) {
-                    if (!useIceSpray.value) return@schedule
-
-                    val iceSpray = hotbarSlotFromID("ICE_SPRAY_WAND") ?: return@schedule
-
-                    mc.player!!.inventory.selectedSlot = iceSpray
-
                     schedule(1) {
-                        mc.options.keyUse.clickCount++
-                        schedule(0) {
-                            if (autoHalberd.value) return@schedule
-                            val aotsSlot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return@schedule
-                            mc.player!!.inventory.selectedSlot = aotsSlot
+                        if (!useIceSpray.value) return@schedule
+
+                        val iceSpray = hotbarSlotFromID("STARRED_ICE_SPRAY_WAND") ?: return@schedule
+
+                        mc.player!!.inventory.selectedSlot = iceSpray
+
+                        schedule(1) {
+                            mc.options.keyUse.clickCount++
+                            schedule(0) {
+                                if (!autoHalberd.value) return@schedule
+                                val aotsSlot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return@schedule
+                                mc.player!!.inventory.selectedSlot = aotsSlot
+                            }
                         }
                     }
                 }

@@ -39,6 +39,7 @@ import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
 import kitty.cat.features.visual.ArrowTracers
 import kitty.cat.features.visual.BestiaryESP
+import kitty.cat.features.visual.CatEars
 import kitty.cat.features.visual.CustomESP
 import kitty.cat.render.nanovg.NVGRenderer
 import kitty.cat.utils.GuiUtils
@@ -237,7 +238,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var maxFeatureScroll = 0
 
     val featureList: List<Feature> = listOf(
-        Safari, ArrowTracers, CustomESP, BestiaryESP, ClickGuiFeature,
+        Safari, ArrowTracers, CatEars, CustomESP, BestiaryESP, ClickGuiFeature,
         Storm, AutoLB, Relics, LeverTriggerbot, Terminals,
         RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, Supplies, AutoGFS, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper,

@@ -16,6 +16,7 @@ import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.visual.ArrowTracers
 import kitty.cat.features.visual.BestiaryESP
+import kitty.cat.features.visual.CatEars
 import kitty.cat.features.visual.CustomESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
@@ -293,6 +294,7 @@ object KittycatClient : ClientModInitializer {
 		Supplies.register()
 		RendMacro.register()
 		ArrowTracers.register()
+		CatEars.register()
 		AutoLB.register()
 		Pests.register()
 		Hud.register()
