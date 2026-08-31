@@ -38,6 +38,7 @@ import kitty.cat.utils.LocationUtils
 import kitty.cat.render.world.RenderLayers
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.NameChanger
+import kitty.cat.utils.PictureInPictureMode
 import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.Schedule
 import net.fabricmc.api.ClientModInitializer
@@ -134,6 +135,13 @@ object KittycatClient : ClientModInitializer {
 		}
 
 		ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
+			dispatcher.register(
+				literal("pip").executes {
+					val active = PictureInPictureMode.toggle()
+					Chat.send("Picture-in-picture ${if (active) "enabled" else "disabled"}")
+					1
+				}
+			)
 			dispatcher.register(
 				literal("kc")
 					.then(
