@@ -17,6 +17,8 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "AvatarRendererMixin",
+    "AvatarRenderStateMixin",
     "BakedSheetGlyphInstanceMixin",
     "BakedSheetGlyphMixin",
     "BowItemMixin",
