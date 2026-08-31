@@ -49,7 +49,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.level == null || mc.player == null || !enabled) return@register
 
-            if (!stun()) return@register
+            if (!stun() || !build()) return@register
 
             if (autoOpenShop.value) {
                 ctx.renderBoxBounds(-74.0, 79.0, -104.0, -70.0, 79.05, -102.0, Color.CYAN)
@@ -170,10 +170,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         RendMacro.dM(pos.toString())
 
         if (autoPickobulus.value) {
-            if (!(pos.x in -148.0..171.0 && pos.y in 26.0..31.0 && pos.z in -151.0..-174.0)) {
-                Chat.send("trigger")
-                return
-            }
+            if (!(pos.x in -171.0..-148.0 && pos.y in 26.0..31.0 && pos.z in -174.0..-151.0)) return
 
             var slot: Int? = null
 

@@ -68,12 +68,12 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val autoLoadout = booleanSetting("Auto loadout", false)
     val loadoutSlot = numberSetting("Loadout slot", 1.0, 14.0, 1.0, "", 1.0)
     val clickDelay = numberSetting("Click delay", 1.0, 10.0, 1.0, "t", 1.0)
+    val useIceSpray = booleanSetting("Use Ice Spray after swapping loadout", false, description = "Swaps back to aots after")
     val autoPull = booleanSetting("Auto pull on backbone", false)
     val pullItemSlot = numberSetting("Pull item slot", 1.0, 8.0, 1.0, "", 1.0)
     val pullDelay = numberSetting("Pull delay", 1.0, 20.0, 1.0, "t", 1.0)
 
     val debug = booleanSetting("Debug", false)
-    val key = keybindSetting("Trigger")
 
     private var clickLoadout = false
 
@@ -255,6 +255,21 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             schedule(0) {
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
+
+                    if (!useIceSpray.value) return@schedule
+
+                    val iceSpray = hotbarSlotFromID("ICE_SPRAY_WAND") ?: return@schedule
+
+                    mc.player!!.inventory.selectedSlot = iceSpray
+
+                    schedule(1) {
+                        mc.options.keyUse.clickCount++
+                        schedule(0) {
+                            if (autoHalberd.value) return@schedule
+                            val aotsSlot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return@schedule
+                            mc.player!!.inventory.selectedSlot = aotsSlot
+                        }
+                    }
                 }
             }
         }
@@ -330,9 +345,5 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun dM(string: String) {
         if (!debug.value) return
         Chat.send(string)
-    }
-
-    override fun onKeybindPressed(setting: KeybindSetting) {
-        castHollow()
     }
 }
