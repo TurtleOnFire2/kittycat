@@ -10,8 +10,8 @@ import net.minecraft.client.renderer.entity.player.AvatarRenderer
 import net.minecraft.client.renderer.entity.state.AvatarRenderState
 
 object CatEars : Feature(
-    "Cat Ears",
-    "Renders lightweight cat ears on your player.",
+    "Cat Ears & Tail",
+    "Renders lightweight cat ears and an animated fluffy tail on your player.",
     Categories.Category.VISUAL
 ) {
     val tint = colorSetting(

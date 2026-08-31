@@ -12,7 +12,7 @@ import net.minecraft.client.renderer.rendertype.RenderTypes
 class CatEarsLayer(
     parent: RenderLayerParent<AvatarRenderState, PlayerModel>
 ) : RenderLayer<AvatarRenderState, PlayerModel>(parent) {
-    // The geometry is baked once per player-model variant during renderer setup.
+    // The ears and tail are baked once and share a single model submission.
     private val model = CatEarsModel(CatEarsModel.createLayer().bakeRoot())
 
     override fun submit(
