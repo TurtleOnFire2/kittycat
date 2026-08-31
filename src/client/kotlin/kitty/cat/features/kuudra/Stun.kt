@@ -201,7 +201,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     fun openScreen(packet: ClientboundOpenScreenPacket): Boolean {
         if (!enabled) return false
 
-        if (!stun()) return false
+        if (!stun() && !build()) return false
 
         if (!purchased) return false
 
