@@ -172,6 +172,8 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         if (autoPickobulus.value && !podDestroyed) {
             if (!(pos.x in -171.0..-148.0 && pos.y in 26.0..31.0 && pos.z in -174.0..-151.0)) return
 
+            RendMacro.dM("Searching for picko")
+
             var slot: Int? = null
 
             for (i in 1..7) {
