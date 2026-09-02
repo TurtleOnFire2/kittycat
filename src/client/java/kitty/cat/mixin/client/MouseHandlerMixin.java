@@ -1,6 +1,7 @@
 package kitty.cat.mixin.client;
 
 import kitty.cat.features.kuudra.Stun;
+import kitty.cat.features.kuudra.PearlWaypoints;
 import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,9 +20,15 @@ public class MouseHandlerMixin {
     @Inject(method = "turnPlayer", at = @At("HEAD"))
     void onTurnPlayer(double frameTime, CallbackInfo ci) {
         double[] adjusted = Stun.INSTANCE.onTurn(this.accumulatedDX, this.accumulatedDY);
-        if (adjusted == null) return;
+        if (adjusted != null) {
+            this.accumulatedDX = adjusted[0];
+            this.accumulatedDY = adjusted[1];
+        }
 
-        this.accumulatedDX = adjusted[0];
-        this.accumulatedDY = adjusted[1];
+        adjusted = PearlWaypoints.INSTANCE.onTurn(this.accumulatedDX, this.accumulatedDY);
+        if (adjusted != null) {
+            this.accumulatedDX = adjusted[0];
+            this.accumulatedDY = adjusted[1];
+        }
     }
 }
