@@ -82,7 +82,7 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
 
         schedule(delay(), true) {
             val sc = mc.screen as? AbstractContainerScreen<*> ?: return@schedule
-            if (!packet.title.string.contains("Loadout")) return@schedule
+            if (!sc.title.string.contains("Loadout")) return@schedule
 
             mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(toClick))
             toClick = -1

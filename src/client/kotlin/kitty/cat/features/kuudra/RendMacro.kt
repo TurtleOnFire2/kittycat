@@ -66,7 +66,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val boneDelay = numberSetting("Bone delay", 1.0, 20.0, 6.0, "t", 1.0)
     val autoHalberd = booleanSetting("Auto halberd", false)
     val autoLoadout = booleanSetting("Auto loadout", false)
-    val loadoutSlot = numberSetting("Loadout slot", 1.0, 14.0, 1.0, "", 1.0)
+    val loadoutSlot = numberSetting("Loadout slot", 1.0, 12.0, 1.0, "", 1.0)
     val clickDelay = numberSetting("Click delay", 1.0, 10.0, 1.0, "t", 1.0)
     val useIceSpray = booleanSetting("Use Ice Spray after swapping loadout", false, description = "Swaps back to aots after")
     val autoPull = booleanSetting("Auto pull on backbone", false)
@@ -249,7 +249,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         schedule(clickDelay.value, true) {
             val sc = mc.screen as? AbstractContainerScreen<*> ?: return@schedule
-            if (!packet.title.string.contains("Loadout")) return@schedule
+            if (!sc.title.string.contains("Loadout")) return@schedule
 
             mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(loadoutSlot.value.toInt()))
             schedule(0) {

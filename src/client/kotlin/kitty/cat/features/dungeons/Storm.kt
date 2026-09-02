@@ -8,6 +8,7 @@ import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
 import kitty.cat.utils.clickSlot
+import kitty.cat.utils.getLoadoutIndex
 import kitty.cat.utils.getLook
 import kitty.cat.utils.normalizeYaw
 import kitty.cat.utils.renderPos
@@ -36,7 +37,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
     val autoSwapArmor = booleanSetting("Auto swap armor")
     val clickDelay = numberSetting("Click delay", min = 0.0, max = 10.0, 1.0, step = 1.0)
-    val swapWardrobeSlot = numberSetting("Wardrobe slot", 1.0, 9.0, 1.0, step = 1.0)
+    val swapWardrobeSlot = numberSetting("Loadout slot", 1.0, 12.0, 1.0, step = 1.0)
     val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
     val releaseTime = numberSetting("Release time", min = 34.00, max = 35.0, 34.5, step = 0.05, unit = "s")
     val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath")
@@ -162,14 +163,14 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     }
 
     fun handleScreen(packet: ClientboundOpenScreenPacket) {
-        if (!packet.title.string.contains("Wardrobe") || !swapping || mc.player == null) return
+        if (!packet.title.string.contains("Loadout") || !swapping || mc.player == null) return
         swapping = false
 
         schedule(clickDelay.value, true) {
             val sc = mc.screen as? AbstractContainerScreen<*> ?: return@schedule
-            if (!packet.title.string.contains("Wardrobe")) return@schedule
+            if (!sc.title.string.contains("Loadout")) return@schedule
 
-            mc.player!!.clickSlot(sc.menu.containerId, swapWardrobeSlot.value.toInt() + 35)
+            mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(swapWardrobeSlot.value.toInt()))
             schedule(0) {
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
