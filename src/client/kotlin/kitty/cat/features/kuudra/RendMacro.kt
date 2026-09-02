@@ -247,7 +247,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
         schedule(clickDelay.value, true) {
             val sc = mc.gui.screen() as? AbstractContainerScreen<*> ?: return@schedule
-            if (!packet.title.string.contains("Loadout")) return@schedule
+            if (!sc.title.string.contains("Loadout")) return@schedule
 
             mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(loadoutSlot.value.toInt()))
             schedule(0) {
