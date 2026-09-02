@@ -19,6 +19,7 @@ public class MultiPlayerGameModeMixin {
     @Inject(method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;", at = @At("HEAD"))
     void beforeUseItem(Player player, InteractionHand interactionHand, CallbackInfoReturnable<InteractionResult> cir) {
         Supplies.INSTANCE.prepareUseItem(player, interactionHand);
+        PearlWaypoints.INSTANCE.prepareUseItem(player, interactionHand);
     }
 
     @Inject(method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;", at = @At("RETURN"))
@@ -29,6 +30,7 @@ public class MultiPlayerGameModeMixin {
         Stun.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         AutoGFS.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         Supplies.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
+        PearlWaypoints.INSTANCE.useItem(cir.getReturnValue());
     }
 
     @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
