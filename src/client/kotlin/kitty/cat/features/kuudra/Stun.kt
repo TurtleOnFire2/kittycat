@@ -174,7 +174,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
             var slot: Int? = null
 
-            for (i in 1..7) {
+            for (i in 0..7) {
                 val lore = mc.player!!.inventory.getItem(i).lore
 
                 lore.forEach {
