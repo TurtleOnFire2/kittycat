@@ -4,7 +4,6 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
-import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.stun
 import kitty.cat.utils.Schedule.schedule
@@ -176,7 +175,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
             var slot: Int? = null
 
-            for (i in 1..7) {
+            for (i in 0..7) {
                 val lore = mc.player!!.inventory.getItem(i).lore
 
                 lore.forEach {
