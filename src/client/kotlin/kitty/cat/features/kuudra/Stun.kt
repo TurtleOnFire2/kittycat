@@ -4,7 +4,6 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
-import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.stun
 import kitty.cat.utils.Schedule.schedule
@@ -41,6 +40,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val aimAssistFov = numberSetting("Aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
     val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
     val autoPickobulus = booleanSetting("Auto pickobulus", false)
+    val earlyPicko = booleanSetting("Pickobulus early", false, "Pickos when entering belly (Requires you to spam etherwarp)")
 
     var purchased = false
     private var podDestroyed = false
@@ -165,7 +165,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     }
 
     fun onPositionChange(packet: ClientboundPlayerPositionPacket) {
-        if (!enabled) return
+        if (!enabled || !autoPickobulus.value) return
 
         if (!stun()) return
 
@@ -173,32 +173,34 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
         RendMacro.dM(pos.toString())
 
-        if (autoPickobulus.value && !podDestroyed) {
+        if (earlyPicko.value) {
+            if (pos != Vec3(-161.0, 49.0, -186.0)) return
+        } else if (!podDestroyed) {
             if (!(pos.x in -171.0..-148.0 && pos.y in 26.0..31.0 && pos.z in -174.0..-151.0)) return
+        } else {
+            return
+        }
+        var slot: Int? = null
 
-            var slot: Int? = null
-
-            for (i in 0..7) {
-                val lore = mc.player!!.inventory.getItem(i).lore
-
-                lore.forEach {
-                    if (it.string.contains("Ability: Pickobulus")) {
-                        slot = i
-                    }
+        for (i in 0..7) {
+            val lore = mc.player!!.inventory.getItem(i).lore
+            lore.forEach {
+                if (it.string.contains("Ability: Pickobulus")) {
+                    slot = i
                 }
             }
+        }
 
-            slot ?: return
+        slot ?: return
 
-            if (mc.player?.inventory?.selectedSlot == slot) {
-                mc.options.keyUse.clickCount++
-                return
-            }
+        if (mc.player?.inventory?.selectedSlot == slot) {
+            mc.options.keyUse.clickCount++
+            return
+        }
 
-            mc.player?.inventory?.selectedSlot = slot
-            schedule(1) {
-                mc.options.keyUse.clickCount++
-            }
+        mc.player?.inventory?.selectedSlot = slot
+        schedule(1) {
+            mc.options.keyUse.clickCount++
         }
     }
 
