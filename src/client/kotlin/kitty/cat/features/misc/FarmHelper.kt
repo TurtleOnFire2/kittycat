@@ -49,7 +49,7 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, level ->
-            lastPestSpawn = -1
+            lastPestSpawn = 9999
         }
     }
 
