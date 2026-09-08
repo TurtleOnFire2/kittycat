@@ -14,15 +14,27 @@ object CatEars : Feature(
     "Renders lightweight cat ears and an animated fluffy tail on your player.",
     Categories.Category.VISUAL
 ) {
+    val ears = booleanSetting(
+        name = "Ears",
+        defaultValue = true,
+        description = "Renders cat ears on enabled players."
+    )
+
+    val tail = booleanSetting(
+        name = "Tail",
+        defaultValue = true,
+        description = "Renders the animated cat tail on enabled players."
+    )
+
     val tint = colorSetting(
         name = "Tint",
-        description = "Tints the player's skin texture on the ears. White keeps the original skin colors."
+        description = "Tints the player's skin texture on the ears and tail. White keeps the original skin colors."
     )
 
     private val otherPlayers = booleanSetting(
         name = "Other Players",
         defaultValue = false,
-        description = "Also renders cat ears on other players."
+        description = "Also renders the enabled cat accessories on other players."
     )
 
     fun register() {
@@ -36,7 +48,7 @@ object CatEars : Feature(
     }
 
     fun shouldRender(state: AvatarRenderState): Boolean {
-        if (!enabled || state.isInvisible) return false
+        if (!enabled || state.isInvisible || (!ears.value && !tail.value)) return false
         return otherPlayers.value || state.id == mc.player?.id
     }
 

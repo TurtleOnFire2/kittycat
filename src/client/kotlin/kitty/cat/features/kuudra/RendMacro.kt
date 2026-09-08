@@ -250,7 +250,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             if (!sc.title.string.contains("Loadout")) return@schedule
 
             mc.player!!.clickSlot(sc.menu.containerId, getLoadoutIndex(loadoutSlot.value.toInt()))
-            schedule(0) {
+            schedule(1) {
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
                     schedule(1) {
