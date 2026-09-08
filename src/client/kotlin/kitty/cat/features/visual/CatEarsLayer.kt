@@ -28,11 +28,7 @@ class CatEarsLayer(
         model.setAccessoryVisibility(CatEars.ears.value, CatEars.tail.value)
         val texture = state.skin.body().texturePath()
         val tint = CatEars.tintArgb()
-        val renderType = if (CatEars.tint.alpha == 255) {
-            RenderTypes.entityCutout(texture)
-        } else {
-            RenderTypes.entityTranslucent(texture)
-        }
+        val renderType = RenderTypes.entityCutout(texture)
 
         nodeCollector.submitModel(
             model,
