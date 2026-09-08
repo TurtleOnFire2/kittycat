@@ -31,6 +31,11 @@ import kotlin.math.sqrt
 
 object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val autoOpenShop = booleanSetting("Auto open shop", false)
+    val renderArea = booleanSetting("Render area for auto open", false)
+    val showWaypoint = booleanSetting("Show a waypoint", false, "Shows a waypoint on where to etherwarp to to also insta mount cannon.")
+    val shopAimAssist = booleanSetting("Shop waypoint aim assist", false)
+    val shopAimAssistFov = numberSetting("Shop waypoint aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
+    val shopAimAssistStrength = numberSetting("Shop waypoint aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
     val autoSetCursor = booleanSetting("Auto set cursor on shop open", false)
     val autoCloseShop = booleanSetting("Auto close shop", false)
     val noBlind = booleanSetting("No blindness", false)
@@ -55,8 +60,20 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
             if (!stun() && !build()) return@register
 
-            if (autoOpenShop.value) {
-                ctx.renderBoxBounds(-75.0, 79.0, -106.0, -70.0, 79.05, -101.0, Color.CYAN)
+            if (autoOpenShop.value && renderArea.value) {
+                ctx.renderBoxBounds(-74.0, 79.0, -104.0, -70.0, 79.05, -101.0, Color.CYAN)
+            }
+
+            if (showWaypoint.value) {
+                ctx.renderBoxBounds(
+                    SHOP_WAYPOINT.x - 0.5,
+                    SHOP_WAYPOINT.y,
+                    SHOP_WAYPOINT.z - 0.5,
+                    SHOP_WAYPOINT.x + 0.5,
+                    SHOP_WAYPOINT.y + 0.05,
+                    SHOP_WAYPOINT.z + 0.5,
+                    Color.RED
+                )
             }
 
             if (stunWaypoint.value && !podDestroyed) {
@@ -76,27 +93,28 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
     fun onTurn(accumulatedDX: Double, accumulatedDY: Double): DoubleArray? {
         val player = mc.player ?: return null
-        if (!enabled || !stun() || podDestroyed || !stunWaypoint.value || !aimAssist.value) return null
+        if (!enabled || (!stun() && !build())) return null
         if (abs(accumulatedDX) < 0.001 && abs(accumulatedDY) < 0.001) return null
 
-        val target = player.position().add(getOffset())
-        val delta = target.subtract(player.eyePosition)
-        val horizontalDistance = sqrt(delta.x * delta.x + delta.z * delta.z)
-        val targetYaw = Math.toDegrees(atan2(-delta.x, delta.z)).toFloat()
-        val targetPitch = Math.toDegrees(atan2(-delta.y, horizontalDistance)).toFloat()
-        val yawDifference = angleDifference(targetYaw, player.yRot)
-        val pitchDifference = targetPitch - player.xRot
-        val halfFov = aimAssistFov.value / 2.0
-        if (abs(yawDifference) > halfFov || abs(pitchDifference) > halfFov) return null
+        val candidates = buildList {
+            if (showWaypoint.value && shopAimAssist.value) {
+                add(aimCandidate(SHOP_WAYPOINT, shopAimAssistFov.value, shopAimAssistStrength.value))
+            }
+            if (stun() && !podDestroyed && stunWaypoint.value && aimAssist.value) {
+                add(aimCandidate(player.position().add(getOffset()), aimAssistFov.value, aimAssistStrength.value))
+            }
+        }
+
+        val candidate = candidates.filterNotNull().minByOrNull { it.distance } ?: return null
 
         val scale = rotationGcd() / 0.15
-        val neededX = yawDifference / scale
-        val neededY = pitchDifference / scale
+        val neededX = candidate.yawDifference / scale
+        val neededY = candidate.pitchDifference / scale
         val neededMagnitude = sqrt(neededX * neededX + neededY * neededY)
         if (neededMagnitude < 1e-6) return null
 
         val userMagnitude = sqrt(accumulatedDX * accumulatedDX + accumulatedDY * accumulatedDY)
-        val strength = aimAssistStrength.value
+        val strength = candidate.strength
         val pull = (userMagnitude * strength).coerceAtMost(neededMagnitude)
         val assistX = neededX / neededMagnitude * pull
         val assistY = neededY / neededMagnitude * pull
@@ -104,6 +122,25 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         return doubleArrayOf(
             accumulatedDX * (1.0 - strength) + assistX,
             accumulatedDY * (1.0 - strength) + assistY,
+        )
+    }
+
+    private fun aimCandidate(target: Vec3, fov: Double, strength: Double): AimCandidate? {
+        val player = mc.player ?: return null
+        val delta = target.subtract(player.eyePosition)
+        val horizontalDistance = sqrt(delta.x * delta.x + delta.z * delta.z)
+        val targetYaw = Math.toDegrees(atan2(-delta.x, delta.z)).toFloat()
+        val targetPitch = Math.toDegrees(atan2(-delta.y, horizontalDistance)).toFloat()
+        val yawDifference = angleDifference(targetYaw, player.yRot)
+        val pitchDifference = targetPitch - player.xRot
+        val halfFov = fov / 2.0
+        if (abs(yawDifference) > halfFov || abs(pitchDifference) > halfFov) return null
+
+        return AimCandidate(
+            yawDifference,
+            pitchDifference,
+            strength,
+            sqrt(yawDifference * yawDifference + pitchDifference * pitchDifference.toDouble())
         )
     }
 
@@ -155,7 +192,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
                 )
         )?.blockPos ?: return
 
-        if (pos.x in -75..-70 && pos.y == 78 && pos.z in -106..-101) {
+        if (pos.x in -74..-70 && pos.y == 78 && pos.z in -104..-101) {
             val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return
             player.inventory.selectedSlot = slot
             schedule(1) {
@@ -235,4 +272,13 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
         GLFW.glfwSetCursorPos(window.handle(), windowX, windowY)
     }
+
+    private data class AimCandidate(
+        val yawDifference: Float,
+        val pitchDifference: Float,
+        val strength: Double,
+        val distance: Double
+    )
+
+    private val SHOP_WAYPOINT = Vec3(-71.5, 79.0, -102.5)
 }
