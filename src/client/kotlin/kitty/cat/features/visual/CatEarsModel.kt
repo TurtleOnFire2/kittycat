@@ -12,10 +12,18 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 class CatEarsModel(root: ModelPart) : PlayerModel(root, false) {
+    private val leftEar = head.getChild(LEFT_EAR)
+    private val rightEar = head.getChild(RIGHT_EAR)
     private val tailBase = body.getChild(TAIL_BASE)
     private val tailMiddle = tailBase.getChild(TAIL_MIDDLE)
     private val tailOuter = tailMiddle.getChild(TAIL_OUTER)
     private val tailTip = tailOuter.getChild(TAIL_TIP)
+
+    fun setAccessoryVisibility(showEars: Boolean, showTail: Boolean) {
+        leftEar.visible = showEars
+        rightEar.visible = showEars
+        tailBase.visible = showTail
+    }
 
     override fun setupAnim(state: AvatarRenderState) {
         super.setupAnim(state)
@@ -45,6 +53,8 @@ class CatEarsModel(root: ModelPart) : PlayerModel(root, false) {
     companion object {
         private const val TEXTURE_SIZE = 64
         private const val EAR_TILT = (PI / 24.0).toFloat()
+        private const val LEFT_EAR = "left_cat_ear"
+        private const val RIGHT_EAR = "right_cat_ear"
         private const val TAIL_BASE = "cat_tail_base"
         private const val TAIL_MIDDLE = "cat_tail_middle"
         private const val TAIL_OUTER = "cat_tail_outer"
@@ -56,12 +66,12 @@ class CatEarsModel(root: ModelPart) : PlayerModel(root, false) {
             val head = root.getChild("head")
 
             head.addOrReplaceChild(
-                "left_cat_ear",
+                LEFT_EAR,
                 createEar(),
                 PartPose.offsetAndRotation(2.5f, -8.0f, 0.0f, 0.0f, 0.0f, -EAR_TILT)
             )
             head.addOrReplaceChild(
-                "right_cat_ear",
+                RIGHT_EAR,
                 createEar(),
                 PartPose.offsetAndRotation(-2.5f, -8.0f, 0.0f, 0.0f, 0.0f, EAR_TILT)
             )
