@@ -28,7 +28,7 @@ object CatEars : Feature(
 
     val tint = colorSetting(
         name = "Tint",
-        description = "Tints the player's skin texture on the ears and tail. White keeps the original skin colors."
+        description = "Tints the ears and tail. Alpha controls tint strength; zero keeps the original skin colors."
     )
 
     private val otherPlayers = booleanSetting(
@@ -52,6 +52,14 @@ object CatEars : Feature(
         return otherPlayers.value || state.id == mc.player?.id
     }
 
-    fun tintArgb(): Int =
-        (tint.alpha shl 24) or (tint.red shl 16) or (tint.green shl 8) or tint.blue
+    fun tintArgb(): Int {
+        val strength = tint.alpha
+        fun blendWithWhite(channel: Int): Int =
+            255 - ((255 - channel) * strength + 127) / 255
+
+        return (255 shl 24) or
+            (blendWithWhite(tint.red) shl 16) or
+            (blendWithWhite(tint.green) shl 8) or
+            blendWithWhite(tint.blue)
+    }
 }
