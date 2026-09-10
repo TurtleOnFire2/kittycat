@@ -1,6 +1,7 @@
 package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
+import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.KuudraDev
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.utils.Schedule.schedule
@@ -35,6 +36,7 @@ object KuudraUtils {
             if ((client.player!!.y < 20 && phase == Phase.STUN) && phase != Phase.DPS) {
                 phase = Phase.DPS
                 RendDamage.startTracking()
+                BackboneAlert.p4Start = 0
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
