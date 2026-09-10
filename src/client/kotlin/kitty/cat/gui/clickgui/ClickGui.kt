@@ -2,6 +2,7 @@ package kitty.cat.gui.clickgui
 
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.categories.Categories
+import kitty.cat.gui.clickgui.UiRect as Rect
 import kitty.cat.features.Feature
 import kitty.cat.features.settings.ActionSetting
 import kitty.cat.features.settings.BooleanSetting
@@ -13,9 +14,10 @@ import kitty.cat.features.settings.RangeSetting
 import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
-import kitty.cat.render.nanovg.NVGRenderer
-import kitty.cat.utils.GuiUtils
-import net.minecraft.client.gui.GuiGraphicsExtractor
+import kitty.cat.render.skija.SkijaDraw
+import kitty.cat.render.skija.SkijaRenderer
+import kitty.cat.render.skija.SkijaShapes as GuiUtils
+import net.minecraft.client.gui.GuiGraphicsExtractor as MinecraftGuiExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.CharacterEvent
 import net.minecraft.client.input.KeyEvent
@@ -23,17 +25,10 @@ import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.sounds.SoundEvents
 import org.lwjgl.glfw.GLFW
-import org.reflections.Reflections
 import java.awt.Color
+import org.reflections.Reflections
 
 class ClickGui : Screen(Component.literal("Kittycat Gui")) {
-    private data class Rect(val x: Int, val y: Int, val width: Int, val height: Int) {
-        fun contains(mouseX: Double, mouseY: Double): Boolean {
-            return mouseX in x.toDouble()..(x + width).toDouble() &&
-                mouseY in y.toDouble()..(y + height).toDouble()
-        }
-    }
-
     private data class SettingLayout(
         val setting: Setting,
         val x: Int,
@@ -103,10 +98,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         const val PANEL_WIDTH_RATIO = 0.88f
         const val PANEL_HEIGHT_RATIO = 0.78f
         const val PANEL_SAFE_MARGIN = 24
-        const val DRAG_BAR_HEIGHT = 10
-        const val PANEL_CONTENT_PADDING = 8
-        const val SIDEBAR_WIDTH_MIN = 138
-        const val SIDEBAR_WIDTH_MAX = 212
+        const val DRAG_BAR_HEIGHT = 52
+        const val PANEL_CONTENT_PADDING = 12
+        const val SIDEBAR_WIDTH_MIN = 132
+        const val SIDEBAR_WIDTH_MAX = 164
         const val SIDEBAR_CONTENT_GAP = 10
         var persistedSelectedCategory: Categories.Category? = null
         const val LEFT_MOUSE_BUTTON = 0
@@ -116,48 +111,38 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         const val CATEGORY_TAB_GAP = 6
         const val CATEGORY_TEXT_SIZE = 10f
 
-        const val FEATURE_MIN_TWO_COLUMN_WIDTH = 480
-        const val FEATURE_CARD_GAP = 6
-        const val FEATURE_HEADER_HEIGHT = 20
+        const val FEATURE_MIN_TWO_COLUMN_WIDTH = 600
+        const val FEATURE_CARD_GAP = 10
+        const val FEATURE_HEADER_HEIGHT = 54
         const val FEATURE_SETTINGS_TOP_PADDING = 6
         const val FEATURE_SETTINGS_BOTTOM_PADDING = 6
         const val FEATURE_SETTING_SIDE_PADDING = 8
-        const val FEATURE_SETTING_ROW_HEIGHT = 14
+        const val FEATURE_SETTING_ROW_HEIGHT = SettingGeometry.ROW_HEIGHT
         const val FEATURE_VIEW_BOTTOM_PADDING = 8
         const val FEATURE_SCROLL_STEP = 18
 
-        const val NUMBER_VALUE_X = 72
-        const val NUMBER_TEXT_WIDTH = 34
-        const val NUMBER_UNIT_SLOT_WIDTH = 18
-        const val NUMBER_TEXT_HEIGHT = 12
+        const val NUMBER_TEXT_HEIGHT = 18
         const val NUMBER_SLIDER_HEIGHT = 6
-        const val RANGE_TEXT_WIDTH = 76
         const val RANGE_HANDLE_SIZE = 8
 
-        const val SELECTOR_VALUE_X = 72
-        const val SELECTOR_VALUE_HEIGHT = 12
 
-        const val KEYBIND_VALUE_X = 72
-        const val KEYBIND_VALUE_HEIGHT = 12
-        const val STRING_VALUE_X = 72
-        const val STRING_VALUE_HEIGHT = 12
 
         const val FEATURE_SWITCH_WIDTH = 24
         const val FEATURE_SWITCH_HEIGHT = 12
-        const val FEATURE_SWITCH_RIGHT_PADDING = 2
+        const val FEATURE_SWITCH_RIGHT_PADDING = 8
         const val FEATURE_SWITCH_KNOB_MARGIN = 2
         const val BOOLEAN_SETTING_SWITCH_Y_OFFSET = 0
 
         const val FEATURE_ACTION_BUTTON_WIDTH = 34
-        const val FEATURE_ACTION_BUTTON_HEIGHT = 12
+        const val FEATURE_ACTION_BUTTON_HEIGHT = 16
         const val TEXT_BASELINE_OFFSET = 0f
 
         const val COLOR_INPUT_GAP = 2
         const val COLOR_CHANNEL_VALUE_PADDING = 2
         const val SETTING_NAME_Y_OFFSET = 4
-        const val VALUE_TEXT_Y_OFFSET = 2
+        const val VALUE_TEXT_Y_OFFSET = 4
 
-        const val COLOR_PICKER_PANEL_WIDTH = 120
+        const val COLOR_PICKER_PANEL_WIDTH = 176
         const val COLOR_PICKER_SB_HEIGHT = 66
         const val COLOR_PICKER_SLIDER_HEIGHT = 8
         const val COLOR_PICKER_PADDING = 6
@@ -169,8 +154,6 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         const val CATEGORY_SCROLL_COOLDOWN_TICKS = 2
 
         const val HOVER_TOOLTIP_DELAY_MS = 600L
-        const val TOOLTIP_PADDING_H = 4
-        const val TOOLTIP_PADDING_V = 4
         const val TOOLTIP_TEXT_SIZE = 9f
 
         const val DEFAULT_BASE_RED = 20
@@ -185,6 +168,35 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private var offsetX = 0
     private var offsetY = 0
+    private var searchQuery = ""
+    private var searchFocused = false
+    private fun focusedFeature(): Feature? = expandedFeatures.firstOrNull()
+    private fun displayedFeatures(): List<Feature> {
+        focusedFeature()?.let { return listOf(it) }
+        val query = searchQuery.trim()
+        return if (query.isEmpty()) activeFeatures else featureList.filter {
+            it.name.contains(query, true) || it.description.contains(query, true)
+        }
+    }
+
+    private fun closeInspector() {
+        commitTextInput()
+        expandedFeatures.clear()
+        closeAllSelectorDropdowns()
+        openColorPickerFor = null
+        keybindCaptureSetting = null
+        featureScrollOffset = 0
+    }
+
+    private fun inspectFeature(feature: Feature) {
+        closeInspector()
+        expandedFeatures += feature
+        searchFocused = false
+        updateFeatureScrollBounds()
+    }
+
+    private var pointerX = 0
+    private var pointerY = 0
     private var draggingPanel = false
 
     private var hoveredFeature: Feature? = null
@@ -242,8 +254,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         super.tick()
     }
 
-    override fun extractRenderState(GuiGraphicsExtractor: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
+    override fun extractRenderState(context: MinecraftGuiExtractor, mouseX: Int, mouseY: Int, partialTicks: Float) {
+        val graphics = SkijaDraw()
+        GuiUtils.renderRectangle(graphics, 0, 0, width, height, 0x80060912.toInt())
         val nowMs = System.currentTimeMillis()
+        pointerX = mouseX
+        pointerY = mouseY
         val panelX = panelOriginX()
         val panelY = panelOriginY()
         val panelWidth = panelWidth()
@@ -252,34 +268,34 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val sh = minecraft.window.guiScaledHeight
         val scale = minecraft.window.guiScale.toFloat()
 
-        renderMainPanelBody(GuiGraphicsExtractor, panelX, panelY)
-        renderTopDragBar(GuiGraphicsExtractor, panelX, panelY)
+        renderMainPanelBody(graphics, panelX, panelY)
+        renderTopDragBar(graphics, panelX, panelY)
 
-        renderCategoryBar(GuiGraphicsExtractor, sw, sh, scale, panelX, panelY)
+        renderCategoryBar(graphics, sw, sh, scale, panelX, panelY)
         val sidebar = sidebarRect(panelX, panelY)
         GuiUtils.renderRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             sidebar.x + sidebar.width + SIDEBAR_CONTENT_GAP / 2,
             sidebar.y,
             1,
             sidebar.height,
-            panelBorderColor(142)
+            panelBorderColor(28)
         )
         GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
+            graphics,
             panelX,
             panelY,
             panelWidth,
             panelHeight,
-            0,
+            10,
             1,
-            panelBorderColor(120)
+            panelBorderColor(55)
         )
 
         updateFeatureScrollBounds()
         val clipRect = featureClipRect(panelX, panelY)
         val featureLayouts = buildFeatureLayouts(panelX, panelY)
-        GuiGraphicsExtractor.enableScissor(
+        graphics.enableScissor(
             clipRect.x,
             clipRect.y,
             clipRect.x + clipRect.width,
@@ -291,37 +307,38 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             }
 
             val borderColor = when {
-                layout.feature.enabled -> accentBrightBorderColor()
-                layout.expanded -> accentDarkColor()
-                else -> accentDimColor()
+                layout.isHeaderHovered(mouseX.toDouble(), mouseY.toDouble()) -> panelBorderColor(145)
+                layout.feature.enabled -> panelBorderColor(95)
+                layout.expanded -> panelBorderColor(48)
+                else -> panelBorderColor(55)
             }
 
             GuiUtils.renderRoundedRectangle(
-                GuiGraphicsExtractor,
+                graphics,
                 layout.x,
                 layout.y,
                 layout.width,
                 layout.totalHeight,
-                0,
-                accentPanelColor(alpha = 116)
+                6,
+                if (layout.isHeaderHovered(mouseX.toDouble(), mouseY.toDouble())) surfaceColor(0.12f) else surfaceColor(0.055f)
             )
             GuiUtils.renderRoundedOutline(
-                GuiGraphicsExtractor,
+                graphics,
                 layout.x,
                 layout.y,
                 layout.width,
                 layout.totalHeight,
-                0,
+                6,
                 1,
                 borderColor
             )
 
-            renderFeatureHeader(GuiGraphicsExtractor, sw, sh, scale, layout)
+            renderFeatureHeader(graphics, sw, sh, scale, layout)
 
             if (!layout.expanded) return@forEach
 
             GuiUtils.renderRectangle(
-                GuiGraphicsExtractor,
+                graphics,
                 layout.x + 4,
                 layout.y + FEATURE_HEADER_HEIGHT,
                 layout.width - 8,
@@ -331,7 +348,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
             if (layout.settingLayouts.isEmpty()) {
                 drawText(
-                    GuiGraphicsExtractor,
+                    graphics,
                     sw,
                     sh,
                     scale,
@@ -343,21 +360,25 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 )
             } else {
                 layout.settingLayouts.forEach { settingLayout ->
-                    renderSettingRow(GuiGraphicsExtractor, sw, sh, scale, settingLayout)
+                    renderSettingRow(graphics, sw, sh, scale, settingLayout)
                 }
             }
         }
-        // Dropdowns are overlays, so draw them after every feature card.
+        if (featureLayouts.isEmpty()) {
+            graphics.centeredText("No modules found", clipRect.x + clipRect.width / 2, clipRect.y + 46, textPrimaryColor(), 15f)
+            graphics.centeredText("Try a different search.", clipRect.x + clipRect.width / 2, clipRect.y + 70, textMutedColor(), 10f)
+        }
+        // Expanded selectors reserve their own layout space and scroll with the card.
         featureLayouts.forEach { layout ->
             if (!layout.expanded) return@forEach
             layout.settingLayouts.forEach { settingLayout ->
                 val setting = settingLayout.setting as? SelectorSetting ?: return@forEach
                 if (setting.dropdownOpen) {
-                    renderSelectorDropdownOverlay(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+                    renderSelectorDropdownOverlay(graphics, sw, sh, scale, settingLayout, setting)
                 }
             }
         }
-        GuiGraphicsExtractor.disableScissor()
+        graphics.disableScissor()
 
         // Update hover tracking for feature headers and settings
         val mouseXD = mouseX.toDouble()
@@ -388,23 +409,22 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             settingHoverStartMs = nowMs
         }
 
-        renderColorPickerOverlay(GuiGraphicsExtractor, sw, sh, scale)
+        renderColorPickerOverlay(graphics, sw, sh, scale)
 
         // Render hover tooltip (on top of everything)
         val currentSetting = hoveredSetting
         val currentFeature = hoveredFeature
         when {
-            currentSetting != null && currentSetting.description.isNotEmpty() &&
+            openColorPickerFor == null && currentSetting != null &&
                 nowMs - settingHoverStartMs >= HOVER_TOOLTIP_DELAY_MS -> {
-                renderTooltip(GuiGraphicsExtractor, sw, sh, scale, currentSetting.description, mouseX, mouseY)
+                renderTooltip(graphics, sw, sh, scale, currentSetting.name + if (currentSetting.description.isBlank()) "" else ": " + currentSetting.description, mouseX, mouseY)
             }
-            currentFeature != null && currentFeature.description.isNotEmpty() &&
+            openColorPickerFor == null && currentFeature != null && currentFeature.description.isNotEmpty() &&
                 nowMs - featureHoverStartMs >= HOVER_TOOLTIP_DELAY_MS -> {
-                renderTooltip(GuiGraphicsExtractor, sw, sh, scale, currentFeature.description, mouseX, mouseY)
+                renderTooltip(graphics, sw, sh, scale, currentFeature.description, mouseX, mouseY)
             }
         }
-
-        super.extractRenderState(GuiGraphicsExtractor, mouseX, mouseY, partialTicks)
+        SkijaRenderer.submit(this, width, height, graphics)
     }
 
     private fun panelWidth(): Int {
@@ -444,7 +464,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val panelHeight = panelHeight()
         val sidebar = sidebarRect(panelX, panelY)
         val x = sidebar.x + sidebar.width + SIDEBAR_CONTENT_GAP
-        val y = panelY + PANEL_CONTENT_PADDING + DRAG_BAR_HEIGHT
+        val y = panelY + PANEL_CONTENT_PADDING + DRAG_BAR_HEIGHT + 50
         val right = panelX + panelWidth - PANEL_CONTENT_PADDING
         val bottom = panelY + panelHeight - PANEL_CONTENT_PADDING
 
@@ -457,7 +477,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun featureColumnCount(contentWidth: Int): Int {
-        return if (contentWidth >= FEATURE_MIN_TWO_COLUMN_WIDTH) 2 else 1
+        return if (focusedFeature() == null && contentWidth >= FEATURE_MIN_TWO_COLUMN_WIDTH) 2 else 1
     }
 
     private fun featureCardWidth(contentWidth: Int, columns: Int): Int {
@@ -474,11 +494,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val innerWidth = (sidebar.width - 4).coerceAtLeast(40)
         val categoryCount = categoryList.size
         val totalGap = CATEGORY_TAB_GAP * (categoryCount - 1).coerceAtLeast(0)
-        val availableForTabs = (sidebar.height - 4 - totalGap).coerceAtLeast(0)
+        val availableForTabs = (sidebar.height - 100 - totalGap).coerceAtLeast(0)
         val tabHeight = (availableForTabs / categoryCount).coerceIn(16, CATEGORY_TAB_HEIGHT)
 
         val layouts = mutableListOf<CategoryLayout>()
-        var cursorY = sidebar.y + 2
+        var cursorY = sidebar.y + 4
 
         categoryList.indices.forEach { index ->
             val category = categoryList[index]
@@ -525,14 +545,15 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val columns = featureColumnCount(featureArea.width)
         val columnHeights = IntArray(columns) { 0 }
 
-        activeFeatures.forEach { feature ->
+        displayedFeatures().forEach { feature ->
             val expanded = feature in expandedFeatures
             val settingsContentHeight = if (!expanded) {
                 0
             } else if (feature.settings.isEmpty()) {
                 FEATURE_SETTING_ROW_HEIGHT
             } else {
-                feature.settings.sumOf { settingHeight(it) }
+                val settingWidth = featureCardWidth(featureArea.width, columns) - FEATURE_SETTING_SIDE_PADDING * 2
+                feature.settings.sumOf { settingHeight(it, settingWidth) }
             }
 
             val totalHeight = FEATURE_HEADER_HEIGHT + if (expanded) {
@@ -557,98 +578,41 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         return previous != featureScrollOffset
     }
 
-    private fun numberTextRect(layout: SettingLayout): Rect {
-        val fullWidth = NUMBER_TEXT_WIDTH + NUMBER_UNIT_SLOT_WIDTH
-        return Rect(
-            x = layout.x + layout.width - fullWidth - 2,
-            y = layout.y + 1,
-            width = fullWidth,
-            height = NUMBER_TEXT_HEIGHT
-        )
-    }
+    // Compact inline controls fall back to stacked rows on narrow cards.
+    // Drawing and hit testing use the same responsive geometry.
+    private fun geometry(layout: SettingLayout) = SettingGeometry(layout.x, layout.y, layout.width)
+    private fun controlRect(layout: SettingLayout) = geometry(layout).control
 
-    private fun numberSliderRect(layout: SettingLayout): Rect {
-        val textRect = numberTextRect(layout)
-        val sliderX = layout.x + NUMBER_VALUE_X
-        val sliderWidth = (textRect.x - sliderX - 6).coerceAtLeast(12)
-        return Rect(
-            x = sliderX,
-            y = layout.y + (FEATURE_SETTING_ROW_HEIGHT - NUMBER_SLIDER_HEIGHT) / 2,
-            width = sliderWidth,
-            height = NUMBER_SLIDER_HEIGHT
-        )
-    }
+    private fun numberTextRect(layout: SettingLayout): Rect = controlRect(layout)
+    private fun rangeTextRect(layout: SettingLayout): Rect = controlRect(layout)
 
-    private fun rangeTextRect(layout: SettingLayout): Rect {
-        return Rect(
-            x = layout.x + layout.width - RANGE_TEXT_WIDTH - 2,
-            y = layout.y + 1,
-            width = RANGE_TEXT_WIDTH,
-            height = NUMBER_TEXT_HEIGHT
-        )
-    }
+    private fun numberSliderRect(layout: SettingLayout) =
+        geometry(layout).numberSlider
 
-    private fun rangeSliderRect(layout: SettingLayout): Rect {
-        val textRect = rangeTextRect(layout)
-        val sliderX = layout.x + NUMBER_VALUE_X
-        val sliderWidth = (textRect.x - sliderX - 6).coerceAtLeast(12)
-        return Rect(
-            x = sliderX,
-            y = layout.y + (FEATURE_SETTING_ROW_HEIGHT - RANGE_HANDLE_SIZE) / 2,
-            width = sliderWidth,
-            height = RANGE_HANDLE_SIZE
-        )
-    }
+    private fun rangeSliderRect(layout: SettingLayout) =
+        geometry(layout).rangeSlider
 
-    private fun selectorBaseRect(layout: SettingLayout): Rect {
-        return Rect(
-            x = layout.x + SELECTOR_VALUE_X,
-            y = layout.y + 1,
-            width = layout.width - SELECTOR_VALUE_X - 2,
-            height = SELECTOR_VALUE_HEIGHT
-        )
-    }
+    private fun selectorBaseRect(layout: SettingLayout): Rect = controlRect(layout)
 
-    private fun selectorOptionRect(layout: SettingLayout, optionIndex: Int): Rect {
-        val base = selectorBaseRect(layout)
-        return Rect(
-            x = base.x,
-            y = layout.y + FEATURE_SETTING_ROW_HEIGHT + optionIndex * FEATURE_SETTING_ROW_HEIGHT,
-            width = base.width,
-            height = FEATURE_SETTING_ROW_HEIGHT
-        )
-    }
+    private fun selectorOptionRect(layout: SettingLayout, optionIndex: Int) =
+        geometry(layout).option(optionIndex)
+
     private fun orderOptionRect(layout: SettingLayout, index: Int) = Rect(
-        layout.x + 8,
+        layout.x,
         layout.y + FEATURE_SETTING_ROW_HEIGHT + index * FEATURE_SETTING_ROW_HEIGHT,
-        layout.width - 10,
+        layout.width,
         FEATURE_SETTING_ROW_HEIGHT
     )
 
-    private fun keybindRect(layout: SettingLayout): Rect {
-        return Rect(
-            x = layout.x + KEYBIND_VALUE_X,
-            y = layout.y + 1,
-            width = layout.width - KEYBIND_VALUE_X - 2,
-            height = KEYBIND_VALUE_HEIGHT
-        )
-    }
-
-    private fun stringTextRect(layout: SettingLayout): Rect {
-        return Rect(
-            x = layout.x + STRING_VALUE_X,
-            y = layout.y + 1,
-            width = layout.width - STRING_VALUE_X - 2,
-            height = STRING_VALUE_HEIGHT
-        )
-    }
+    private fun keybindRect(layout: SettingLayout): Rect = controlRect(layout)
+    private fun stringTextRect(layout: SettingLayout): Rect = controlRect(layout)
 
     private fun colorSwatchRect(layout: SettingLayout): Rect {
         return Rect(
-            x = layout.x + layout.width - 14,
-            y = layout.y + 1,
-            width = 12,
-            height = 12
+            x = layout.x + layout.width - 88,
+            y = layout.y + 2,
+            width = 88,
+            height = 16
         )
     }
 
@@ -657,12 +621,17 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val panelYOrigin = panelOriginY()
         val featureArea = featureAreaRect(panelXOrigin, panelYOrigin)
         val pickerWidth = COLOR_PICKER_PANEL_WIDTH.coerceAtMost((featureArea.width - 10).coerceAtLeast(92))
-        val panelX = (featureArea.x + featureArea.width - pickerWidth - COLOR_PICKER_OUTER_GAP).coerceAtLeast(featureArea.x + 2)
-        val panelY = featureArea.y + COLOR_PICKER_OUTER_GAP
+        val anchor = openColorPickerFor?.let { findSettingLayout(it) }?.let { colorSwatchRect(it) }
+        val panelX = ((anchor?.let { it.x + it.width } ?: (featureArea.x + featureArea.width)) - pickerWidth)
+            .coerceIn(4, (width - pickerWidth - 4).coerceAtLeast(4))
+        val pickerHeight = COLOR_PICKER_PADDING * 6 + 24 + COLOR_PICKER_SB_HEIGHT + COLOR_PICKER_SLIDER_HEIGHT * 2 + 12 + NUMBER_TEXT_HEIGHT
+        val below = anchor?.let { it.y + it.height + 5 } ?: featureArea.y
+        val panelY = (if (below + pickerHeight <= height - 4) below else (anchor?.y ?: below) - pickerHeight - 5)
+            .coerceIn(4, (height - pickerHeight - 4).coerceAtLeast(4))
 
         val sbRect = Rect(
             x = panelX + COLOR_PICKER_PADDING,
-            y = panelY + COLOR_PICKER_PADDING + COLOR_PICKER_CONTENT_Y_OFFSET,
+            y = panelY + COLOR_PICKER_PADDING + 24,
             width = pickerWidth - COLOR_PICKER_PADDING * 2,
             height = COLOR_PICKER_SB_HEIGHT
         )
@@ -681,7 +650,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             height = COLOR_PICKER_SLIDER_HEIGHT
         )
 
-        val channelRowY = alphaRect.y + alphaRect.height + COLOR_PICKER_PADDING
+        val channelRowY = alphaRect.y + alphaRect.height + COLOR_PICKER_PADDING + 12
 
         val panelRect = Rect(
             x = panelX,
@@ -709,7 +678,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
         return Rect(
             x = layout.saturationBrightnessRect.x + index * (slotWidth + COLOR_INPUT_GAP),
-            y = layout.alphaRect.y + layout.alphaRect.height + COLOR_PICKER_PADDING,
+            y = layout.alphaRect.y + layout.alphaRect.height + COLOR_PICKER_PADDING + 12,
             width = slotWidth,
             height = NUMBER_TEXT_HEIGHT
         )
@@ -947,8 +916,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         baseWeight: Float = 1f,
         accentWeight: Float = 0f
     ): Int {
-        val base = ClickGuiFeature.baseColor
-        val accent = ClickGuiFeature.accentColor
+        val base = ClickGuiFeature.themeBase
+        val accent = ClickGuiFeature.themeAccent
         val redShift = ((base.red - DEFAULT_BASE_RED) * baseWeight + (accent.red - DEFAULT_ACCENT_RED) * accentWeight).toInt()
         val greenShift = ((base.green - DEFAULT_BASE_GREEN) * baseWeight + (accent.green - DEFAULT_ACCENT_GREEN) * accentWeight).toInt()
         val blueShift = ((base.blue - DEFAULT_BASE_BLUE) * baseWeight + (accent.blue - DEFAULT_ACCENT_BLUE) * accentWeight).toInt()
@@ -962,70 +931,87 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         ).rgb
     }
 
-    private fun panelBorderColor(alpha: Int = 216): Int = themedColor(204, 84, 116, alpha, baseWeight = 0f, accentWeight = 1f)
-    private fun panelBottomLayerColor(alpha: Int = 194): Int = themedColor(30, 16, 40, alpha, baseWeight = 0.82f, accentWeight = 0.22f)
-    private fun sidebarPanelColor(alpha: Int = 152): Int = themedColor(39, 7, 13, alpha, baseWeight = 1f, accentWeight = 0.12f)
-    private fun sidebarTabColor(alpha: Int = 134): Int = themedColor(54, 8, 18, alpha, baseWeight = 1f, accentWeight = 0.15f)
-    private fun sidebarSelectedColor(alpha: Int = 162): Int = themedColor(66, 10, 23, alpha, baseWeight = 0.9f, accentWeight = 0.28f)
-    private fun featureCardColor(alpha: Int = 106): Int = themedColor(17, 5, 9, alpha, baseWeight = 1f, accentWeight = 0.09f)
-    private fun featureCardMutedColor(alpha: Int = 90): Int = themedColor(24, 8, 13, alpha, baseWeight = 1f, accentWeight = 0.11f)
-    private fun fieldFillColor(alpha: Int = 120): Int = themedColor(25, 9, 14, alpha, baseWeight = 1f, accentWeight = 0.08f)
+    private fun withAlpha(color: Color, alpha: Int) = Color(color.red, color.green, color.blue, alpha.coerceIn(0, 255)).rgb
+    private fun surfaceColor(tint: Float, alpha: Int = 255): Int {
+        val base = ClickGuiFeature.themeBase
+        val accent = ClickGuiFeature.themeAccent
+        return Color(
+            (base.red * (1f - tint) + accent.red * tint).toInt(),
+            (base.green * (1f - tint) + accent.green * tint).toInt(),
+            (base.blue * (1f - tint) + accent.blue * tint).toInt(), alpha
+        ).rgb
+    }
+    private fun panelBorderColor(alpha: Int = 216) = withAlpha(ClickGuiFeature.themeAccent, alpha)
+    private fun panelBottomLayerColor(alpha: Int = 255) = surfaceColor(0.015f, alpha)
+    private fun sidebarSelectedColor(alpha: Int = 255) = surfaceColor(0.16f, alpha)
+    private fun fieldFillColor(alpha: Int = 255) = surfaceColor(0.09f, alpha)
+    private fun accentHighlightColor() = textPrimaryColor()
+    private fun accentDarkColor() = panelBorderColor(100)
+    private fun accentDimColor() = panelBorderColor(42)
+    private fun accentLowColor(alpha: Int = 255) = surfaceColor(0.22f, alpha)
+    private fun accentPanelColor(alpha: Int = 255) = surfaceColor(0.055f, alpha)
+    private fun accentPanelDarkColor(alpha: Int = 255) = surfaceColor(0.04f, alpha)
+    private fun accentBrightBorderColor() = panelBorderColor(210)
+    private fun toggleOnColor() = ClickGuiFeature.themeAccent.rgb
+    private fun toggleOffColor() = surfaceColor(0.16f)
+    private fun textMutedColor() = Color(153, 157, 178).rgb
+    private fun textPrimaryColor() = Color(239, 241, 250).rgb
 
-    private fun accentHighlightColor(): Int = themedColor(240, 210, 220, 255, baseWeight = 0.12f, accentWeight = 0.36f)
-    private fun accentDarkColor(): Int = panelBorderColor(198)
-    private fun accentDimColor(): Int = panelBorderColor(155)
-    private fun accentLowColor(alpha: Int = 255): Int = themedColor(95, 37, 51, alpha, baseWeight = 0.35f, accentWeight = 0.42f)
-    private fun accentPanelColor(alpha: Int = 255): Int = featureCardColor(alpha)
-    private fun accentPanelDarkColor(alpha: Int = 255): Int = featureCardMutedColor(alpha)
-    private fun accentBrightBorderColor(): Int = panelBorderColor(236)
-    private fun topBarColor(): Int = themedColor(35, 11, 20, 168, baseWeight = 1f, accentWeight = 0.18f)
-    private fun toggleOnColor(): Int = themedColor(207, 84, 117, 255, baseWeight = 0f, accentWeight = 1f)
-    private fun toggleOffColor(): Int = themedColor(80, 28, 38, 255, baseWeight = 0.7f, accentWeight = 0.25f)
-    private fun textMutedColor(): Int = themedColor(193, 152, 165, 255, baseWeight = 0.2f, accentWeight = 0.3f)
-    private fun textPrimaryColor(): Int = themedColor(246, 227, 233, 255, baseWeight = 0.08f, accentWeight = 0.18f)
-
-    private fun renderMainPanelBody(GuiGraphicsExtractor: GuiGraphicsExtractor, panelX: Int, panelY: Int) {
-        val panelWidth = panelWidth()
-        val panelHeight = panelHeight()
-
-        GuiUtils.renderRectangle(
-            GuiGraphicsExtractor,
-            panelX,
-            panelY,
-            panelWidth,
-            panelHeight,
-            panelBottomLayerColor()
-        )
-        GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
-            panelX,
-            panelY,
-            panelWidth,
-            panelHeight,
-            0,
-            1,
-            panelBorderColor()
-        )
+    private fun hudButtonRect() = Rect(panelOriginX() + panelWidth() - 118, panelOriginY() + 15, 102, 25)
+    private fun backButtonRect(): Rect {
+        val area = featureAreaRect(panelOriginX(), panelOriginY())
+        return Rect(area.x, area.y - 41, 24, 26)
+    }
+    private fun searchRect(): Rect {
+        val area = featureAreaRect(panelOriginX(), panelOriginY())
+        val searchWidth = (area.width / 2).coerceAtMost(150)
+        return Rect(area.x + area.width - searchWidth, area.y - 40, searchWidth, 25)
+    }
+    private fun themeRect(index: Int): Rect {
+        val sidebar = sidebarRect(panelOriginX(), panelOriginY())
+        return Rect(sidebar.x + 6 + index * 24, sidebar.y + sidebar.height - 32, 18, 18)
     }
 
-    private fun renderTopDragBar(GuiGraphicsExtractor: GuiGraphicsExtractor, panelX: Int, panelY: Int) {
-        val panelWidth = panelWidth()
-        GuiUtils.renderRectangle(
-            GuiGraphicsExtractor,
-            panelX,
-            panelY,
-            panelWidth,
-            DRAG_BAR_HEIGHT,
-            topBarColor()
-        )
-        GuiUtils.renderRectangle(
-            GuiGraphicsExtractor,
-            panelX,
-            panelY + DRAG_BAR_HEIGHT,
-            panelWidth,
-            1,
-            panelBorderColor(164)
-        )
+    private fun renderMainPanelBody(g: SkijaDraw, panelX: Int, panelY: Int) {
+        g.roundedRect(panelX - 8, panelY + 6, panelWidth() + 16, panelHeight() + 8, 18, Color(0, 0, 0, 65).rgb)
+        g.roundedRect(panelX - 3, panelY + 3, panelWidth() + 6, panelHeight() + 3, 14, Color(0, 0, 0, 100).rgb)
+        g.roundedRect(panelX, panelY, panelWidth(), panelHeight(), 12, panelBottomLayerColor())
+        g.gradientRect(panelX + 1, panelY + 1, panelWidth() - 2, 52, 12, panelBorderColor(32), panelBorderColor(0))
+    }
+
+    private fun renderTopDragBar(g: SkijaDraw, panelX: Int, panelY: Int) {
+        g.gradientRect(panelX + 16, panelY + 13, 28, 28, 9, toggleOnColor(), surfaceColor(0.45f))
+        g.centeredText("K", panelX + 30, panelY + 17, Color.WHITE.rgb, 18f)
+        g.text("kittycat", panelX + 54, panelY + 17, textPrimaryColor(), 20f)
+        val button = hudButtonRect()
+        val hover = button.contains(pointerX.toDouble(), pointerY.toDouble())
+        g.roundedRect(button.x, button.y, button.width, button.height, 7, if (hover) sidebarSelectedColor() else surfaceColor(0.07f))
+        g.roundedRect(button.x, button.y, button.width, button.height, 7, panelBorderColor(if (hover) 180 else 65), 1)
+        g.centeredText("HUD editor", button.x + button.width / 2, button.y + 7, textPrimaryColor(), 10f)
+        val area = featureAreaRect(panelX, panelY)
+        val focused = focusedFeature()
+        val category = (focused?.category ?: categoryList.getOrNull(selectedIndex))?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Modules"
+        if (focused != null) {
+            val back = backButtonRect()
+            g.roundedRect(back.x, back.y, back.width, back.height, 6, surfaceColor(0.1f))
+            g.chevron(back.x + back.width / 2f, back.y + back.height / 2f, textPrimaryColor(), 180f)
+            g.text(SkijaDraw.truncate("Module settings", area.width - 34, 18f), area.x + 34, area.y - 41, textPrimaryColor(), 18f)
+            g.text(category, area.x + 34, area.y - 19, textMutedColor(), 9f)
+        } else {
+            val heading = if (searchQuery.isNotBlank()) "Results" else category
+            g.text(SkijaDraw.truncate(heading, area.width - searchRect().width - 12, 21f), area.x, area.y - 43, textPrimaryColor(), 21f)
+            g.text("${displayedFeatures().size} modules", area.x, area.y - 18, textMutedColor(), 9f)
+            val search = searchRect()
+            g.roundedRect(search.x, search.y, search.width, search.height, 7, surfaceColor(0.07f))
+            g.roundedRect(search.x, search.y, search.width, search.height, 7, panelBorderColor(if (searchFocused) 150 else 38), 1)
+            val value = if (searchQuery.isEmpty() && !searchFocused) "Search modules..." else searchQuery + if (searchFocused) "|" else ""
+            g.text(SkijaDraw.truncate(value, search.width - 18, 9f), search.x + 9, search.y + 8, textMutedColor(), 9f)
+        }
+        if (maxFeatureScroll > 0) {
+            val thumbHeight = (area.height * area.height / (area.height + maxFeatureScroll)).coerceAtLeast(16)
+            val thumbY = area.y + (-featureScrollOffset.toFloat() / maxFeatureScroll * (area.height - thumbHeight)).toInt()
+            g.roundedRect(area.x + area.width + 3, thumbY, 2, thumbHeight, 1, panelBorderColor(160))
+        }
     }
 
     override fun mouseClicked(mbe: MouseButtonEvent, bl: Boolean): Boolean {
@@ -1092,6 +1078,23 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
 
         if (button == LEFT_MOUSE_BUTTON) {
+            if (focusedFeature() != null && backButtonRect().contains(mouseX, mouseY)) {
+                closeInspector()
+                return true
+            }
+            searchFocused = focusedFeature() == null && searchRect().contains(mouseX, mouseY)
+            if (searchFocused) return true
+            if (hudButtonRect().contains(mouseX, mouseY)) {
+                commitTextInput()
+                onClose()
+                kitty.cat.gui.Hud.open(this)
+                return true
+            }
+            ClickGuiFeature.themes.indices.firstOrNull { themeRect(it).contains(mouseX, mouseY) }?.let {
+                ClickGuiFeature.theme.select(ClickGuiFeature.themes[it].name)
+                playClickSound(1.1f)
+                return true
+            }
             val clickedCategory = buildCategoryLayouts(panelX, panelY)
                 .firstOrNull { it.rect.contains(mouseX, mouseY) }
             if (clickedCategory != null) {
@@ -1110,8 +1113,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             return true
         }
 
-        // Dropdown options visually cover cards below them, so they must also
-        // receive input before those cards and their switches.
+        // Open dropdown options sit above feature cards and settings. Give the
+        // topmost open dropdown first chance to consume the click.
         if (mouseInFeatureArea && button == LEFT_MOUSE_BUTTON) {
             featureLayouts.asReversed().forEach { layout ->
                 if (!layout.expanded) return@forEach
@@ -1133,29 +1136,16 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             featureLayouts.forEach { layout ->
                 if (!layout.isHeaderHovered(mouseX, mouseY)) return@forEach
 
-                val headerSwitch = featureSwitchRect(layout)
-                if (button == LEFT_MOUSE_BUTTON && headerSwitch.contains(mouseX, mouseY)) {
+                if (button == LEFT_MOUSE_BUTTON) {
                     layout.feature.toggle()
                     playClickSound(1.0f)
                     return true
                 }
 
-                when (button) {
-                    LEFT_MOUSE_BUTTON -> {
-                        layout.feature.toggle()
-                        playClickSound(1.0f)
-                        return true
-                    }
-                    RIGHT_MOUSE_BUTTON -> {
-                        if (layout.feature in expandedFeatures) {
-                            expandedFeatures -= layout.feature
-                        } else {
-                            expandedFeatures += layout.feature
-                        }
-                        updateFeatureScrollBounds()
-                        playClickSound(0.95f)
-                        return true
-                    }
+                if (button == RIGHT_MOUSE_BUTTON) {
+                    if (focusedFeature() == null) inspectFeature(layout.feature)
+                    playClickSound(0.95f)
+                    return true
                 }
             }
         }
@@ -1171,7 +1161,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
                             val baseRect = selectorBaseRect(settingLayout)
                             if (baseRect.contains(mouseX, mouseY)) {
-                                setting.dropdownOpen = !setting.dropdownOpen
+                                val opening = !setting.dropdownOpen
+                                closeAllSelectorDropdowns()
+                                setting.dropdownOpen = opening
+                                updateFeatureScrollBounds()
                                 interactedWithSelector = true
                                 return true
                             }
@@ -1417,6 +1410,20 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun keyPressed(keyEvent: KeyEvent): Boolean {
+        if (searchFocused) {
+            when (keyEvent.key()) {
+                GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER -> searchFocused = false
+                GLFW.GLFW_KEY_BACKSPACE -> {
+                    if (searchQuery.isNotEmpty()) searchQuery = searchQuery.dropLast(1)
+                    featureScrollOffset = 0
+                }
+            }
+            return true
+        }
+        if (keyEvent.key() == GLFW.GLFW_KEY_ESCAPE && focusedFeature() != null && textInputSession == null && keybindCaptureSetting == null && openColorPickerFor == null) {
+            closeInspector()
+            return true
+        }
         keybindCaptureSetting?.let { setting ->
             when (keyEvent.key()) {
                 GLFW.GLFW_KEY_ESCAPE,
@@ -1459,6 +1466,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun charTyped(characterEvent: CharacterEvent): Boolean {
+        if (searchFocused) {
+            val codepoint = characterEvent.codepoint()
+            if (codepoint >= 32 && searchQuery.length < 64) {
+                searchQuery += String(Character.toChars(codepoint))
+                featureScrollOffset = 0
+            }
+            return true
+        }
         if (textInputSession == null) return super.charTyped(characterEvent)
         val codepoint = characterEvent.codepoint()
         if (codepoint !in 32..126) return true
@@ -1485,14 +1500,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         super.onClose()
     }
 
-    private fun renderSettingRow(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
+    private fun renderSettingRow(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
         val setting = settingLayout.setting
         drawText(
-            GuiGraphicsExtractor = GuiGraphicsExtractor,
+            graphics = graphics,
             sw = sw,
             sh = sh,
             scale = scale,
-            text = setting.name,
+            text = SkijaDraw.truncate(setting.name, settingLabelWidth(settingLayout), 9f),
             x = (settingLayout.x + 1).toFloat(),
             y = (settingLayout.y + SETTING_NAME_Y_OFFSET).toFloat(),
             size = 9f,
@@ -1500,29 +1515,29 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         when (setting) {
-            is BooleanSetting -> renderBooleanSetting(GuiGraphicsExtractor, settingLayout, setting)
-            is NumberSetting -> renderNumberSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
-            is RangeSetting -> renderRangeSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
-            is SelectorSetting -> renderSelectorSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
-            is KeybindSetting -> renderKeybindSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
-            is StringSetting -> renderStringSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
-            is ColorSetting -> renderColorSetting(GuiGraphicsExtractor, settingLayout, setting)
-            is ActionSetting -> renderActionSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout)
-            is OrderSetting -> renderOrderSetting(GuiGraphicsExtractor, sw, sh, scale, settingLayout, setting)
+            is BooleanSetting -> renderBooleanSetting(graphics, settingLayout, setting)
+            is NumberSetting -> renderNumberSetting(graphics, sw, sh, scale, settingLayout, setting)
+            is RangeSetting -> renderRangeSetting(graphics, sw, sh, scale, settingLayout, setting)
+            is SelectorSetting -> renderSelectorSetting(graphics, sw, sh, scale, settingLayout, setting)
+            is KeybindSetting -> renderKeybindSetting(graphics, sw, sh, scale, settingLayout, setting)
+            is StringSetting -> renderStringSetting(graphics, sw, sh, scale, settingLayout, setting)
+            is ColorSetting -> renderColorSetting(graphics, settingLayout, setting)
+            is ActionSetting -> renderActionSetting(graphics, sw, sh, scale, settingLayout)
+            is OrderSetting -> renderOrderSetting(graphics, sw, sh, scale, settingLayout, setting)
         }
     }
-    private fun renderOrderSetting(graphics: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, layout: SettingLayout, setting: OrderSetting) {
+    private fun renderOrderSetting(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, layout: SettingLayout, setting: OrderSetting) {
         setting.order.forEachIndexed { index, option ->
             val rect = orderOptionRect(layout, index)
             val dragging = draggingOrderSetting === setting && draggingOrderIndex == index
             GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, if (dragging) sidebarSelectedColor() else fieldFillColor())
             GuiUtils.renderRoundedOutline(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, 1, if (dragging) accentBrightBorderColor() else accentDimColor())
             drawText(graphics, sw, sh, scale, "=", (rect.x + 3).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textMutedColor())
-            drawText(graphics, sw, sh, scale, option, (rect.x + 13).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textPrimaryColor())
+            drawText(graphics, sw, sh, scale, fieldText(option, rect.width - 20), (rect.x + 13).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textPrimaryColor())
         }
     }
 
-    private fun renderBooleanSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: BooleanSetting) {
+    private fun renderBooleanSetting(graphics: SkijaDraw, settingLayout: SettingLayout, setting: BooleanSetting) {
         val switchRect = booleanSwitchRect(settingLayout)
         val trackColor = if (setting.value) toggleOnColor() else toggleOffColor()
         val knobSize = switchRect.height - FEATURE_SWITCH_KNOB_MARGIN * 2
@@ -1534,7 +1549,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val knobY = switchRect.y + FEATURE_SWITCH_KNOB_MARGIN
 
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             switchRect.x,
             switchRect.y,
             switchRect.width,
@@ -1543,7 +1558,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             trackColor
         )
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             knobX,
             knobY,
             knobSize,
@@ -1553,12 +1568,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
     }
 
-    private fun renderNumberSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: NumberSetting) {
+    private fun renderNumberSetting(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: NumberSetting) {
         val textRect = numberTextRect(settingLayout)
         val sliderRect = numberSliderRect(settingLayout)
 
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             sliderRect.x,
             sliderRect.y,
             sliderRect.width,
@@ -1570,7 +1585,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val fillWidth = (sliderRect.width * setting.sliderPosition()).toInt().coerceIn(0, sliderRect.width)
         if (fillWidth > 0) {
             GuiUtils.renderRoundedRectangle(
-                GuiGraphicsExtractor,
+                graphics,
                 sliderRect.x,
                 sliderRect.y,
                 fillWidth,
@@ -1581,7 +1596,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
 
         GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
+            graphics,
             textRect.x,
             textRect.y,
             textRect.width,
@@ -1592,21 +1607,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         val valueText = activeTextBufferOrNull(setting) ?: setting.textValue(includeUnit = true)
-        drawText(
-            GuiGraphicsExtractor,
-            sw,
-            sh,
-            scale,
-            valueText,
-            (textRect.x + 2).toFloat(),
-            (textRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textMutedColor()
-        )
+        graphics.fieldText(fieldText(valueText, textRect.width - 14, isTextInputActive(setting)), textRect.x, textRect.y, textRect.width, textRect.height, textMutedColor(), centered = true)
     }
 
     private fun renderRangeSetting(
-        graphics: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1666,56 +1671,25 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         val valueText = activeTextBufferOrNull(setting) ?: setting.textValue(includeUnit = true)
-        drawText(
-            graphics,
-            sw,
-            sh,
-            scale,
-            valueText,
-            (textRect.x + 2).toFloat(),
-            (textRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textMutedColor()
-        )
+        graphics.fieldText(fieldText(valueText, textRect.width - 14, isTextInputActive(setting)), textRect.x, textRect.y, textRect.width, textRect.height, textMutedColor(), centered = true)
     }
 
-    private fun renderSelectorSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: SelectorSetting) {
+    private fun renderSelectorSetting(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout, setting: SelectorSetting) {
         val baseRect = selectorBaseRect(settingLayout)
-        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, fieldFillColor())
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, 1, accentDimColor())
+        GuiUtils.renderRoundedRectangle(graphics, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedOutline(graphics, baseRect.x, baseRect.y, baseRect.width, baseRect.height, 2, 1, accentDimColor())
 
         val selectedText = if (setting.allowMultiple) {
             setting.selected.joinToString(", ").ifBlank { "None" }
         } else {
             setting.selectedSingle
         }
-        val arrow = if (setting.dropdownOpen) "v" else ">"
-        drawText(
-            GuiGraphicsExtractor,
-            sw,
-            sh,
-            scale,
-            selectedText,
-            (baseRect.x + 2).toFloat(),
-            (baseRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textMutedColor()
-        )
-        drawText(
-            GuiGraphicsExtractor,
-            sw,
-            sh,
-            scale,
-            arrow,
-            (baseRect.x + baseRect.width - 7).toFloat(),
-            (baseRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textPrimaryColor()
-        )
+        graphics.fieldText(fieldText(selectedText, baseRect.width - 22), baseRect.x, baseRect.y, baseRect.width - 14, baseRect.height, textMutedColor(), centered = false)
+        graphics.chevron(baseRect.x + baseRect.width - 9f, baseRect.y + baseRect.height / 2f, textPrimaryColor(), if (setting.dropdownOpen) 270f else 90f, 3f)
     }
 
     private fun renderKeybindSetting(
-        GuiGraphicsExtractor: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1724,9 +1698,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     ) {
         val rect = keybindRect(settingLayout)
         val captureActive = keybindCaptureSetting === setting
-        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
         GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
+            graphics,
             rect.x,
             rect.y,
             rect.width,
@@ -1737,21 +1711,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         val value = if (captureActive) "Press key..." else setting.displayValue()
-        drawText(
-            GuiGraphicsExtractor,
-            sw,
-            sh,
-            scale,
-            value,
-            (rect.x + 2).toFloat(),
-            (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textMutedColor()
-        )
+        graphics.fieldText(fieldText(value, rect.width - 14, isTextInputActive(setting)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = false)
     }
 
     private fun renderStringSetting(
-        GuiGraphicsExtractor: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1759,9 +1723,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         setting: StringSetting
     ) {
         val rect = stringTextRect(settingLayout)
-        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
         GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
+            graphics,
             rect.x,
             rect.y,
             rect.width,
@@ -1772,22 +1736,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         val raw = activeTextBufferOrNull(setting) ?: setting.value
-        val value = if (raw.length > 46) "${raw.take(46)}..." else raw
-        drawText(
-            GuiGraphicsExtractor,
-            sw,
-            sh,
-            scale,
-            value,
-            (rect.x + 2).toFloat(),
-            (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textMutedColor()
-        )
+        val value = raw
+        graphics.fieldText(fieldText(value, rect.width - 14, isTextInputActive(setting)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = false)
     }
 
     private fun renderSelectorDropdownOverlay(
-        GuiGraphicsExtractor: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -1797,7 +1751,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val firstOptionRect = selectorOptionRect(settingLayout, 0)
         val overlayHeight = setting.options.size * FEATURE_SETTING_ROW_HEIGHT
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             firstOptionRect.x,
             firstOptionRect.y,
             firstOptionRect.width,
@@ -1806,7 +1760,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             fieldFillColor(214)
         )
         GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
+            graphics,
             firstOptionRect.x,
             firstOptionRect.y,
             firstOptionRect.width,
@@ -1820,13 +1774,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             val optionRect = selectorOptionRect(settingLayout, optionIndex)
             val selected = setting.isSelected(option)
             val backgroundColor = if (selected) sidebarSelectedColor(214) else fieldFillColor(188)
-            GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, optionRect.x, optionRect.y, optionRect.width, optionRect.height, 2, backgroundColor)
+            GuiUtils.renderRoundedRectangle(graphics, optionRect.x, optionRect.y, optionRect.width, optionRect.height, 2, backgroundColor)
             drawText(
-                GuiGraphicsExtractor,
+                graphics,
                 sw,
                 sh,
                 scale,
-                option,
+                fieldText(option, optionRect.width - 8),
                 (optionRect.x + 2).toFloat(),
                 (optionRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
                 9f,
@@ -1835,7 +1789,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
     }
 
-    private fun renderColorPickerOverlay(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float) {
+    private fun renderColorPickerOverlay(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float) {
         val setting = openColorPickerFor ?: return
         if (findSettingLayout(setting) == null) {
             openColorPickerFor = null
@@ -1849,41 +1803,42 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val alphaRect = picker.alphaRect
 
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             panel.x,
             panel.y,
             panel.width,
             panel.height,
-            0,
-            fieldFillColor(216)
+            7,
+            surfaceColor(0.035f)
         )
         GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
+            graphics,
             panel.x,
             panel.y,
             panel.width,
             panel.height,
-            0,
+            7,
             1,
-            accentBrightBorderColor()
+            panelBorderColor(100)
         )
 
-        renderSaturationBrightnessBox(GuiGraphicsExtractor, sbRect, setting)
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, sbRect.x, sbRect.y, sbRect.width, sbRect.height, 2, 1, accentDimColor())
+        graphics.text(SkijaDraw.truncate(setting.name, panel.width - 16, 11f), panel.x + 8, panel.y + 8, textPrimaryColor(), 11f)
+        renderSaturationBrightnessBox(graphics, sbRect, setting)
+        GuiUtils.renderRoundedOutline(graphics, sbRect.x, sbRect.y, sbRect.width, sbRect.height, 2, 1, accentDimColor())
 
         val sbMarkerX = sbRect.x + (setting.saturation * (sbRect.width - 1)).toInt().coerceIn(0, sbRect.width - 1)
         val sbMarkerY = sbRect.y + ((1f - setting.brightness) * (sbRect.height - 1)).toInt().coerceIn(0, sbRect.height - 1)
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, sbMarkerX - 2, sbMarkerY - 2, 5, 5, 2, 1, textPrimaryColor())
+        GuiUtils.renderRoundedOutline(graphics, sbMarkerX - 2, sbMarkerY - 2, 5, 5, 2, 1, textPrimaryColor())
 
-        renderHueBar(GuiGraphicsExtractor, hueRect, COLOR_PICKER_BAR_STEP)
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, hueRect.x, hueRect.y, hueRect.width, hueRect.height, 2, 1, accentDimColor())
+        renderHueBar(graphics, hueRect, COLOR_PICKER_BAR_STEP)
+        GuiUtils.renderRoundedOutline(graphics, hueRect.x, hueRect.y, hueRect.width, hueRect.height, 2, 1, accentDimColor())
         val hueKnobX = hueRect.x + ((setting.hue / 360f) * (hueRect.width - 1)).toInt().coerceIn(0, hueRect.width - 1)
-        GuiUtils.renderRectangle(GuiGraphicsExtractor, hueKnobX, hueRect.y - 1, 1, hueRect.height + 2, textPrimaryColor())
+        GuiUtils.renderRectangle(graphics, hueKnobX, hueRect.y - 1, 1, hueRect.height + 2, textPrimaryColor())
 
-        renderAlphaBar(GuiGraphicsExtractor, alphaRect, setting, COLOR_PICKER_BAR_STEP)
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, alphaRect.x, alphaRect.y, alphaRect.width, alphaRect.height, 2, 1, accentDimColor())
+        renderAlphaBar(graphics, alphaRect, setting, COLOR_PICKER_BAR_STEP)
+        GuiUtils.renderRoundedOutline(graphics, alphaRect.x, alphaRect.y, alphaRect.width, alphaRect.height, 2, 1, accentDimColor())
         val alphaKnobX = alphaRect.x + (setting.alphaSliderPosition() * (alphaRect.width - 1)).toInt().coerceIn(0, alphaRect.width - 1)
-        GuiUtils.renderRectangle(GuiGraphicsExtractor, alphaKnobX, alphaRect.y - 1, 1, alphaRect.height + 2, textPrimaryColor())
+        GuiUtils.renderRectangle(graphics, alphaKnobX, alphaRect.y - 1, 1, alphaRect.height + 2, textPrimaryColor())
 
         listOf(
             ColorChannel.RED,
@@ -1892,9 +1847,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             ColorChannel.ALPHA
         ).forEach { channel ->
             val rect = colorPickerChannelRect(picker, channel)
-            GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+            graphics.centeredText(channel.name.take(1), rect.x + rect.width / 2, rect.y - 11, textMutedColor(), 8f)
+            GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
             GuiUtils.renderRoundedOutline(
-                GuiGraphicsExtractor,
+                graphics,
                 rect.x,
                 rect.y,
                 rect.width,
@@ -1905,81 +1861,46 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             )
 
             val text = activeTextBufferOrNull(setting, channel) ?: colorChannelValue(setting, channel).toString()
-            drawText(
-                GuiGraphicsExtractor,
-                sw,
-                sh,
-                scale,
-                text,
-                (rect.x + COLOR_CHANNEL_VALUE_PADDING).toFloat(),
-                (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-                9f,
-                textMutedColor()
-            )
+            graphics.fieldText(fieldText(text, rect.width - 10, isTextInputActive(setting, channel)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = true)
         }
     }
 
-    private fun renderHueBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, step: Int) {
-        val safeStep = step.coerceAtLeast(1)
-        val segments = mutableListOf<GuiUtils.ColoredRect>()
-        var offset = 0
-        while (offset < rect.width) {
-            val segmentWidth = minOf(safeStep, rect.width - offset)
-            val hue = (offset.toFloat() / rect.width.toFloat()) * 360f
-            segments += GuiUtils.ColoredRect(rect.x + offset, rect.y, segmentWidth, rect.height, hsvToArgb(hue, 1f, 1f, 255))
-            offset += safeStep
-        }
-        GuiUtils.renderRectangles(GuiGraphicsExtractor, segments)
+    private fun renderHueBar(graphics: SkijaDraw, rect: Rect, step: Int) {
+        graphics.linearGradient(rect.x, rect.y, rect.width, rect.height,
+            IntArray(7) { hsvToArgb(it * 60f, 1f, 1f, 255) })
     }
 
-    private fun renderAlphaBar(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting, step: Int) {
-        val safeStep = step.coerceAtLeast(1)
+    private fun renderAlphaBar(graphics: SkijaDraw, rect: Rect, setting: ColorSetting, step: Int) {
         val rgb = (setting.red shl 16) or (setting.green shl 8) or setting.blue
-        val segments = mutableListOf<GuiUtils.ColoredRect>()
-        var offset = 0
-        while (offset < rect.width) {
-            val segmentWidth = minOf(safeStep, rect.width - offset)
-            val alpha = (offset.toFloat() / rect.width.toFloat() * 255f).toInt().coerceIn(0, 255)
-            segments += GuiUtils.ColoredRect(rect.x + offset, rect.y, segmentWidth, rect.height, (alpha shl 24) or rgb)
-            offset += safeStep
-        }
-        GuiUtils.renderRectangles(GuiGraphicsExtractor, segments)
+        graphics.checkerboard(rect.x, rect.y, rect.width, rect.height)
+        graphics.linearGradient(rect.x, rect.y, rect.width, rect.height, intArrayOf(rgb, rgb or 0xFF000000.toInt()))
     }
 
-    private fun renderSaturationBrightnessBox(GuiGraphicsExtractor: GuiGraphicsExtractor, rect: Rect, setting: ColorSetting) {
-        val safeStep = COLOR_PICKER_SB_STEP.coerceAtLeast(1)
-        val hue = setting.hue
-        val cells = mutableListOf<GuiUtils.ColoredRect>()
-        var localY = 0
-        while (localY < rect.height) {
-            val blockHeight = minOf(safeStep, rect.height - localY)
-            val brightness = (1.0 - localY.toDouble() / (rect.height - 1).coerceAtLeast(1).toDouble()).toFloat()
-            var localX = 0
-            while (localX < rect.width) {
-                val blockWidth = minOf(safeStep, rect.width - localX)
-                val saturation = (localX.toDouble() / (rect.width - 1).coerceAtLeast(1).toDouble()).toFloat()
-                cells += GuiUtils.ColoredRect(rect.x + localX, rect.y + localY, blockWidth, blockHeight, hsvToArgb(hue, saturation, brightness, 255))
-                localX += safeStep
-            }
-            localY += safeStep
-        }
-        GuiUtils.renderRectangles(GuiGraphicsExtractor, cells)
+    private fun renderSaturationBrightnessBox(graphics: SkijaDraw, rect: Rect, setting: ColorSetting) {
+        graphics.linearGradient(rect.x, rect.y, rect.width, rect.height,
+            intArrayOf(Color.WHITE.rgb, hsvToArgb(setting.hue, 1f, 1f, 255)))
+        graphics.linearGradient(rect.x, rect.y, rect.width, rect.height,
+            intArrayOf(0x00000000, Color.BLACK.rgb), vertical = true)
     }
 
-    private fun renderColorSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, settingLayout: SettingLayout, setting: ColorSetting) {
-        val swatchRect = colorSwatchRect(settingLayout)
-
+    private fun renderColorSetting(graphics: SkijaDraw, settingLayout: SettingLayout, setting: ColorSetting) {
+        val rect = colorSwatchRect(settingLayout)
         val argb = (setting.alpha shl 24) or (setting.red shl 16) or (setting.green shl 8) or setting.blue
-        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, swatchRect.x, swatchRect.y, swatchRect.width, swatchRect.height, 2, argb)
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, swatchRect.x, swatchRect.y, swatchRect.width, swatchRect.height, 2, 1, accentDimColor())
+        graphics.roundedRect(rect.x, rect.y, rect.width, rect.height, 4, fieldFillColor())
+        graphics.checkerboard(rect.x + 3, rect.y + 3, 10, 10)
+        graphics.roundedRect(rect.x + 3, rect.y + 3, 10, 10, 0, argb)
+        graphics.fieldText("#%02X%02X%02X".format(setting.red, setting.green, setting.blue),
+            rect.x + 13, rect.y, rect.width - 13, rect.height, textPrimaryColor(), size = 8f)
+        graphics.roundedRect(rect.x, rect.y, rect.width, rect.height, 4,
+            if (openColorPickerFor === setting) accentBrightBorderColor() else accentDimColor(), 1)
     }
 
-    private fun renderActionSetting(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
+    private fun renderActionSetting(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, settingLayout: SettingLayout) {
         val buttonRect = actionButtonRect(settingLayout)
-        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, fieldFillColor())
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, 1, accentDimColor())
+        GuiUtils.renderRoundedRectangle(graphics, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, fieldFillColor())
+        GuiUtils.renderRoundedOutline(graphics, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, 1, accentDimColor())
         drawCenteredText(
-            GuiGraphicsExtractor,
+            graphics,
             sw,
             sh,
             scale,
@@ -1998,7 +1919,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val cardWidth = featureCardWidth(featureArea.width, columns)
         val columnHeights = IntArray(columns) { featureArea.y + featureScrollOffset }
 
-        activeFeatures.forEach { feature ->
+        displayedFeatures().forEach { feature ->
             val targetColumn = columnHeights.indices.minByOrNull { columnHeights[it] } ?: 0
             val cardX = featureArea.x + targetColumn * (cardWidth + FEATURE_CARD_GAP)
             val cardY = columnHeights[targetColumn]
@@ -2044,7 +1965,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val settingWidth = cardWidth - FEATURE_SETTING_SIDE_PADDING * 2
 
         feature.settings.forEach { setting ->
-            val height = settingHeight(setting)
+            val height = settingHeight(setting, settingWidth)
             settingLayouts += SettingLayout(
                 setting = setting,
                 x = settingX,
@@ -2058,52 +1979,88 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         return settingLayouts
     }
 
-    private fun settingHeight(setting: Setting): Int {
-        return when (setting) {
-            is OrderSetting -> FEATURE_SETTING_ROW_HEIGHT * (setting.options.size + 1)
-            is ColorSetting -> FEATURE_SETTING_ROW_HEIGHT
-            is SelectorSetting -> FEATURE_SETTING_ROW_HEIGHT
-            else -> FEATURE_SETTING_ROW_HEIGHT
+    private fun settingHeight(setting: Setting, width: Int): Int = when (setting) {
+        is NumberSetting, is RangeSetting -> SettingGeometry(0, 0, width).sliderHeight
+        is SelectorSetting -> SettingGeometry(0, 0, width).selectorHeight(setting.options.size, setting.dropdownOpen)
+        is KeybindSetting, is StringSetting -> SettingGeometry(0, 0, width).fieldHeight
+        is OrderSetting -> FEATURE_SETTING_ROW_HEIGHT * (setting.options.size + 1)
+        else -> FEATURE_SETTING_ROW_HEIGHT
+    }
+
+    private fun settingLabelWidth(layout: SettingLayout): Int = when (layout.setting) {
+        is BooleanSetting -> booleanSwitchRect(layout).x - layout.x - 8
+        is ActionSetting -> actionButtonRect(layout).x - layout.x - 8
+        is ColorSetting -> colorSwatchRect(layout).x - layout.x - 8
+        is NumberSetting, is RangeSetting, is SelectorSetting, is KeybindSetting, is StringSetting -> geometry(layout).label.width
+        else -> layout.width
+    }.coerceAtLeast(0)
+
+    private fun fieldText(value: String, width: Int, editing: Boolean = false): String {
+        if (!editing) return SkijaDraw.truncate(value, width.coerceAtLeast(0), 9f)
+        var visible = value
+        while (visible.isNotEmpty() && SkijaDraw.textWidth(visible + "|", 9f) > width) {
+            visible = visible.substring(visible.offsetByCodePoints(0, 1))
+        }
+        return visible + "|"
+    }
+
+    private fun renderTooltip(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, text: String, mouseX: Int, mouseY: Int) {
+        val maxWidth = minOf(300, width - 24).coerceAtLeast(40)
+        val lines = mutableListOf<String>()
+        var line = ""
+        text.split(Regex("\\s+")).forEach { word ->
+            val next = if (line.isBlank()) word else "$line $word"
+            if (SkijaDraw.textWidth(next, TOOLTIP_TEXT_SIZE) > maxWidth && line.isNotEmpty()) {
+                lines += SkijaDraw.truncate(line, maxWidth, TOOLTIP_TEXT_SIZE)
+                line = word
+            } else line = next
+        }
+        if (line.isNotEmpty()) lines += SkijaDraw.truncate(line, maxWidth, TOOLTIP_TEXT_SIZE)
+        val visibleLines = lines.take(((height - 24) / 13).coerceAtLeast(1))
+        val boxWidth = (visibleLines.maxOfOrNull { SkijaDraw.textWidth(it, TOOLTIP_TEXT_SIZE) } ?: 0f).toInt() + 12
+        val boxHeight = visibleLines.size * 13 + 10
+        val tx = (mouseX + 10).coerceIn(4, (width - boxWidth - 4).coerceAtLeast(4))
+        val ty = (mouseY + 14).coerceIn(4, (height - boxHeight - 4).coerceAtLeast(4))
+        GuiUtils.renderRoundedRectangle(graphics, tx, ty, boxWidth, boxHeight, 5, fieldFillColor(255))
+        GuiUtils.renderRoundedOutline(graphics, tx, ty, boxWidth, boxHeight, 5, 1, accentDimColor())
+        visibleLines.forEachIndexed { index, value ->
+            graphics.text(value, tx + 6, ty + 5 + index * 13, textPrimaryColor(), TOOLTIP_TEXT_SIZE)
         }
     }
 
-    private fun renderTooltip(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, text: String, mouseX: Int, mouseY: Int) {
-        val font = ClickGuiFeature.selectedFont
-        val measuredWidth = NVGRenderer.textWidth(text, TOOLTIP_TEXT_SIZE * scale, font) / scale
-        val boxWidth = measuredWidth.toInt() + TOOLTIP_PADDING_H * 2
-        val boxHeight = TOOLTIP_TEXT_SIZE.toInt() + TOOLTIP_PADDING_V * 2
-
-        val tx = mouseX + 10
-        var ty = mouseY - boxHeight - 6
-
-        val panelBottom = panelOriginY() + panelHeight()
-        if (ty < panelOriginY()) ty = mouseY + 14
-        if (ty + boxHeight > panelBottom) ty = panelBottom - boxHeight - 4
-
-        GuiUtils.renderRoundedRectangle(GuiGraphicsExtractor, tx, ty, boxWidth, boxHeight, 3, fieldFillColor(230))
-        GuiUtils.renderRoundedOutline(GuiGraphicsExtractor, tx, ty, boxWidth, boxHeight, 3, 1, accentDimColor())
+    private fun renderFeatureHeader(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, layout: FeatureLayout) {
         drawText(
-            GuiGraphicsExtractor, sw, sh, scale, text,
-            (tx + TOOLTIP_PADDING_H).toFloat(),
-            (ty + TOOLTIP_PADDING_V).toFloat(),
-            TOOLTIP_TEXT_SIZE,
-            textPrimaryColor()
-        )
-    }
-
-    private fun renderFeatureHeader(GuiGraphicsExtractor: GuiGraphicsExtractor, sw: Int, sh: Int, scale: Float, layout: FeatureLayout) {
-        drawText(
-            GuiGraphicsExtractor,
+            graphics,
             sw,
             sh,
             scale,
-            layout.feature.name,
+            SkijaDraw.truncate(layout.feature.name, layout.width - 60, 13f),
             (layout.x + 8).toFloat(),
-            (layout.y + 5).toFloat(),
-            12f,
+            (layout.y + 8).toFloat(),
+            13f,
             if (layout.feature.enabled) textPrimaryColor() else accentHighlightColor()
         )
 
+        val categoryLabel = layout.feature.category.name.lowercase().replaceFirstChar { it.uppercase() }
+        val description = if (searchQuery.isNotBlank() && !layout.expanded) {
+            categoryLabel + if (layout.feature.description.isBlank()) "" else " / " + layout.feature.description.trim()
+        } else layout.feature.description.trim()
+        if (description.isNotEmpty()) {
+            val availableWidth = layout.width - 56
+            val words = description.split(Regex("\\s+"))
+            var firstLine = ""
+            var nextWord = 0
+            while (nextWord < words.size) {
+                val candidate = if (firstLine.isEmpty()) words[nextWord] else "$firstLine ${words[nextWord]}"
+                if (SkijaDraw.textWidth(candidate, 9f) > availableWidth && firstLine.isNotEmpty()) break
+                firstLine = candidate
+                nextWord++
+            }
+            graphics.text(SkijaDraw.truncate(firstLine, availableWidth, 9f), layout.x + 8, layout.y + 26, textMutedColor(), 9f)
+            if (nextWord < words.size) {
+                graphics.text(SkijaDraw.truncate(words.drop(nextWord).joinToString(" "), availableWidth, 9f), layout.x + 8, layout.y + 38, textMutedColor(), 9f)
+            }
+        }
         val switchRect = featureSwitchRect(layout)
         val trackColor = if (layout.feature.enabled) toggleOnColor() else toggleOffColor()
         val knobSize = switchRect.height - FEATURE_SWITCH_KNOB_MARGIN * 2
@@ -2115,7 +2072,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val knobY = switchRect.y + FEATURE_SWITCH_KNOB_MARGIN
 
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             switchRect.x,
             switchRect.y,
             switchRect.width,
@@ -2124,7 +2081,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             trackColor
         )
         GuiUtils.renderRoundedRectangle(
-            GuiGraphicsExtractor,
+            graphics,
             knobX,
             knobY,
             knobSize,
@@ -2135,7 +2092,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun renderCategoryBar(
-        GuiGraphicsExtractor: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -2145,64 +2102,31 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         if (categoryList.isEmpty()) return
 
         val sidebar = sidebarRect(panelX, panelY)
-        GuiUtils.renderRectangle(
-            GuiGraphicsExtractor,
-            sidebar.x,
-            sidebar.y,
-            sidebar.width,
-            sidebar.height,
-            sidebarPanelColor()
-        )
-        GuiUtils.renderRoundedOutline(
-            GuiGraphicsExtractor,
-            sidebar.x,
-            sidebar.y,
-            sidebar.width,
-            sidebar.height,
-            0,
-            1,
-            panelBorderColor(164)
-        )
-
-        val categoryLayouts = buildCategoryLayouts(panelX, panelY)
-
-        categoryLayouts.forEach { layout ->
-            GuiUtils.renderRectangle(
-                GuiGraphicsExtractor,
-                layout.rect.x,
-                layout.rect.y,
-                layout.rect.width,
-                layout.rect.height,
-                if (layout.selected) sidebarSelectedColor() else sidebarTabColor()
-            )
-            GuiUtils.renderRoundedOutline(
-                GuiGraphicsExtractor,
-                layout.rect.x,
-                layout.rect.y,
-                layout.rect.width,
-                layout.rect.height,
-                0,
-                1,
-                if (layout.selected) panelBorderColor(226) else panelBorderColor(170)
-            )
-
+        GuiUtils.renderRoundedRectangle(graphics, sidebar.x, sidebar.y, sidebar.width, sidebar.height, 7, surfaceColor(0f))
+        buildCategoryLayouts(panelX, panelY).forEach { layout ->
+            val r = layout.rect
+            if (layout.selected || r.contains(pointerX.toDouble(), pointerY.toDouble())) {
+                GuiUtils.renderRoundedRectangle(graphics, r.x, r.y, r.width, r.height, 5, sidebarSelectedColor(240))
+            }
+            if (layout.selected) {
+                GuiUtils.renderRoundedRectangle(graphics, r.x + 2, r.y + 6, 3, r.height - 12, 1, toggleOnColor())
+            }
             val label = layout.category.name.lowercase().replaceFirstChar { it.uppercase() }
-            drawCenteredText(
-                GuiGraphicsExtractor,
-                sw,
-                sh,
-                scale,
-                label,
-                layout.centerX,
-                layout.textY,
-                if (layout.selected) 10.5f else layout.fontSize,
-                if (layout.selected) textPrimaryColor() else textMutedColor()
-            )
+            graphics.text(label, r.x + 12, layout.textY.toInt(), if (layout.selected) textPrimaryColor() else textMutedColor())
+            if (layout.selected) graphics.chevron(r.x + r.width - 12f, r.y + r.height / 2f, toggleOnColor(), size = 3f)
+        }
+        graphics.text("PALETTE / ${ClickGuiFeature.theme.selectedSingle}", sidebar.x + 6, sidebar.y + sidebar.height - 48, textMutedColor())
+        ClickGuiFeature.themes.forEachIndexed { index, theme ->
+            val r = themeRect(index)
+            GuiUtils.renderRoundedRectangle(graphics, r.x, r.y, r.width, r.height, 6, Color(theme.accent).rgb)
+            if (theme.name == ClickGuiFeature.theme.selectedSingle) {
+                GuiUtils.renderRoundedOutline(graphics, r.x - 2, r.y - 2, r.width + 4, r.height + 4, 7, 1, textPrimaryColor())
+            }
         }
     }
 
     private fun drawText(
-        GuiGraphicsExtractor: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -2212,11 +2136,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
-        GuiGraphicsExtractor.text(minecraft.font, text, x.toInt(), y.toInt(), color)
+        graphics.text(text, x, y, color, size)
     }
 
     private fun drawCenteredText(
-        GuiGraphicsExtractor: GuiGraphicsExtractor,
+        graphics: SkijaDraw,
         sw: Int,
         sh: Int,
         scale: Float,
@@ -2226,7 +2150,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         size: Float,
         color: Int
     ) {
-        GuiGraphicsExtractor.centeredText(minecraft.font, text, cx.toInt(), y.toInt(), color)
+        graphics.centeredText(text, cx, y, color, size)
     }
 
     private fun selectCategory(index: Int, playSound: Boolean) {
@@ -2237,7 +2161,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         selectedIndex = clamped
         persistedSelectedCategory = categoryList[selectedIndex]
         activeFeatures = featureList.filter { it.category == categoryList[selectedIndex] }
-        expandedFeatures.retainAll(activeFeatures.toSet())
+        expandedFeatures.clear()
+        searchQuery = ""
+        searchFocused = false
         featureScrollOffset = 0
         updateFeatureScrollBounds()
         closeAllSelectorDropdowns()

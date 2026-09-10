@@ -12,6 +12,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
+    @Inject(method = "render", at = @At("TAIL"))
+    private void renderKittycatGui(DeltaTracker tickCounter, boolean tick, CallbackInfo ci) {
+        kitty.cat.render.skija.SkijaRenderer.renderFrame();
+    }
     @Inject(method = "render", at = @At("HEAD"))
     private void updateRotation(DeltaTracker tickCounter, boolean tick, CallbackInfo ci) {
         RotationUtils.onFrame();
