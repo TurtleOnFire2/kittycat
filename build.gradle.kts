@@ -54,6 +54,16 @@ fabricApi {
 }
 
 dependencies {
+    testImplementation(kotlin("test-junit"))
+    val skijaVersion = "0.143.17"
+    implementation("io.github.humbleui:types:0.2.0")
+    include("io.github.humbleui:types:0.2.0")
+    implementation("io.github.humbleui:skija-shared:$skijaVersion")
+    include("io.github.humbleui:skija-shared:$skijaVersion")
+    listOf("windows-x64", "linux-x64", "macos-x64", "macos-arm64").forEach { platform ->
+        runtimeOnly("io.github.humbleui:skija-$platform:$skijaVersion")
+        include("io.github.humbleui:skija-$platform:$skijaVersion")
+    }
 	// To change the versions see the gradle.properties file
 	minecraft("com.mojang:minecraft:${providers.gradleProperty("minecraft_version").get()}")
 	implementation("net.fabricmc:fabric-loader:${providers.gradleProperty("loader_version").get()}")
@@ -88,6 +98,11 @@ tasks.processResources {
 	filesMatching("fabric.mod.json") {
 		expand("version" to version)
 	}
+}
+
+sourceSets.test {
+    compileClasspath += sourceSets["client"].output + sourceSets["client"].compileClasspath
+    runtimeClasspath += sourceSets["client"].output + sourceSets["client"].runtimeClasspath
 }
 
 tasks.withType<JavaCompile>().configureEach {

@@ -89,6 +89,7 @@ object KittycatClient : ClientModInitializer {
 		ConfigManager.initialize(featureList)
 		ClientLifecycleEvents.CLIENT_STOPPING.register {
 			ConfigManager.saveNow()
+			kitty.cat.render.skija.SkijaRenderer.cleanup()
 		}
 
 		val keybindCategory = KeyMapping.Category(Identifier.fromNamespaceAndPath("kittycat", "general"))

@@ -43,7 +43,23 @@ object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
         blue = DEFAULT_ACCENT_BLUE,
         alpha = DEFAULT_ACCENT_ALPHA
     )
+    data class Theme(val name: String, val base: Int, val accent: Int)
+
+    val themes = listOf(
+        Theme("Blossom", 0x19121F, 0xFF70B5),
+        Theme("Violet", 0x171426, 0xAD8AFF),
+        Theme("Ocean", 0x101D29, 0x4CCEFF),
+        Theme("Mint", 0x101F1D, 0x50E3B0),
+        Theme("Sunset", 0x25171A, 0xFF9766)
+    )
+    val theme = selectorSetting("Color Theme", themes.map { it.name } + "Custom", listOf("Blossom"), false)
+    val themeBase: java.awt.Color
+        get() = themes.find { it.name == theme.selectedSingle }?.let { java.awt.Color(it.base) } ?: baseColor.color
+    val themeAccent: java.awt.Color
+        get() = themes.find { it.name == theme.selectedSingle }?.let { java.awt.Color(it.accent) } ?: accentColor.color
+
     val resetColors = actionSetting("Reset Colors") {
+        theme.select("Blossom")
         baseColor.setRgba(
             red = DEFAULT_BASE_RED,
             green = DEFAULT_BASE_GREEN,

@@ -5,7 +5,9 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.render.nanovg.NVGRenderer
-import kitty.cat.utils.GuiUtils
+import kitty.cat.render.skija.SkijaShapes as GuiUtils
+import kitty.cat.render.skija.SkijaDraw
+import kitty.cat.render.skija.SkijaRenderer
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.fabricmc.loader.api.FabricLoader
@@ -141,8 +143,13 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
     private var selected: Component? = null
     private var openedOptions: Component? = null
     private var isDragging = false
+    private var returnScreen: Screen? = null
 
-    fun open() {
+    fun open(parent: Screen? = null) {
+        returnScreen = parent
+        selected = null
+        openedOptions = null
+        isDragging = false
         mc.gui.setScreen(this)
     }
 
@@ -159,6 +166,10 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
     override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {
         val x = click.x()
         val y = click.y()
+        if (click.button() == 0 && x >= width / 2 - 55 && x <= width / 2 + 55 && y >= 12 && y <= 36) {
+            onClose()
+            return true
+        }
 
         optionAt(x, y)?.let { condition ->
             val opened = openedOptions ?: return@let
@@ -211,12 +222,14 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
     }
 
     override fun extractRenderState(context: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, deltaTicks: Float) {
-        super.extractRenderState(context, mouseX, mouseY, deltaTicks)
+        val graphics = SkijaDraw()
         val width = context.guiWidth()
         val height = context.guiHeight()
 
-        context.verticalLine(width / 2, 0, height, -0xffbbbc)
-        context.horizontalLine(0, width, height / 2, -0xffbbbc)
+        val accent = ClickGuiFeature.themeAccent
+        val guideColor = Color(accent.red, accent.green, accent.blue, 90).rgb
+        graphics.roundedRect(width / 2, 0, 1, height, 0, guideColor)
+        graphics.roundedRect(0, height / 2, width, 1, 0, guideColor)
 
         components.forEach { it.internalRender(context, true) }
 
@@ -224,10 +237,18 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
             val bounds = selected!!.internalBounds()
             val (posX, posY) = selected!!.position(context)
             val offset = selected!!.offsetBounds(context)
-            context.outline(posX + offset.first, posY + offset.second, bounds.first.toInt(), bounds.second.toInt(), Color.RED.rgb)
+            graphics.roundedRect(posX + offset.first, posY + offset.second, bounds.first.toInt(), bounds.second.toInt(), 2, accent.rgb, 1)
         }
 
-        renderOptions(context, mouseX, mouseY)
+        renderOptions(graphics, mouseX, mouseY)
+        GuiUtils.renderRoundedRectangle(graphics, width / 2 - 55, 12, 110, 24, 6, accent.rgb)
+        graphics.centeredText( if (returnScreen != null) "Done / back to GUI" else "Done", width / 2, 20, Color(20, 15, 28).rgb)
+        val help = "Drag to move / Scroll to resize / Right-click for options"
+        val helpWidth = SkijaDraw.textWidth(help).toInt() + 20
+        GuiUtils.renderRoundedRectangle(graphics, (width - helpWidth) / 2, height - 30, helpWidth, 22, 6, ClickGuiFeature.themeBase.rgb)
+        graphics.centeredText( help, width / 2, height - 23, Color.WHITE.rgb)
+
+        SkijaRenderer.submit(this, width, height, graphics)
     }
 
     override fun isPauseScreen(): Boolean = false
@@ -236,7 +257,10 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
         components.forEach(::save)
         selected = null
         openedOptions = null
-        super.onClose()
+        isDragging = false
+        val parent = returnScreen
+        returnScreen = null
+        if (parent != null) mc.gui.setScreen(parent) else super.onClose()
     }
 
     private const val OPTIONS_WIDTH = 150
@@ -269,11 +293,11 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
         return opened.allowedStaticRenderConditions.getOrNull(index)
     }
 
-    private fun renderOptions(context: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
+    private fun renderOptions(context: SkijaDraw, mouseX: Int, mouseY: Int) {
         val opened = openedOptions ?: return
         val panel = optionsRect() ?: return
-        GuiUtils.renderRoundedRectangle(context, panel.x, panel.y, panel.width, panel.height, 3, Color(24, 9, 14, 235).rgb)
-        GuiUtils.renderRoundedOutline(context, panel.x, panel.y, panel.width, panel.height, 3, 1, Color(204, 84, 116, 238).rgb)
+        GuiUtils.renderRoundedRectangle(context, panel.x, panel.y, panel.width, panel.height, 3, ClickGuiFeature.themeBase.rgb)
+        GuiUtils.renderRoundedOutline(context, panel.x, panel.y, panel.width, panel.height, 3, 1, ClickGuiFeature.themeAccent.rgb)
 
         opened.allowedStaticRenderConditions.forEachIndexed { index, condition ->
             val rowY = panel.y + OPTIONS_PADDING + index * OPTION_HEIGHT
@@ -283,10 +307,10 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
             val boxX = panel.x + OPTIONS_PADDING
             val boxY = rowY + 4
             GuiUtils.renderRoundedRectangle(context, boxX, boxY, 10, 10, 2,
-                if (active) Color(204, 84, 116, 255).rgb else Color(45, 20, 28, 255).rgb)
+                if (active) ClickGuiFeature.themeAccent.rgb else Color(45, 20, 28, 255).rgb)
             GuiUtils.renderRoundedOutline(context, boxX, boxY, 10, 10, 2, 1, Color(235, 140, 166, 220).rgb)
             if (active) GuiUtils.renderRectangle(context, boxX + 3, boxY + 3, 4, 4, Color.WHITE.rgb)
-            context.text(minecraft.font, condition.displayName, boxX + 16, rowY + 4, Color(246, 227, 233, 255).rgb)
+            context.text(condition.displayName, boxX + 16, rowY + 4, Color(246, 227, 233, 255).rgb)
         }
     }
 }
