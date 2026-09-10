@@ -42,12 +42,6 @@ object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
         }
     }
 
-    private fun addSwing(playerName: String) {
-        val now = System.currentTimeMillis()
-
-        swings[playerName] = now
-    }
-
     fun startTracking() {
         inP4 = true
         client = 0
