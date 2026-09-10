@@ -1160,14 +1160,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             featureLayouts.forEach { layout ->
                 if (!layout.isHeaderHovered(mouseX, mouseY)) return@forEach
 
-                val headerSwitch = featureSwitchRect(layout)
-                if (button == LEFT_MOUSE_BUTTON && headerSwitch.contains(mouseX, mouseY)) {
+                if (button == LEFT_MOUSE_BUTTON) {
                     layout.feature.toggle()
                     playClickSound(1.0f)
                     return true
                 }
 
-                if (button == LEFT_MOUSE_BUTTON || button == RIGHT_MOUSE_BUTTON) {
+                if (button == RIGHT_MOUSE_BUTTON) {
                     if (focusedFeature() == null) inspectFeature(layout.feature)
                     playClickSound(0.95f)
                     return true
