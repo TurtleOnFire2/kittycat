@@ -51,6 +51,7 @@ public class ClientPlayNetworkHandleMixin {
         Relics.INSTANCE.handleChat(unformatted);
         LocationUtils.INSTANCE.handleChat(unformatted);
         KuudraUtils.INSTANCE.handleChat(unformatted);
+        Build.INSTANCE.handleChat(unformatted);
         AutoGFS.INSTANCE.handleChat(unformatted);
         Stun.INSTANCE.handleChat(unformatted);
         FarmHelper.INSTANCE.handleChat(unformatted);
