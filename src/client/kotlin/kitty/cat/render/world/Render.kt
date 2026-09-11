@@ -372,6 +372,22 @@ fun LevelRenderContext.drawLineBox(
     }
 }
 
+/** Fills a single convex polygon without overlapping faces. */
+fun LevelRenderContext.drawFilledPolygon(points: List<Vec3>, color: Color) {
+    if (points.size < 3) return
+    poseStack().poseScopeWithCamera { stack ->
+        submitNodeCollector().submitCustomGeometry(stack, RenderTypes.debugFilledBox()) { pose, buffer ->
+            fun vertex(point: Vec3) {
+                buffer.addVertex(pose.pose(), point.x.toFloat(), point.y.toFloat(), point.z.toFloat()).setColor(color.rgb)
+            }
+            // Triangle fans encoded as quads with a repeated final vertex.
+            for (index in 1 until points.lastIndex) {
+                vertex(points[0]); vertex(points[index]); vertex(points[index + 1]); vertex(points[index + 1])
+            }
+        }
+    }
+}
+
 fun LevelRenderContext.drawFilled(
     aabb: AABB,
     color: Color,

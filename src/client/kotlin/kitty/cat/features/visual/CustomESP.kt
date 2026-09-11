@@ -42,6 +42,8 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     val debug = booleanSetting("Debug", false)
     val debug2 = booleanSetting("Debug 2", false)
     val skipArmorStands = booleanSetting("Skip ArmorStands", false)
+    val onlyArmorStands = booleanSetting("Only ArmorStands", false)
+
 
     private val configPath = FabricLoader.getInstance().configDir.resolve("kittycat/custom_esp.json")
     private val gson: Gson = GsonBuilder()
@@ -90,12 +92,14 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 KuudraUtils.entitiesForRendering().forEach { e ->
                     if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach
 
+                    if (e !is ArmorStand && onlyArmorStands.value) return@forEach
+
                     val h = e.bbHeight
 
                     ctx.renderString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0))
                     ctx.renderString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0))
                     ctx.renderString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0))
-                    ctx.renderBoxBounds(e.boundingBox, Color.WHITE, depthTest = false)
+                    //ctx.renderBoxBounds(e.boundingBox, Color.WHITE, depthTest = false)
                     if (e !is LivingEntity) return@forEach
                     ctx.renderString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0))
                     ctx.renderString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0))

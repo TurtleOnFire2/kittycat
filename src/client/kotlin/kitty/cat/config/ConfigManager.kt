@@ -113,6 +113,9 @@ object ConfigManager {
                     strings.addProperty(setting.name, setting.value)
                 }
                 featureObject.add("strings", strings)
+                val registries = JsonObject()
+                feature.registrySettings.forEach { setting -> registries.addProperty(setting.name, setting.value) }
+                featureObject.add("registries", registries)
                 val orders = JsonObject()
                 feature.orderSettings.forEach { setting ->
                     val values = JsonArray()
@@ -217,6 +220,10 @@ object ConfigManager {
             }
 
             val strings = featureObject.objectOrNull("strings")
+            val registries = featureObject.objectOrNull("registries")
+            feature.registrySettings.forEach { setting ->
+                registries?.stringOrNull(setting.name)?.let { setting.setValue(it) }
+            }
             feature.stringSettings.forEach { setting ->
                 strings?.stringOrNull(setting.name)?.let { setting.setValue(it) }
             }

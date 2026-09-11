@@ -10,6 +10,8 @@ import kitty.cat.features.settings.NumberSetting
 import kitty.cat.features.settings.OrderSetting
 import kitty.cat.features.settings.RangeSetting
 import kitty.cat.features.settings.SelectorSetting
+import kitty.cat.features.settings.RegistrySetting
+import net.minecraft.core.Registry
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
 
@@ -37,6 +39,8 @@ abstract class Feature {
     val rangeSettings: List<RangeSetting>
         get() = _rangeSettings
     private val _selectorSettings = mutableListOf<SelectorSetting>()
+    private val _registrySettings = mutableListOf<RegistrySetting>()
+    val registrySettings: List<RegistrySetting> get() = _registrySettings
     val selectorSettings: List<SelectorSetting>
         get() = _selectorSettings
     private val _colorSettings = mutableListOf<ColorSetting>()
@@ -158,6 +162,25 @@ abstract class Feature {
         _settings += setting
         return setting
     }
+
+    protected fun registrySetting(
+        name: String,
+        defaultValue: String,
+        allowedValues: List<String>,
+        placeholder: String = "Search entries...",
+        description: String = ""
+    ): RegistrySetting = RegistrySetting(name, defaultValue, allowedValues, placeholder, description).also {
+        _registrySettings += it
+        _settings += it
+    }
+
+    protected fun registrySetting(
+        name: String,
+        defaultValue: String,
+        registry: Registry<*>,
+        placeholder: String = "Search entries...",
+        description: String = ""
+    ): RegistrySetting = registrySetting(name, defaultValue, registry.keySet().map { it.toString() }.sorted(), placeholder, description)
 
     protected fun colorSetting(
         name: String,

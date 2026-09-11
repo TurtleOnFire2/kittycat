@@ -3,9 +3,11 @@ package kitty.cat.features.debug
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
 import kitty.cat.features.settings.KeybindSetting
+import net.minecraft.core.registries.BuiltInRegistries
 
 object ExampleFeature : Feature("Example Feature", "", Categories.Category.DEBUG) {
     val toggle = booleanSetting("Boolean Switch", true)
+    val block = registrySetting("Block registry", "minecraft:stone", BuiltInRegistries.BLOCK)
     val number = numberSetting("Number Setting", min = 0.0, max = 100.0, defaultValue = 50.0, unit = "k", step = 1.0)
     val range = rangeSetting("Range Setting", min = 0.0, max = 100.0, defaultLowerValue = 25.0, defaultUpperValue = 75.0, unit = "k", step = 1.0)
     val modeSingle = selectorSetting(

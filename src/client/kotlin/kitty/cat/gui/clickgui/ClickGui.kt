@@ -21,6 +21,7 @@ import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.features.kuudra.SafeSpots
 import kitty.cat.features.kuudra.Stun
 import kitty.cat.features.kuudra.Supplies
+import kitty.cat.features.kuudra.Build
 import kitty.cat.features.kuudra.SupplyCheats
 import kitty.cat.features.kuudra.TinyMobs
 import kitty.cat.features.misc.BestiaryHud
@@ -36,6 +37,7 @@ import kitty.cat.features.settings.NumberSetting
 import kitty.cat.features.settings.OrderSetting
 import kitty.cat.features.settings.RangeSetting
 import kitty.cat.features.settings.SelectorSetting
+import kitty.cat.features.settings.RegistrySetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
 import kitty.cat.features.visual.ArrowTracers
@@ -102,7 +104,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val selected: Boolean
     )
 
-    private enum class TextInputKind { NUMBER, RANGE, COLOR_CHANNEL, STRING }
+    private enum class TextInputKind { NUMBER, RANGE, COLOR_CHANNEL, STRING, REGISTRY }
 
     private enum class RangeHandle { LOWER, UPPER }
 
@@ -240,6 +242,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var draggingOrderIndex = -1
 
     private var textInputSession: TextInputSession? = null
+    private var registryHighlight = -1
     private var openColorPickerFor: ColorSetting? = null
     private var keybindCaptureSetting: KeybindSetting? = null
 
@@ -253,7 +256,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         Safari, ArrowTracers, CatEars, CustomESP, BestiaryESP, ClickGuiFeature,
         Storm, AutoLB, Relics, LeverTriggerbot, Terminals,
         RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, Supplies, AutoGFS, RendDamage, SupplyCheats, SafeSpots,
-        BestiaryHud, Pests, ChatMacros, FarmHelper,
+        BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
         ExampleFeature
     )
 
@@ -759,6 +762,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             buffer = initial,
             colorChannel = colorChannel
         )
+        registryHighlight = -1
     }
 
     private fun commitTextInput(): Boolean {
@@ -774,6 +778,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 true
             }
             TextInputKind.STRING -> (session.setting as? StringSetting)?.setFromText(session.buffer) ?: false
+            TextInputKind.REGISTRY -> (session.setting as? RegistrySetting)?.setValue(session.buffer) ?: false
         }
         textInputSession = null
         return success
@@ -808,6 +813,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 }
             }
             TextInputKind.COLOR_CHANNEL -> character.isDigit()
+            TextInputKind.REGISTRY -> session.buffer.length < (session.setting as RegistrySetting).maxLength
             TextInputKind.STRING -> {
                 val setting = session.setting as? StringSetting ?: return false
                 session.buffer.length < setting.maxLength.coerceAtLeast(1)
@@ -821,10 +827,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
 
         session.buffer += character
+        registryHighlight = -1
         return true
     }
 
     private fun removeLastTextInputChar(): Boolean {
+        registryHighlight = -1
         val session = textInputSession ?: return false
         if (session.buffer.isNotEmpty()) {
             session.buffer = session.buffer.dropLast(1)
@@ -1290,6 +1298,22 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                                 return true
                             }
                         }
+                        is RegistrySetting -> {
+                            if (button != LEFT_MOUSE_BUTTON) return@forEach
+                            if (stringTextRect(settingLayout).contains(mouseX, mouseY)) {
+                                if (!isTextInputActive(setting)) beginTextInput(setting, TextInputKind.REGISTRY, "")
+                                return true
+                            }
+                            if (isTextInputActive(setting)) {
+                                visibleRegistrySuggestions(setting).forEachIndexed { index, entry ->
+                                    if (registryOptionRect(settingLayout, index).contains(mouseX, mouseY)) {
+                                        setting.setValue(entry)
+                                        cancelTextInput()
+                                        return true
+                                    }
+                                }
+                            }
+                        }
                         is OrderSetting -> {
                             if (button != LEFT_MOUSE_BUTTON) return@forEach
                             setting.order.indices.firstOrNull { orderOptionRect(settingLayout, it).contains(mouseX, mouseY) }?.let {
@@ -1464,6 +1488,32 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val activeInput = textInputSession
         if (activeInput != null) {
+            val registry = activeInput.setting as? RegistrySetting
+            if (registry != null) {
+                val suggestions = registry.filteredSuggestions(activeInput.buffer)
+                when (keyEvent.key()) {
+                    GLFW.GLFW_KEY_DOWN, GLFW.GLFW_KEY_UP -> {
+                        if (suggestions.isNotEmpty()) {
+                            registryHighlight = if (keyEvent.key() == GLFW.GLFW_KEY_DOWN)
+                                (registryHighlight + 1).coerceAtMost(suggestions.lastIndex)
+                            else (registryHighlight - 1).coerceAtLeast(0)
+                        }
+                        return true
+                    }
+                    GLFW.GLFW_KEY_TAB -> {
+                        suggestions.getOrNull(registryHighlight.coerceAtLeast(0))?.let {
+                            activeInput.buffer = it
+                            registryHighlight = -1
+                        }
+                        return true
+                    }
+                    GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                        suggestions.getOrNull(registryHighlight)?.let { activeInput.buffer = it }
+                        commitTextInput()
+                        return true
+                    }
+                }
+            }
             when (keyEvent.key()) {
                 GLFW.GLFW_KEY_BACKSPACE -> {
                     removeLastTextInputChar()
@@ -1548,8 +1598,46 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             is ColorSetting -> renderColorSetting(graphics, settingLayout, setting)
             is ActionSetting -> renderActionSetting(graphics, sw, sh, scale, settingLayout)
             is OrderSetting -> renderOrderSetting(graphics, sw, sh, scale, settingLayout, setting)
+            is RegistrySetting -> renderRegistrySetting(graphics, settingLayout, setting)
         }
     }
+    private fun visibleRegistrySuggestions(setting: RegistrySetting): List<String> =
+        setting.filteredSuggestions(activeTextBufferOrNull(setting).orEmpty())
+            .drop((registryHighlight - 5).coerceAtLeast(0)).take(6)
+
+    private fun registryOptionRect(layout: SettingLayout, index: Int): Rect {
+        val field = stringTextRect(layout)
+        return Rect(field.x, layout.y + geometry(layout).fieldHeight + index * FEATURE_SETTING_ROW_HEIGHT,
+            field.width, FEATURE_SETTING_ROW_HEIGHT)
+    }
+
+    private fun renderRegistrySetting(graphics: SkijaDraw, layout: SettingLayout, setting: RegistrySetting) {
+        val rect = stringTextRect(layout)
+        val active = isTextInputActive(setting)
+        GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height, 2, fieldFillColor())
+        GuiUtils.renderRoundedOutline(graphics, rect.x, rect.y, rect.width, rect.height, 2, 1,
+            if (active) accentBrightBorderColor() else accentDimColor())
+        val buffer = activeTextBufferOrNull(setting)
+        val display = if (active && buffer.isNullOrEmpty()) setting.placeholder else buffer ?: setting.value
+        graphics.fieldText(fieldText(display, rect.width - 14, active && !buffer.isNullOrEmpty()),
+            rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = true)
+        if (!active) return
+        val suggestions = visibleRegistrySuggestions(setting)
+        if (suggestions.isEmpty()) {
+            val row = registryOptionRect(layout, 0)
+            graphics.fieldText("No matches", row.x, row.y, row.width, row.height, textMutedColor(), centered = true)
+        }
+        suggestions.forEachIndexed { index, entry ->
+            val row = registryOptionRect(layout, index)
+            val highlighted = index + (registryHighlight - 5).coerceAtLeast(0) == registryHighlight
+            val hovered = row.contains(pointerX.toDouble(), pointerY.toDouble())
+            GuiUtils.renderRoundedRectangle(graphics, row.x, row.y, row.width, row.height - 1, 2,
+                if (highlighted || hovered) sidebarSelectedColor() else fieldFillColor())
+            graphics.fieldText(fieldText(entry, row.width - 14), row.x, row.y, row.width, row.height,
+                if (entry == setting.value || highlighted) textPrimaryColor() else textMutedColor(), centered = true)
+        }
+    }
+
     private fun renderOrderSetting(graphics: SkijaDraw, sw: Int, sh: Int, scale: Float, layout: SettingLayout, setting: OrderSetting) {
         setting.order.forEachIndexed { index, option ->
             val rect = orderOptionRect(layout, index)
@@ -1557,7 +1645,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             GuiUtils.renderRoundedRectangle(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, if (dragging) sidebarSelectedColor() else fieldFillColor())
             GuiUtils.renderRoundedOutline(graphics, rect.x, rect.y, rect.width, rect.height - 1, 2, 1, if (dragging) accentBrightBorderColor() else accentDimColor())
             drawText(graphics, sw, sh, scale, "=", (rect.x + 3).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textMutedColor())
-            drawText(graphics, sw, sh, scale, fieldText(option, rect.width - 20), (rect.x + 13).toFloat(), (rect.y + VALUE_TEXT_Y_OFFSET).toFloat(), 9f, textPrimaryColor())
+            graphics.fieldText(fieldText(option, rect.width - 28), rect.x, rect.y, rect.width, rect.height - 1, textPrimaryColor(), centered = true)
         }
     }
 
@@ -1708,7 +1796,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         } else {
             setting.selectedSingle
         }
-        graphics.fieldText(fieldText(selectedText, baseRect.width - 22), baseRect.x, baseRect.y, baseRect.width - 14, baseRect.height, textMutedColor(), centered = false)
+        graphics.fieldText(fieldText(selectedText, baseRect.width - 32), baseRect.x, baseRect.y, baseRect.width, baseRect.height, textMutedColor(), centered = true)
         graphics.chevron(baseRect.x + baseRect.width - 9f, baseRect.y + baseRect.height / 2f, textPrimaryColor(), if (setting.dropdownOpen) 270f else 90f, 3f)
     }
 
@@ -1735,7 +1823,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         )
 
         val value = if (captureActive) "Press key..." else setting.displayValue()
-        graphics.fieldText(fieldText(value, rect.width - 14, isTextInputActive(setting)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = false)
+        graphics.fieldText(fieldText(value, rect.width - 14, isTextInputActive(setting)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = true)
     }
 
     private fun renderStringSetting(
@@ -1761,7 +1849,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val raw = activeTextBufferOrNull(setting) ?: setting.value
         val value = raw
-        graphics.fieldText(fieldText(value, rect.width - 14, isTextInputActive(setting)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = false)
+        graphics.fieldText(fieldText(value, rect.width - 14, isTextInputActive(setting)), rect.x, rect.y, rect.width, rect.height, textMutedColor(), centered = true)
     }
 
     private fun renderSelectorDropdownOverlay(
@@ -1799,16 +1887,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             val selected = setting.isSelected(option)
             val backgroundColor = if (selected) sidebarSelectedColor(214) else fieldFillColor(188)
             GuiUtils.renderRoundedRectangle(graphics, optionRect.x, optionRect.y, optionRect.width, optionRect.height, 2, backgroundColor)
-            drawText(
-                graphics,
-                sw,
-                sh,
-                scale,
-                fieldText(option, optionRect.width - 8),
-                (optionRect.x + 2).toFloat(),
-                (optionRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-                9f,
-                if (selected) textPrimaryColor() else textMutedColor()
+            graphics.fieldText(
+                fieldText(option, optionRect.width - 14),
+                optionRect.x, optionRect.y, optionRect.width, optionRect.height,
+                if (selected) textPrimaryColor() else textMutedColor(), centered = true
             )
         }
     }
@@ -1923,16 +2005,9 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val buttonRect = actionButtonRect(settingLayout)
         GuiUtils.renderRoundedRectangle(graphics, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, fieldFillColor())
         GuiUtils.renderRoundedOutline(graphics, buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height, 3, 1, accentDimColor())
-        drawCenteredText(
-            graphics,
-            sw,
-            sh,
-            scale,
-            "Run",
-            (buttonRect.x + buttonRect.width / 2).toFloat(),
-            (buttonRect.y + VALUE_TEXT_Y_OFFSET).toFloat(),
-            9f,
-            textPrimaryColor()
+        graphics.fieldText(
+            "Run", buttonRect.x, buttonRect.y, buttonRect.width, buttonRect.height,
+            textPrimaryColor(), centered = true
         )
     }
 
@@ -2004,6 +2079,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun settingHeight(setting: Setting, width: Int): Int = when (setting) {
+        is RegistrySetting -> SettingGeometry(0, 0, width).fieldHeight + if (isTextInputActive(setting))
+            visibleRegistrySuggestions(setting).size.coerceAtLeast(1) * FEATURE_SETTING_ROW_HEIGHT else 0
         is NumberSetting, is RangeSetting -> SettingGeometry(0, 0, width).sliderHeight
         is SelectorSetting -> SettingGeometry(0, 0, width).selectorHeight(setting.options.size, setting.dropdownOpen)
         is KeybindSetting, is StringSetting -> SettingGeometry(0, 0, width).fieldHeight
@@ -2015,7 +2092,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         is BooleanSetting -> booleanSwitchRect(layout).x - layout.x - 8
         is ActionSetting -> actionButtonRect(layout).x - layout.x - 8
         is ColorSetting -> colorSwatchRect(layout).x - layout.x - 8
-        is NumberSetting, is RangeSetting, is SelectorSetting, is KeybindSetting, is StringSetting -> geometry(layout).label.width
+        is NumberSetting, is RangeSetting, is SelectorSetting, is KeybindSetting, is StringSetting, is RegistrySetting -> geometry(layout).label.width
         else -> layout.width
     }.coerceAtLeast(0)
 
@@ -2227,6 +2304,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 if (openColorPickerFor !== setting) return false
                 val picker = colorPickerLayout()
                 colorPickerChannelRect(picker, channel).contains(mouseX, mouseY)
+            }
+            TextInputKind.REGISTRY -> {
+                val layout = findSettingLayout(session.setting) ?: return false
+                val setting = session.setting as RegistrySetting
+                stringTextRect(layout).contains(mouseX, mouseY) || visibleRegistrySuggestions(setting).indices.any {
+                    registryOptionRect(layout, it).contains(mouseX, mouseY)
+                }
             }
             TextInputKind.STRING -> {
                 val layout = findSettingLayout(session.setting) ?: return false

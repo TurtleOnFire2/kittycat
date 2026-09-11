@@ -23,6 +23,8 @@ import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.features.Feature
 import kitty.cat.features.huds.BackboneHud
+import kitty.cat.features.huds.BuildHud
+import kitty.cat.features.kuudra.Build
 import kitty.cat.features.huds.SupplyHud
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
@@ -302,6 +304,7 @@ object KittycatClient : ClientModInitializer {
 		KuudraUtils.register()
 		PearlWaypoints.register()
 		Supplies.register()
+		Build.register()
 		RendMacro.register()
 		ArrowTracers.register()
 		CatEars.register()
@@ -327,6 +330,7 @@ object KittycatClient : ClientModInitializer {
 		FarmHelper.register()
 
 		BackboneHud
+		BuildHud
 		SupplyHud
 	}
 }
