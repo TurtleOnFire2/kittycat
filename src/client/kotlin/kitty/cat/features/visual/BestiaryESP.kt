@@ -99,7 +99,7 @@ object BestiaryESP : Feature("Bestiary ESP", "", Categories.Category.VISUAL) {
 
             val mobsByName = enabledMobs.groupBy { it.name }
             val texturedMobs = enabledMobs.filter { it.texture != null }
-            KuudraUtils.entitiesForRendering().forEach { entity ->
+            mc.level?.entitiesForRendering()?.forEach { entity ->
                 if (!entity.isAlive || entity !is LivingEntity) return@forEach
                 val texture = if (texturedMobs.isEmpty()) null else CustomESP.getEntityTextureString(entity)
                 val matched = texturedMobs.firstOrNull { texture?.contains(it.texture!!) == true }

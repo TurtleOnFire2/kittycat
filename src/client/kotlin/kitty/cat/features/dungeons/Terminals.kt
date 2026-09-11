@@ -37,9 +37,9 @@ object Terminals: Feature("Terminals", "", Categories.Category.DUNGEONS) {
             it.options.keyUse.clickCount++
         }
         LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!enabled || !showHitbox.value) return@register
+            if (!enabled || mc.level == null || !showHitbox.value) return@register
 
-            val boxes = KuudraUtils.entitiesForRendering().mapNotNull { entity ->
+            val boxes = mc.level!!.entitiesForRendering().mapNotNull { entity ->
                 if (entity !is ArmorStand || entity.name.string !in terminalNames) return@mapNotNull null
                 val aabb = entity.boundingBox
                 BoxRender(aabb, if (aabb.canInteract()) Color.GREEN else Color.RED)

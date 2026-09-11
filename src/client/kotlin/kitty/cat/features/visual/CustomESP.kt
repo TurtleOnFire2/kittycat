@@ -65,7 +65,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
 
             if (!enabled) return@register
 
-            KuudraUtils.entitiesForRendering().forEach { e ->
+            mc.level?.entitiesForRendering()?.forEach { e ->
                 var entity = e
                 val name = entity.name() ?: return@forEach
 
@@ -89,7 +89,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
         }
         LevelRenderEvents.COLLECT_SUBMITS.register { ctx ->
             if (debug.value) {
-                KuudraUtils.entitiesForRendering().forEach { e ->
+                mc.level?.entitiesForRendering()?.forEach { e ->
                     if (e is ArmorStand && skipArmorStands.value || e == mc.player) return@forEach
 
                     if (e !is ArmorStand && onlyArmorStands.value) return@forEach
@@ -107,7 +107,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
             }
 
             if (debug2.value) {
-                KuudraUtils.entitiesForRendering().forEach { e ->
+                mc.level?.entitiesForRendering()?.forEach { e ->
                     val h = e.bbHeight
                     when (e) {
                         is TropicalFish -> {
@@ -157,7 +157,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     }
 
     fun getAllTextureStrings(str: String) {
-        KuudraUtils.entitiesForRendering().forEach { e ->
+        mc.level?.entitiesForRendering()?.forEach { e ->
             val texture = getEntityTextureString(e) ?: return@forEach
             val name = e.name.string ?: return@forEach
 
@@ -171,7 +171,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     }
 
     fun getMobString(str: String) {
-        KuudraUtils.entitiesForRendering().forEach { e ->
+        mc.level?.entitiesForRendering()?.forEach { e ->
             if (e !is LivingEntity) return@forEach
             val name = e.name.string ?: return@forEach
 

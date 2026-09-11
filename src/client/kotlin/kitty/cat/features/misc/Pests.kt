@@ -39,8 +39,8 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!pestEsp.value || !enabled) return@register
-            val tracers = KuudraUtils.entitiesForRendering().mapNotNull {
+            if (!pestEsp.value || !enabled || mc.level == null) return@register
+            val tracers = mc.level!!.entitiesForRendering().mapNotNull {
                 if (it !is ArmorStand) return@mapNotNull null
                 val head = it.getItemBySlot(EquipmentSlot.HEAD)
                 if (head.item.asItem() !is PlayerHeadItem) return@mapNotNull null

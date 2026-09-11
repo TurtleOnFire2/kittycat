@@ -288,11 +288,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
         if (!autoRotate.value) return
         schedule(delay.value) {
             dM("Searching for kuudra...")
-            val pos = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube ->
-                cube.isAlive &&
-                        cube.size == 30 &&
-                        cube.getAttributeBaseValue(Attributes.MAX_HEALTH) == 100_000.0
-            }?.position() ?: return@schedule
+
+            val pos = KuudraUtils.kuudraEntity?.position() ?: return@schedule
 
             dM("Found at ${pos.x}, ${pos.z}")
 

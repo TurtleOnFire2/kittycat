@@ -92,7 +92,7 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
 
             if (!supplyBeacons.value) return@register
 
-            KuudraUtils.entitiesForRendering().forEach { e ->
+            mc.level?.entitiesForRendering()?.forEach { e ->
                 if (e is Giant) {
                     val center = Vec3(
                         e.x + (2.7 * cos((e.yRot + 130) * (Math.PI / 180))),
