@@ -34,6 +34,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val renderArea = booleanSetting("Render area for auto open", false)
     val showWaypoint = booleanSetting("Show a waypoint", false, "Shows a waypoint on where to etherwarp to to also insta mount cannon.")
     val shopAimAssist = booleanSetting("Shop waypoint aim assist", false)
+    val onlyOnLeftSide = booleanSetting("Only work on left side of ballista", false)
     val shopAimAssistFov = numberSetting("Shop waypoint aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
     val shopAimAssistStrength = numberSetting("Shop waypoint aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
     val autoSetCursor = booleanSetting("Auto set cursor on shop open", false)
@@ -93,11 +94,15 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
     fun onTurn(accumulatedDX: Double, accumulatedDY: Double): DoubleArray? {
         val player = mc.player ?: return null
-        if (!enabled || (!stun() && !build())) return null
+        if (!enabled) return null
+        if (!stun() && !build()) return null
         if (abs(accumulatedDX) < 0.001 && abs(accumulatedDY) < 0.001) return null
 
         val candidates = buildList {
             if (showWaypoint.value && shopAimAssist.value) {
+
+                if (onlyOnLeftSide.value && player.x < -102) return@buildList
+
                 add(aimCandidate(SHOP_WAYPOINT, shopAimAssistFov.value, shopAimAssistStrength.value))
             }
             if (stun() && !podDestroyed && stunWaypoint.value && aimAssist.value) {
@@ -164,7 +169,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
         if (unformatted == "You purchased Human Cannonball!") {
             purchased = true
-            if (mc.player?.containerMenu != null && autoCloseShop.value) {
+            if (mc.player?.containerMenu != null && autoCloseShop.value && enabled) {
                 mc.player!!.closeContainer()
             }
             schedule(40) {
@@ -174,7 +179,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     }
 
     fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
-        if (!autoOpenShop.value || !build() && !stun()) return
+        if (!autoOpenShop.value || !build() && !stun() || !enabled) return
 
         if (!player.isCrouching) return
         if (player.mainHandItem.uuid() !in listOf("ETHERWARP_CONDUIT", "ASPECT_OF_THE_VOID")) return
@@ -253,6 +258,8 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
     fun handleSetSlot(packet: ClientboundContainerSetSlotPacket) {
         if (packet.item.hoverName.string != "Human Cannonball" || !autoSetCursor.value) return
+
+        if (!build() && !stun()) return
 
         val screen = mc.gui.screen() as? AbstractContainerScreen<*> ?: return
         if (packet.containerId != screen.menu.containerId) return

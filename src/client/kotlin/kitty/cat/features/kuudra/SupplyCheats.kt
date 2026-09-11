@@ -28,7 +28,7 @@ object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (ticks++ < delay.value) return@register
 
-            if (!kuudra() || !supplies() || !aura.value) return@register
+            if (!kuudra() || !supplies() || !aura.value || !enabled) return@register
 
             val zombies = KuudraUtils.getSupplyZombies().takeIf { it.isNotEmpty() } ?: return@register
             val closest = zombies[0]
