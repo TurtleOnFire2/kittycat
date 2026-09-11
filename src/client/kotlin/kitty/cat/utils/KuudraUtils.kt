@@ -9,7 +9,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.decoration.ArmorStand
+import net.minecraft.world.entity.monster.MagmaCube
 import net.minecraft.world.entity.monster.zombie.Zombie
 import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
@@ -21,6 +23,7 @@ object KuudraUtils {
     var activeDropOffs = mutableListOf<Triple<String, Vec3, Color>>()
     var square: Supply = Supply.None
     var isDead = false
+    var kuudraEntity: Entity? = null
 
     private val partyRegex = Regex("No (X Cannon|Triangle|X|Equals|Slash|xCannon|Shop)")
 
@@ -31,6 +34,15 @@ object KuudraUtils {
                 phase = Phase.DPS
                 RendDamage.startTracking()
                 BackboneAlert.p4Start = 0
+            }
+            if (!kuudra()) {
+                kuudraEntity = null
+                return@register
+            }
+            kuudraEntity = mc.level?.entitiesForRendering()?.filterIsInstance<MagmaCube>()?.find { cube ->
+                cube.isAlive &&
+                        cube.size == 30 &&
+                        cube.getAttributeBaseValue(Attributes.MAX_HEALTH) == 100_000.0
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->

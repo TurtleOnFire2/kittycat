@@ -24,8 +24,10 @@ import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.features.Feature
 import kitty.cat.features.huds.BackboneHud
 import kitty.cat.features.huds.BuildHud
+import kitty.cat.features.huds.KuudraHpHud
 import kitty.cat.features.kuudra.Build
 import kitty.cat.features.huds.SupplyHud
+import kitty.cat.features.kuudra.KuudraDisplay
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.features.kuudra.SafeSpots
@@ -319,9 +321,11 @@ object KittycatClient : ClientModInitializer {
 		SupplyCheats.register()
 		SafeSpots.register()
 		FarmHelper.register()
+		KuudraDisplay.register()
 
 		BackboneHud
 		BuildHud
+		KuudraHpHud
 		SupplyHud
 	}
 }
