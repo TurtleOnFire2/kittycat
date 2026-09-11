@@ -50,7 +50,7 @@ object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
     }
 
     fun handleSetEntityData(packet: ClientboundSetEntityDataPacket) {
-        if (!inP4) return
+        if (!inP4 || !enabled) return
 
         val entity = mc.level?.getEntity(packet.id) as? MagmaCube ?: return
 

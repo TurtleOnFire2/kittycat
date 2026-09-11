@@ -53,6 +53,7 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
     val announceFresh = booleanSetting("Announce fresh", false)
     val flowstate = booleanSetting("Flowstate", false, description = "Cyan/purple glow and outward speed streaks that fade as Fresh Tools expires.")
     val stunAlert = booleanSetting("Stun alert", false)
+    val stunAlertOnlyOnLeftSide = booleanSetting("Stun alert only on left side of ballista", false)
     val stunThreshold = numberSetting(
         "Stun alert threshold", min = 0.0, max = 100.0, defaultValue = 80.0,
         unit = "%", step = 1.0,
@@ -209,9 +210,12 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
         }
     }
 
+    fun shouldShowStunAlert(): Boolean =
+        stunAlert.value && buildProgress > stunThreshold.value &&
+            (!stunAlertOnlyOnLeftSide.value || (mc.player?.x?.let { it >= -102 } == true))
+
     private fun updateStunSound() {
-        if (!enabled || !stunAlert.value || !build() || mc.level == null || mc.player == null
-            || buildProgress <= stunThreshold.value) {
+        if (!enabled || !shouldShowStunAlert() || !build() || mc.level == null || mc.player == null) {
             stunAlertPlayed = false
             nextStunSoundTicks = 0
             remainingStunSounds = 0

@@ -17,7 +17,7 @@ object BuildHud : Hud.Component("BuildHud", 0.0, 0.0, 1f) {
     private val alertText = Component.literal("GO STUN!").withStyle(ChatFormatting.BOLD)
 
     private fun showStunAlert(): Boolean =
-        Build.stunAlert.value && Build.buildProgress > Build.stunThreshold.value
+        Build.shouldShowStunAlert()
 
     override fun render(context: GuiGraphicsExtractor) {
         if (!Build.enabled || !KuudraUtils.build()) return

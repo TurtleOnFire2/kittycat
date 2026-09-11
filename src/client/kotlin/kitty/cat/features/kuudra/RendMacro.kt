@@ -83,7 +83,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
-            if (mc.level == null || mc.player == null) return@register
+            if (mc.level == null || mc.player == null || !enabled) return@register
 
             checkRodAndEdge()
 

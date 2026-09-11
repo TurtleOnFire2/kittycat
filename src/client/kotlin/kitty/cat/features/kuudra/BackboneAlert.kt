@@ -17,7 +17,7 @@ object BackboneAlert : Feature("Backbone Alert", "", Categories.Category.KUUDRA)
     }
 
     fun alert() {
-        if (!showGear.value) return
+        if (!showGear.value || !enabled) return
 
         val item = mc.player?.mainHandItem
         val helmet = mc.player?.getItemBySlot(EquipmentSlot.HEAD)
