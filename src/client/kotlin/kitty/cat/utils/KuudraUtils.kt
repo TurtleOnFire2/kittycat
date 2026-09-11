@@ -89,11 +89,11 @@ object KuudraUtils {
     }
 
     val dropOffs = mutableListOf(
-        Triple("Shop", Vec3(-98.0, 79.0, -112.9375), Color.RED),
-        Triple("X", Vec3(-106.0, 79.0, -112.9375), Color.ORANGE),
+        Triple("Shop", Vec3(-98.0, 79.0, -113.0), Color.RED),
+        Triple("X", Vec3(-106.0, 79.0, -113.0), Color.ORANGE),
         Triple("xCannon", Vec3(-110.0, 79.0, -106.0), Color.WHITE),
-        Triple("Equals", Vec3(-106.0, 79.0, -99.0625), Color.BLUE),
-        Triple("Slash", Vec3(-98.0, 79.0, -99.0625), Color.GREEN),
+        Triple("Equals", Vec3(-106.0, 79.0, -99.0), Color.BLUE),
+        Triple("Slash", Vec3(-98.0, 79.0, -99.0), Color.GREEN),
         Triple("Triangle", Vec3(-94.0, 79.0, -106.0), Color.PINK)
     )
 

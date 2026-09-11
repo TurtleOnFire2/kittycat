@@ -21,6 +21,26 @@ import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.sin
 
+/** Fills a single convex polygon using the 26.1.2 world buffer source. */
+fun LevelRenderContext.drawFilledPolygon(points: List<Vec3>, color: Color) {
+    if (points.size < 3) return
+    val stack = poseStack()
+    stack.pushPose()
+    try {
+        stack.translate(mc.gameRenderer.mainCamera.position().reverse())
+        val matrix = stack.last().pose()
+        val buffer = bufferSource().getBuffer(RenderLayers.FILLED)
+        fun vertex(point: Vec3) {
+            buffer.addVertex(matrix, point.x.toFloat(), point.y.toFloat(), point.z.toFloat()).setColor(color.rgb)
+        }
+        for (index in 1 until points.lastIndex) {
+            vertex(points[0]); vertex(points[index]); vertex(points[index + 1])
+        }
+    } finally {
+        stack.popPose()
+    }
+}
+
 //FULLY PASTED FROM NOAMM. Meow :3
 
 object Render3D {

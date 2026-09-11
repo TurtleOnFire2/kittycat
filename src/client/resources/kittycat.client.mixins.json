@@ -11,6 +11,7 @@
     "MinecraftMixin",
     "MouseHandlerMixin",
     "MultiPlayerGameModeMixin",
+    "SoundManagerMixin",
     "gui.GuiGraphicsAccessor"
   ],
   "injectors": {
