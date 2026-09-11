@@ -113,6 +113,15 @@ sourceSets.test {
     runtimeClasspath += sourceSets["client"].output + sourceSets["client"].runtimeClasspath
 }
 
+tasks.withType<Test>().configureEach {
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+    }
+}
+
 tasks.withType<JavaCompile>().configureEach {
 	options.release = 25
 }

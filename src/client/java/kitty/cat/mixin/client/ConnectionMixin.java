@@ -4,6 +4,7 @@ import io.netty.channel.ChannelHandlerContext;
 import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.SupplyHud;
+import kitty.cat.features.kuudra.BackboneAlert;
 import kitty.cat.features.kuudra.PearlWaypoints;
 import kitty.cat.features.misc.FarmHelper;
 import kitty.cat.utils.Schedule;
@@ -27,6 +28,7 @@ public class ConnectionMixin {
             Schedule.INSTANCE.tickServer();
             PearlWaypoints.INSTANCE.serverTick();
             SupplyHud.INSTANCE.serverTick();
+            BackboneAlert.INSTANCE.serverTick();
         }
     }
 
