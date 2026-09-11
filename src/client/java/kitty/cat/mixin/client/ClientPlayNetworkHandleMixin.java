@@ -56,6 +56,7 @@ public class ClientPlayNetworkHandleMixin {
         AutoGFS.INSTANCE.handleChat(unformatted);
         Stun.INSTANCE.handleChat(unformatted);
         FarmHelper.INSTANCE.handleChat(unformatted);
+        CratePriority.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)
