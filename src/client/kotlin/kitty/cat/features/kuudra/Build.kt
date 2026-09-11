@@ -93,7 +93,7 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
             val stands = mc.level?.entitiesForRendering()?.filterIsInstance<ArmorStand>() ?: return@register
             for (stand in stands) {
                 val match = pileProgressRegex.matchEntire(stand.name.string) ?: continue
-                val progress = if (match.value == "PROGRESS: COMPLETE") return@register else match.groupValues[1].toIntOrNull() ?: 0
+                val progress = if (match.value == "PROGRESS: COMPLETE") continue else match.groupValues[1].toIntOrNull() ?: 0
                 val pileOutlineColor = progressColor(progress, alpha = 50)
                 val bottom = pileOutline.map { it.add(stand.x, 79.1, stand.z) }
                 context.drawFilledPolygon(bottom, pileOutlineColor)
