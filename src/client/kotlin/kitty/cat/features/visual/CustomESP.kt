@@ -9,24 +9,16 @@ import kitty.cat.utils.Chat
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
 import kitty.cat.render.world.Render3D.renderTracer
-import kitty.cat.render.world.Render3D.BoxRender
-import kitty.cat.render.world.Render3D.renderBoxesBounds
-import kitty.cat.render.world.Render3D.TracerRender
-import kitty.cat.render.world.Render3D.renderTracers
 import kitty.cat.utils.name
 import kitty.cat.utils.round
-import kitty.cat.utils.KuudraUtils
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
-import net.minecraft.world.entity.Display
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.Interaction
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.ai.attributes.Attributes
-import net.minecraft.world.entity.animal.fish.TropicalFish
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.player.Player
@@ -40,7 +32,6 @@ import kotlin.io.path.exists
 object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     val color = colorSetting("Color")
     val debug = booleanSetting("Debug", false)
-    val debug2 = booleanSetting("Debug 2", false)
     val skipArmorStands = booleanSetting("Skip ArmorStands", false)
     val onlyArmorStands = booleanSetting("Only ArmorStands", false)
 
@@ -55,9 +46,6 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     var entities = mutableListOf<Entity>()
     var tracerList = mutableListOf<String>()
     val entityList = mutableListOf<String>()
-    private val textureUrlCache = object : LinkedHashMap<String, String?>(128, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String?>): Boolean = size > 1024
-    }
 
     fun register() {
         loadConfig()
@@ -67,7 +55,7 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
 
             if (!enabled) return@register
 
-            mc.level?.entitiesForRendering()?.forEach { e ->
+            client.level?.entitiesForRendering()?.forEach { e ->
                 var entity = e
                 val name = entity.name() ?: return@forEach
 
@@ -87,6 +75,8 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                 if (tracerList.any { name.contains(it, ignoreCase = true) }) tracers.add(entity)
 
                 entities.add(entity)
+                tracers.removeIf { entity -> !entity.isAlive }
+                entities.removeIf { entity -> !entity.isAlive }
             }
         }
         LevelRenderEvents.COLLECT_SUBMITS.register { ctx ->
@@ -101,32 +91,20 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
                     ctx.renderString(e.name.string, e.position().add(0.0, 1.4 + h, 0.0))
                     ctx.renderString(e.position().toString(), e.position().add(0.0, 1.2 + h, 0.0))
                     ctx.renderString(e.type.toString(), e.position().add(0.0, 1.0 + h, 0.0))
-                    //ctx.renderBoxBounds(e.boundingBox, Color.WHITE, depthTest = false)
+                    //ctx.renderBoxBounds(e.boundingBox, Color.WHITE, phase = true)
                     if (e !is LivingEntity) return@forEach
                     ctx.renderString(e.getAttributeBaseValue(Attributes.MAX_HEALTH).toString(), e.position().add(0.0, 0.8 + h, 0.0))
                     ctx.renderString( getEntityTextureString(e) ?: "", e.position().add(0.0, 0.6 + h, 0.0))
                 }
             }
 
-            if (debug2.value) {
-                mc.level?.entitiesForRendering()?.forEach { e ->
-                    val h = e.bbHeight
-                    when (e) {
-                        is TropicalFish -> {
-                            ctx.renderString(e.baseColor.name, e.position().add(0.0, 1.4 + h, 0.0))
-                        }
-                        is Display.ItemDisplay -> {
-                            ctx.renderString(e.itemStack.itemName.string, e.position().add(0.0, 1.2 + h, 0.0))
-                        }
-                    }
-                }
+            entities.forEach{
+                ctx.renderBoxBounds(it.boundingBox, color.color, phase = false)
             }
-
-            ctx.renderBoxesBounds(entities.map { BoxRender(it.boundingBox, color.color) })
-            ctx.renderTracers(tracers.map {
+            tracers.forEach{
                 val height = it.boundingBox.ysize
-                TracerRender(it.position().add(0.0, height / 2.0, 0.0), color.color, 3.0f)
-            })
+                ctx.renderTracer(it.position().add(0.0, height / 2.0, 0.0), color.color, 3.0f)
+            }
         }
     }
 
@@ -143,16 +121,11 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
 
         val encoded = player.gameProfile.properties["textures"].firstOrNull()?.value
         if (encoded != null) {
-            if (textureUrlCache.containsKey(encoded)) return textureUrlCache[encoded]
-            val url = runCatching {
-                val json = String(java.util.Base64.getDecoder().decode(encoded))
-                val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
-                obj["textures"]?.asJsonObject
-                    ?.get("SKIN")?.asJsonObject
-                    ?.get("url")?.asString
-            }.getOrNull()
-            textureUrlCache[encoded] = url
-            return url
+            val json = String(java.util.Base64.getDecoder().decode(encoded))
+            val obj = com.google.gson.JsonParser.parseString(json).asJsonObject
+            return obj["textures"]?.asJsonObject
+                ?.get("SKIN")?.asJsonObject
+                ?.get("url")?.asString
         }
 
         return null

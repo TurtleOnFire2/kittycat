@@ -294,7 +294,6 @@ object KittycatClient : ClientModInitializer {
 			)
 		}
 
-		kitty.cat.features.kuudra.CratePriority.register()
 		KuudraUtils.register()
 		PearlWaypoints.register()
 		Supplies.register()

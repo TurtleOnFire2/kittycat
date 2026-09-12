@@ -14,9 +14,6 @@ object TrajectorySolver {
     private const val NEWTON_ITERATIONS = 20
     private const val MAX_SIMULATION_TICKS = 125
 
-    private val integerFactors = DoubleArray(MAX_SIMULATION_TICKS + 1) { horizontalFactor(it.toDouble()) }
-    private val integerGravity = DoubleArray(MAX_SIMULATION_TICKS + 1) { gravityCorrection(it.toDouble()) }
-
     fun solve(
         sky: Boolean,
         start: Vec3,
@@ -74,7 +71,7 @@ object TrajectorySolver {
         val seed = seedTicksFromHorizontal(horizontalDistance)
         var t = max(1.0, seed)
 
-        for (iteration in 0 until NEWTON_ITERATIONS) {
+        repeat(NEWTON_ITERATIONS) {
             val f = flightEquation(
                 t,
                 horizontalDistance,
@@ -86,17 +83,21 @@ object TrajectorySolver {
                 dy
             )
 
-            if (abs(derivative) < EPS) continue
+            if (abs(derivative) < EPS) {
+                return@repeat
+            }
 
             var next = t - f / derivative
 
-            if (!next.isFinite()) continue
+            if (!next.isFinite()) {
+                return@repeat
+            }
 
             next = max(1.0, next)
 
             if (abs(next - t) < 1.0E-10) {
                 t = next
-                break
+                return@repeat
             }
 
             t = next
@@ -159,7 +160,7 @@ object TrajectorySolver {
         for (tick in 1..MAX_SIMULATION_TICKS) {
             val t = tick.toDouble()
 
-            val factor = integerFactors[tick]
+            val factor = horizontalFactor(t)
 
             if (factor <= EPS) {
                 continue
@@ -169,7 +170,7 @@ object TrajectorySolver {
                 horizontalDistance / (SPEED * factor)
 
             val sinPitch =
-                -(dy + integerGravity[tick]) /
+                -(dy + gravityCorrection(t)) /
                         (SPEED * factor)
 
             if (abs(cosPitch) > 1.05) {

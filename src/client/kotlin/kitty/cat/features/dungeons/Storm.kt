@@ -67,12 +67,19 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
     val aimPos = Vec3(100.0, 181.0, 64.0)
     val stormPos = Vec3(83.56969386901531, 184.0, 33.911591511095395)
     var sneak = true
-    private var sneakTicks = 0
-    private var stopAimAtTick = -1L
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.player == null) return@register
+            if (storm && mc.player!!.x in 33.0..35.0 && mc.player!!.y >= 169.0 && mc.player!!.z in 63.0..70.0 && autoSneak.value) {
+                mc.options.keyShift.isDown = sneak
+                mc.options.keyDown.isDown = false
+                schedule(15) {
+                    sneak = false
+                }
+            } else {
+                sneak = true
+            }
             if (storm) {
                 ctx.renderBoxBounds(aimPos.add(waypointOffset.value, 0.0, 0.0).aabb(0.2), Color.CYAN, phase = false)
                 ctx.renderBoxBounds(stormPos.aabb(0.2), Color.CYAN, phase = false)
@@ -83,32 +90,15 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
             rotate(getLook().first, getLook().second)
         }
         ClientTickEvents.END_CLIENT_TICK.register { ctx ->
-            val player = mc.player ?: return@register
-            if (storm && player.x in 33.0..35.0 && player.y >= 169.0 && player.z in 63.0..70.0 && autoSneak.value) {
-                mc.options.keyShift.isDown = sneak
-                mc.options.keyDown.isDown = false
-                sneakTicks++
-                if (sneakTicks >= 15) sneak = false
-            } else {
-                sneak = true
-                sneakTicks = 0
-            }
-            val gameTime = player.level().gameTime
-            if (player.xRot < pitchLimit.value.toFloat() && inArea()) {
+            if (mc.player == null) return@register
+            if (mc.player!!.xRot < pitchLimit.value.toFloat() && inArea()) {
                 if (autoWalkForward.value) mc.options.keyUp.isDown = false
-                if (stopAimAtTick < 0L) stopAimAtTick = gameTime + 5L
-            } else {
-                stopAimAtTick = -1L
-            }
-            if (stopAimAtTick >= 0L && gameTime >= stopAimAtTick) {
-                aiming = false
-                stopAimAtTick = -1L
+                schedule(5) {
+                    aiming = false
+                }
             }
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
-            sneakTicks = 0
-            sneak = true
-            stopAimAtTick = -1L
             maxor = false
             storm = false
             necron = false

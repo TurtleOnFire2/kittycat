@@ -216,7 +216,3 @@ fun Vec3.getRotation(): Pair<Float, Float> {
 
     return Mth.wrapDegrees(yaw) to Mth.wrapDegrees(pitch)
 }
-
-fun BlockPos.center(): Vec3 {
-    return Vec3(x + 0.5, y + 0.5, z + 0.5)
-}

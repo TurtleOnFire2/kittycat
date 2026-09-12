@@ -4,8 +4,6 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
-import kitty.cat.utils.AimAssist
-import kitty.cat.utils.Chat
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.stun
 import kitty.cat.utils.Schedule.schedule
@@ -27,6 +25,9 @@ import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.Vec3
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val autoOpenShop = booleanSetting("Auto open shop", false)
@@ -95,28 +96,73 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         val player = mc.player ?: return null
         if (!enabled) return null
         if (!stun() && !build()) return null
+        if (abs(accumulatedDX) < 0.001 && abs(accumulatedDY) < 0.001) return null
 
         val candidates = buildList {
             if (showWaypoint.value && shopAimAssist.value) {
 
                 if (onlyOnLeftSide.value && player.x < -102) return@buildList
 
-                add(AimAssist.candidate(SHOP_WAYPOINT, shopAimAssistFov.value, shopAimAssistStrength.value))
+                add(aimCandidate(SHOP_WAYPOINT, shopAimAssistFov.value, shopAimAssistStrength.value))
             }
             if (stun() && !podDestroyed && stunWaypoint.value && aimAssist.value) {
-                add(AimAssist.candidate(player.position().add(getOffset()), aimAssistFov.value, aimAssistStrength.value))
+                add(aimCandidate(player.position().add(getOffset()), aimAssistFov.value, aimAssistStrength.value))
             }
         }
 
         val candidate = candidates.filterNotNull().minByOrNull { it.distance } ?: return null
-        return AimAssist.adjustMouse(accumulatedDX, accumulatedDY, candidate)
+
+        val scale = rotationGcd() / 0.15
+        val neededX = candidate.yawDifference / scale
+        val neededY = candidate.pitchDifference / scale
+        val neededMagnitude = sqrt(neededX * neededX + neededY * neededY)
+        if (neededMagnitude < 1e-6) return null
+
+        val userMagnitude = sqrt(accumulatedDX * accumulatedDX + accumulatedDY * accumulatedDY)
+        val strength = candidate.strength
+        val pull = (userMagnitude * strength).coerceAtMost(neededMagnitude)
+        val assistX = neededX / neededMagnitude * pull
+        val assistY = neededY / neededMagnitude * pull
+
+        return doubleArrayOf(
+            accumulatedDX * (1.0 - strength) + assistX,
+            accumulatedDY * (1.0 - strength) + assistY,
+        )
+    }
+
+    private fun aimCandidate(target: Vec3, fov: Double, strength: Double): AimCandidate? {
+        val player = mc.player ?: return null
+        val delta = target.subtract(player.eyePosition)
+        val horizontalDistance = sqrt(delta.x * delta.x + delta.z * delta.z)
+        val targetYaw = Math.toDegrees(atan2(-delta.x, delta.z)).toFloat()
+        val targetPitch = Math.toDegrees(atan2(-delta.y, horizontalDistance)).toFloat()
+        val yawDifference = angleDifference(targetYaw, player.yRot)
+        val pitchDifference = targetPitch - player.xRot
+        val halfFov = fov / 2.0
+        if (abs(yawDifference) > halfFov || abs(pitchDifference) > halfFov) return null
+
+        return AimCandidate(
+            yawDifference,
+            pitchDifference,
+            strength,
+            sqrt(yawDifference * yawDifference + pitchDifference * pitchDifference.toDouble())
+        )
+    }
+
+    private fun angleDifference(target: Float, current: Float): Float {
+        var difference = (target - current) % 360f
+        if (difference > 180f) difference -= 360f
+        if (difference < -180f) difference += 360f
+        return difference
+    }
+
+    private fun rotationGcd(): Double {
+        val sensitivity = mc.options.sensitivity().get()
+        val base = sensitivity * 0.6 + 0.2
+        return (base * base * base * 8.0 * 0.15).coerceAtLeast(0.0001)
     }
 
     fun handleChat(unformatted: String) {
-        if (unformatted.contains("You equipped")) {
-            Chat.send(System.nanoTime(), unformatted)
-        }
-
         if (unformatted.endsWith(" destroyed one of Kuudra's pods!")) {
             podDestroyed = true
         }
@@ -203,8 +249,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     fun openScreen(packet: ClientboundOpenScreenPacket): Boolean {
         if (!enabled) return false
 
-        if (packet.title.string.contains("Loadout")) Chat.send(System.nanoTime(), packet.title.string)
-
         if (!stun() && !build()) return false
 
         if (!purchased) return false
@@ -235,6 +279,13 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
         GLFW.glfwSetCursorPos(window.handle(), windowX, windowY)
     }
+
+    private data class AimCandidate(
+        val yawDifference: Float,
+        val pitchDifference: Float,
+        val strength: Double,
+        val distance: Double
+    )
 
     private val SHOP_WAYPOINT = Vec3(-71.5, 79.0, -102.5)
 }
