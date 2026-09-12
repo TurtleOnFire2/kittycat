@@ -3,14 +3,17 @@ package kitty.cat.features.kuudra
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
-import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.BoxRender
+import kitty.cat.render.world.Render3D.renderBoxesBounds
+import net.minecraft.world.phys.AABB
 import kitty.cat.utils.KuudraUtils.kuudra
+import kitty.cat.utils.KuudraUtils.supplies
 import kitty.cat.utils.aabb
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.BlockPos
-import net.minecraft.world.entity.monster.MagmaCube
+import net.minecraft.world.entity.monster.cubemob.MagmaCube
 import java.awt.Color
 import java.util.UUID
 
@@ -46,45 +49,36 @@ object SafeSpots : Feature("Safe Spots", "", Categories.Category.KUUDRA) {
         },
     )
 
+    private var tickCubes: List<MagmaCube> = emptyList()
+
     val magmaCubeBounds = mutableMapOf<UUID, MagmaCubeBounds>()
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!enabled || !kuudra()) return@register
-            safeSpots.forEach { spot ->
-                val color = if (spot.safe) Color.GREEN else Color.RED
-                ctx.renderBoxBounds(spot.loc.aabb(), color)
-            }
-            val now = System.currentTimeMillis()
-
-            magmaCubeBounds.entries.removeIf { (_, bounds) ->
-                now - bounds.lastSeenAt > 4_000L
-            }
-
+            if (!enabled || !kuudra() || !supplies()) return@register
+            val boxes = safeSpots.map { spot ->
+                BoxRender(spot.loc.aabb(), if (spot.safe) Color.GREEN else Color.RED)
+            }.toMutableList()
             magmaCubeBounds.values.forEach { bounds ->
-                ctx.renderBoxBounds(
-                    bounds.minX,
-                    75.0,
-                    bounds.minZ,
-                    bounds.maxX,
-                    75.05,
-                    bounds.maxZ,
-                    Color.WHITE
-                )
+                boxes.add(BoxRender(AABB(bounds.minX, 75.0, bounds.minZ, bounds.maxX, 75.05, bounds.maxZ), Color.WHITE))
             }
+            ctx.renderBoxesBounds(boxes)
         }
 
         ClientTickEvents.END_CLIENT_TICK.register {
+            if (!enabled || !kuudra() || !supplies()) return@register
+
             val level = mc.level ?: return@register
-            val allCubes = level.entitiesForRendering().filterIsInstance<MagmaCube>()
+            tickCubes = level.entitiesForRendering().filterIsInstance<MagmaCube>()
             val now = System.currentTimeMillis()
 
             safeSpots.forEach { spot ->
                 spot.safe = spot.check()
             }
 
-            allCubes.forEach { cube ->
-                if (!magmaCubeDebug.value) return@register
+            magmaCubeBounds.entries.removeIf { (_, bounds) -> now - bounds.lastSeenAt > 4_000L }
+            if (!magmaCubeDebug.value) return@register
+            tickCubes.forEach { cube ->
                 if (cube.y !in 65.0..75.00) return@forEach
                 magmaCubeBounds.getOrPut(cube.uuid) {
                     MagmaCubeBounds(cube.x, cube.x, cube.z, cube.z, now)
@@ -94,14 +88,12 @@ object SafeSpots : Feature("Safe Spots", "", Categories.Category.KUUDRA) {
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             magmaCubeBounds.clear()
+            tickCubes = emptyList()
         }
     }
 
     fun isSafe(minX: Double, minZ: Double, maxX: Double, maxZ: Double): Boolean {
-        val level = mc.level ?: return true
-        val allCubes = level.entitiesForRendering().filterIsInstance<MagmaCube>()
-
-        return !allCubes.any { cube -> cube.x in minX..maxX && cube.z in minZ..maxZ && cube.y < 76}
+        return !tickCubes.any { cube -> cube.x in minX..maxX && cube.z in minZ..maxZ && cube.y < 76}
     }
     data class MagmaCubeBounds(
         var minX: Double,
