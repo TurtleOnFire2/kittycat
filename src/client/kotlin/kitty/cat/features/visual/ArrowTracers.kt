@@ -78,7 +78,7 @@ object ArrowTracers : Feature("Arrow Tracers", "", Categories.Category.VISUAL) {
             if (!enabled) return@register
             if (segments.isEmpty()) return@register
 
-            val cam = mc.gameRenderer.mainCamera.position()
+            val cam = ctx.levelState().cameraRenderState.pos
             val consumers = ctx.bufferSource()
             val buf = consumers.getBuffer(RenderTypes.linesTranslucent())
             val pose = ctx.poseStack().last()

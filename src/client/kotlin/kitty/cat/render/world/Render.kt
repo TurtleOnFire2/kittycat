@@ -27,7 +27,7 @@ fun LevelRenderContext.drawFilledPolygon(points: List<Vec3>, color: Color) {
     val stack = poseStack()
     stack.pushPose()
     try {
-        stack.translate(mc.gameRenderer.mainCamera.position().reverse())
+        stack.translate(levelState().cameraRenderState.pos.reverse())
         val matrix = stack.last().pose()
         val buffer = bufferSource().getBuffer(RenderLayers.FILLED)
         fun vertex(point: Vec3) {
@@ -59,7 +59,7 @@ object Render3D {
         if (boxes.isEmpty()) return
         val stack = poseStack()
         val consumers = bufferSource()
-        val cam = mc.gameRenderer.mainCamera.position()
+        val cam = levelState().cameraRenderState.pos
         stack.pushPose()
         stack.translate(-cam.x, -cam.y, -cam.z)
         try {
@@ -86,11 +86,11 @@ object Render3D {
     fun LevelRenderContext.renderTracers(tracers: Collection<TracerRender>) {
         if (tracers.isEmpty()) return
         val stack = poseStack()
-        val camera = mc.gameRenderer.mainCamera
-        val start = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()))
+        val camera = levelState().cameraRenderState
+        val start = camera.pos.add(Vec3.directionFromRotation(camera.xRot, camera.yRot))
         val buffer = bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
         stack.pushPose()
-        stack.translate(camera.position().reverse())
+        stack.translate(camera.pos.reverse())
         try {
             for (tracer in tracers) {
                 val p = tracer.point
@@ -113,14 +113,14 @@ object Render3D {
         if (height <= 0) return
 
         val matrixStack = poseStack()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
         val scale = radiusScale.toFloat()
 
         matrixStack.pushPose()
         matrixStack.translate(
-            pos.x - camera.position().x - 0.5,
-            pos.y - camera.position().y,
-            pos.z - camera.position().z - 0.5
+            pos.x - camera.pos.x - 0.5,
+            pos.y - camera.pos.y,
+            pos.z - camera.pos.z - 0.5
         )
         BeaconRenderer.submitBeaconBeam(
             matrixStack,
@@ -150,7 +150,7 @@ object Render3D {
 
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
         val state = mc.level?.getBlockState(pos) ?: return
         val shape = if (state.block != Blocks.AIR) state.getShape(mc.level !!, pos) else Shapes.block()
@@ -172,7 +172,7 @@ object Render3D {
         val maxZ = pos.z + shape.max(Direction.Axis.Z)
 
         matrixStack.pushPose()
-        matrixStack.translate(camera.position().reverse())
+        matrixStack.translate(camera.pos.reverse())
 
         if (fill) consumers.getBuffer(if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED).addFilledBoxVertices(
             matrixStack.last(),
@@ -209,10 +209,10 @@ object Render3D {
     ) {
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
         matrixStack.pushPose()
-        matrixStack.translate(camera.position().reverse())
+        matrixStack.translate(camera.pos.reverse())
         val buffer = consumers.getBuffer(if (phase) RenderLayers.CIRCLE_FILLED_THROUGH_WALLS else RenderLayers.CIRCLE_FILLED)
 
         val r = color.red / 255f
@@ -279,14 +279,14 @@ object Render3D {
     ) {
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
-        val cameraPos = camera.position()
+        val cameraPos = camera.pos
         val segments = (radius.toDouble() * 100).toInt().coerceAtLeast(64)
 
         matrixStack.pushPose()
         matrixStack.translate(center.x - cameraPos.x, center.y - cameraPos.y, center.z - cameraPos.z)
-        matrixStack.mulPose(camera.rotation())
+        matrixStack.mulPose(camera.orientation)
 
         val layer = if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED
         val buffer = consumers.getBuffer(layer)
@@ -347,8 +347,8 @@ object Render3D {
 
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
-        val cam = camera.position().reverse()
+        val camera = levelState().cameraRenderState
+        val cam = camera.pos.reverse()
 
         val xd = x.toDouble()
         val yd = y.toDouble()
@@ -409,8 +409,8 @@ object Render3D {
 
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
-        val cam = camera.position()
+        val camera = levelState().cameraRenderState
+        val cam = camera.pos
 
         matrixStack.pushPose()
         matrixStack.translate(- cam.x, - cam.y, - cam.z)
@@ -426,7 +426,7 @@ object Render3D {
             matrixStack.last(),
             minX,
             minY, minZ, maxX, maxY, maxZ, outlineColor.red / 255f,
-            outlineColor.green / 255f, outlineColor.blue / 255f, outlineColor.alpha.toFloat(), lineWidth.toFloat()
+            outlineColor.green / 255f, outlineColor.blue / 255f, outlineColor.alpha / 255f, lineWidth.toFloat()
         )
 
         matrixStack.popPose()
@@ -451,9 +451,9 @@ object Render3D {
     ) {
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
-        val camPos = camera.position()
+        val camPos = camera.pos
         val dx = (x.toDouble() - camPos.x).toFloat()
         val dy = (y.toDouble() - camPos.y).toFloat()
         val dz = (z.toDouble() - camPos.z).toFloat()
@@ -461,7 +461,7 @@ object Render3D {
 
         matrixStack.pushPose()
         matrixStack.translate(dx, dy, dz)
-        matrixStack.mulPose(camera.rotation())
+        matrixStack.mulPose(camera.orientation)
         matrixStack.scale(toScale, - toScale, toScale)
 
         val textLayer = if (phase) Font.DisplayMode.SEE_THROUGH else Font.DisplayMode.NORMAL
@@ -495,10 +495,10 @@ object Render3D {
     fun LevelRenderContext.renderRainbowLine(start: Vec3, finish: Vec3, thickness: Number, alpha: Float) {
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
         matrixStack.pushPose()
-        matrixStack.translate(camera.position().reverse())
+        matrixStack.translate(camera.pos.reverse())
 
         val buffer = consumers.getBuffer(RenderLayers.LINES)
         val direction = finish.subtract(start).normalize().toVector3f()
@@ -537,9 +537,9 @@ object Render3D {
     fun LevelRenderContext.renderLine(start: Vec3, finish: Vec3, color: Color, thickness: Number = 2, phase: Boolean = false) {
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
-        val cameraPos = camera.position()
+        val cameraPos = camera.pos
         matrixStack.pushPose()
         matrixStack.translate(- cameraPos.x, - cameraPos.y, - cameraPos.z)
 
@@ -560,13 +560,13 @@ object Render3D {
     fun LevelRenderContext.renderTracer(point: Vec3, color: Color, thickness: Number = 2.5) {
         val matrixStack = this.poseStack()
         val consumers = this.bufferSource()
-        val camera = mc.gameRenderer.mainCamera
+        val camera = levelState().cameraRenderState
 
         matrixStack.pushPose()
-        matrixStack.translate(camera.position().reverse())
+        matrixStack.translate(camera.pos.reverse())
 
         val buffer = consumers.getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-        val cameraPoint = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()))
+        val cameraPoint = camera.pos.add(Vec3.directionFromRotation(camera.xRot, camera.yRot))
 
         buffer.addLine(
             matrixStack.last(),

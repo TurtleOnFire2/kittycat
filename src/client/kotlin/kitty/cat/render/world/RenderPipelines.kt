@@ -19,7 +19,7 @@ object RenderPipelines {
     val CIRCLE_FILLED = RenderPipelines.register(
         RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET).apply {
             withLocation(id("pipeline/circle_filled"))
-            withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_STRIP)
+            withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
         }.build()
     )
 
@@ -47,7 +47,7 @@ object RenderPipelines {
     val CIRCLE_FILLED_THROUGH_WALLS = RenderPipelines.register(
         RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET).apply {
             withLocation(id("pipeline/circle_filled_through_walls"))
-            withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLE_STRIP)
+            withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
             withDepthStencilState(Optional.empty())
         }.build()
     )

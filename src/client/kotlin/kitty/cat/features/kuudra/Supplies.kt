@@ -78,10 +78,8 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
             pendingPearl = null
         }
 
-        LevelRenderEvents.END_MAIN.register { ctx ->
+        LevelRenderEvents.COLLECT_SUBMITS.register { ctx ->
             if (!enabled || !supplies()) return@register
-
-            val hr = mc.hitResult as? EntityHitResult
 
             if (dropOffBeacons.value) {
                 KuudraUtils.activeDropOffs.forEach { dropOff ->
@@ -102,6 +100,11 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
                 }
             }
 
+        }
+
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled || !supplies() || !supplyBeacons.value) return@register
+            val hr = mc.hitResult as? EntityHitResult
             getSupplyZombies().forEach { zombie ->
                 val color = if (hr?.entity === zombie) hoveredColor.color else supplyBeaconColor.color
                 ctx.renderBoxBounds(zombie.boundingBox, color, color.setAlpha(64))
