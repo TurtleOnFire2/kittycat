@@ -3,19 +3,23 @@ package kitty.cat.features.misc
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
-import kitty.cat.render.world.Render3D.renderTracer
+import kitty.cat.render.world.Render3D.TracerRender
+import kitty.cat.render.world.Render3D.renderTracers
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.item.PlayerHeadItem
+import java.awt.Color
 
 object Pests: Feature("Pests", "", Categories.Category.MISC) {
 
     val pestEsp = booleanSetting("Pest ESP", false)
     val color = colorSetting("Color")
 
-    private val pestSkull: List<String> = listOf(
+    private val pestSkull: Set<String> = setOf(
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQyMzg4OSwKICAicHJvZmlsZUlkIiA6ICIyY2Y2MzExZjUyMTM0NTE2YTEyNTY3NWUwMzk3NmU2MSIsCiAgInByb2ZpbGVOYW1lIiA6ICJmaWdodHN0b2NrIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzNlNTI3ODJkN2YyYWFlZThhZjViYTI5MjhmZWM3ODg1ZTk0ODc5MzM0YzIyOTZiYzllN2UyZGJjNTQxOGU1OGYiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQyMjEzNiwKICAicHJvZmlsZUlkIiA6ICIzNDY4Y2VjMWFlOTY0YWRmYWQyNjEzMGEwZGQ0NjRkYyIsCiAgInByb2ZpbGVOYW1lIiA6ICJzdXJlZWxta18iLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNGNlNzllOTBhZGYzNDcxOGYzMTNlYzI0ZDZjNjEzNWI2OWIzNzg4YzYxODQ5ODQ0NmNjYzgzY2E2NDBjMGIxNCIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9",
         "ewogICJ0aW1lc3RhbXAiIDogMTc2MDQ1MDQxOTYxMiwKICAicHJvZmlsZUlkIiA6ICI0OWIzODUyNDdhMWY0NTM3YjBmN2MwZTFmMTVjMTc2NCIsCiAgInByb2ZpbGVOYW1lIiA6ICJiY2QyMDMzYzYzZWM0YmY4IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzFlMDRiYjYzNjdjYWE0ZTg4ZjVmZDBlZTgwZjA3NDVkMTM3YTYwNjAyMjNkYmJjNDJhMTY0NzFmZGY2NGJiODMiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==",
@@ -33,21 +37,29 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
         "ewogICJ0aW1lc3RhbXAiIDogMTY5NzQ3MDQ1OTc0NywKICAicHJvZmlsZUlkIiA6ICIyNTBlNzc5MjZkNDM0ZDIyYWM2MTQ4N2EyY2M3YzAwNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJMdW5hMTIxMDUiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjQwM2JhNDAyN2EzMzNkOGQyZmQzMmFiNTlkMWNmZGJhYTdkOTA4ZDgwZDIzODFkYjJhNjljYmU2NTQ1MGFkOCIKICAgIH0KICB9Cn0="
     )
 
-    fun register() {
-        LevelRenderEvents.END_MAIN.register { ctx ->
-            if (!pestEsp.value || !enabled) return@register
-            mc.level?.entitiesForRendering()?.forEach {
-                if (it !is ArmorStand) return@forEach
-                val head = it.getItemBySlot(EquipmentSlot.HEAD)
-                if (head.item.asItem() !is PlayerHeadItem) return@forEach
+    private val targets = mutableListOf<ArmorStand>()
 
-                val profile = head.get(DataComponents.PROFILE) ?: return@forEach
+    fun register() {
+        ClientTickEvents.END_CLIENT_TICK.register {
+            targets.clear()
+            if (!pestEsp.value || !enabled || mc.level == null) return@register
+            targets.addAll(mc.level!!.entitiesForRendering().mapNotNull {
+                if (it !is ArmorStand) return@mapNotNull null
+                val head = it.getItemBySlot(EquipmentSlot.HEAD)
+                if (head.item.asItem() !is PlayerHeadItem) return@mapNotNull null
+
+                val profile = head.get(DataComponents.PROFILE) ?: return@mapNotNull null
                 val gameProfile = profile.partialProfile()
                 val textures = gameProfile.properties.get("textures").firstOrNull()
                 if (pestSkull.contains(textures?.value)) {
-                    ctx.renderTracer(it.eyePosition, color.color, 3.0f)
-                }
-            }
+                    it
+                } else null
+            })
+        }
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ -> targets.clear() }
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled || !pestEsp.value) return@register
+            ctx.renderTracers(targets.filter { it.isAlive }.map { TracerRender(it.eyePosition, color.color, 3.0f) })
         }
     }
 }

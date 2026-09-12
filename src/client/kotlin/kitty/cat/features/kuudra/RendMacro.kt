@@ -258,6 +258,8 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                     schedule(1) {
                         if (!useIceSpray.value) return@schedule
 
+                        if (mc.player!!.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG") return@schedule
+
                         val iceSpray = hotbarSlotFromID("STARRED_ICE_SPRAY_WAND") ?: return@schedule
 
                         mc.player!!.inventory.selectedSlot = iceSpray
@@ -266,6 +268,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
                             mc.options.keyUse.clickCount++
                             schedule(0) {
                                 if (!autoHalberd.value) return@schedule
+                                if (mc.player!!.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG") return@schedule
                                 val aotsSlot = hotbarSlotFromID("AXE_OF_THE_SHREDDED") ?: return@schedule
                                 mc.player!!.inventory.selectedSlot = aotsSlot
                             }

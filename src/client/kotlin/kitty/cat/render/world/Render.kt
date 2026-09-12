@@ -44,6 +44,66 @@ fun LevelRenderContext.drawFilledPolygon(points: List<Vec3>, color: Color) {
 //FULLY PASTED FROM NOAMM. Meow :3
 
 object Render3D {
+    data class TracerRender(val point: Vec3, val color: Color, val thickness: Float = 2.5f)
+    data class BoxRender(
+        val bounds: AABB,
+        val outlineColor: Color,
+        val fillColor: Color = outlineColor.setAlpha(128),
+        val outline: Boolean = true,
+        val fill: Boolean = true,
+        val depthTest: Boolean = false,
+        val lineWidth: Float = 2.5f
+    )
+
+    fun LevelRenderContext.renderBoxesBounds(boxes: Collection<BoxRender>) {
+        if (boxes.isEmpty()) return
+        val stack = poseStack()
+        val consumers = bufferSource()
+        val cam = mc.gameRenderer.mainCamera.position()
+        stack.pushPose()
+        stack.translate(-cam.x, -cam.y, -cam.z)
+        try {
+            for (box in boxes) {
+                val b = box.bounds
+                if (box.fill) {
+                    val c = box.fillColor
+                    consumers.getBuffer(if (box.depthTest) RenderLayers.FILLED else RenderLayers.FILLED_THROUGH_WALLS)
+                        .addFilledBoxVertices(stack.last(), b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ,
+                            c.red / 255f, c.green / 255f, c.blue / 255f, c.alpha / 255f)
+                }
+                if (box.outline) {
+                    val c = box.outlineColor
+                    consumers.getBuffer(if (box.depthTest) RenderLayers.LINES else RenderLayers.LINES_THROUGH_WALLS)
+                        .addLineBoxVertices(stack.last(), b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ,
+                            c.red / 255f, c.green / 255f, c.blue / 255f, c.alpha / 255f, box.lineWidth)
+                }
+            }
+        } finally {
+            stack.popPose()
+        }
+    }
+
+    fun LevelRenderContext.renderTracers(tracers: Collection<TracerRender>) {
+        if (tracers.isEmpty()) return
+        val stack = poseStack()
+        val camera = mc.gameRenderer.mainCamera
+        val start = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()))
+        val buffer = bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
+        stack.pushPose()
+        stack.translate(camera.position().reverse())
+        try {
+            for (tracer in tracers) {
+                val p = tracer.point
+                val c = tracer.color
+                buffer.addLine(stack.last(), start.x.toFloat(), start.y.toFloat(), start.z.toFloat(),
+                    p.x.toFloat(), p.y.toFloat(), p.z.toFloat(), c.red / 255f, c.green / 255f, c.blue / 255f,
+                    c.alpha / 255f, tracer.thickness)
+            }
+        } finally {
+            stack.popPose()
+        }
+    }
+
     fun LevelRenderContext.renderBeaconBeam(
         pos: Vec3,
         color: Color,
