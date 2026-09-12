@@ -3,10 +3,10 @@ package kitty.cat.features.misc
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
-import kitty.cat.render.world.Render3D.renderTracer
 import kitty.cat.render.world.Render3D.TracerRender
 import kitty.cat.render.world.Render3D.renderTracers
-import kitty.cat.utils.KuudraUtils
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.entity.EquipmentSlot
@@ -37,10 +37,13 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
         "ewogICJ0aW1lc3RhbXAiIDogMTY5NzQ3MDQ1OTc0NywKICAicHJvZmlsZUlkIiA6ICIyNTBlNzc5MjZkNDM0ZDIyYWM2MTQ4N2EyY2M3YzAwNCIsCiAgInByb2ZpbGVOYW1lIiA6ICJMdW5hMTIxMDUiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjQwM2JhNDAyN2EzMzNkOGQyZmQzMmFiNTlkMWNmZGJhYTdkOTA4ZDgwZDIzODFkYjJhNjljYmU2NTQ1MGFkOCIKICAgIH0KICB9Cn0="
     )
 
+    private val targets = mutableListOf<ArmorStand>()
+
     fun register() {
-        LevelRenderEvents.END_MAIN.register { ctx ->
+        ClientTickEvents.END_CLIENT_TICK.register {
+            targets.clear()
             if (!pestEsp.value || !enabled || mc.level == null) return@register
-            val tracers = mc.level!!.entitiesForRendering().mapNotNull {
+            targets.addAll(mc.level!!.entitiesForRendering().mapNotNull {
                 if (it !is ArmorStand) return@mapNotNull null
                 val head = it.getItemBySlot(EquipmentSlot.HEAD)
                 if (head.item.asItem() !is PlayerHeadItem) return@mapNotNull null
@@ -49,10 +52,14 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
                 val gameProfile = profile.partialProfile()
                 val textures = gameProfile.properties.get("textures").firstOrNull()
                 if (pestSkull.contains(textures?.value)) {
-                    TracerRender(it.eyePosition, color.color, 3.0f)
+                    it
                 } else null
-            }
-            ctx.renderTracers(tracers)
+            })
+        }
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ -> targets.clear() }
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled || !pestEsp.value) return@register
+            ctx.renderTracers(targets.filter { it.isAlive }.map { TracerRender(it.eyePosition, color.color, 3.0f) })
         }
     }
 }

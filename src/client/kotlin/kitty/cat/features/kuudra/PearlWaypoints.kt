@@ -5,6 +5,7 @@ import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
+import kitty.cat.utils.AimAssist
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.Supply
 import kitty.cat.utils.KuudraUtils.kuudra
@@ -24,7 +25,6 @@ import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import java.util.regex.Pattern
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA) {
     val offset = numberSetting("Offset", 0.0, 1000.0, 0.0, "ms")
@@ -117,9 +117,6 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
         val player = mc.player ?: return null
         if (!enabled || !kuudra() || !supplies() || !tracking || solutions.isEmpty()) return null
         if (player.mainHandItem.item != Items.ENDER_PEARL) return null
-        if (abs(accumulatedDX) < 0.001 && abs(accumulatedDY) < 0.001) return null
-
-        data class Candidate(val solution: AimPoint, val yawDifference: Float, val pitchDifference: Float, val distance: Double)
 
         val hasMultipleSingleWaypoints = solutions.count { !it.isDouble } > 1
         val candidate = solutions.asSequence().mapNotNull { solution ->
@@ -129,35 +126,11 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if ((aimAssistTimeouts[solution.timeoutKey] ?: 0L) > System.currentTimeMillis()) return@mapNotNull null
 
             val fov = if (solution.isDouble) doubleAimAssistFov.value else singleAimAssistFov.value
-            val yawDifference = angleDifference(solution.yaw, player.yRot)
-            val pitchDifference = solution.pitch - player.xRot
-            val halfFov = fov / 2.0
-            if (abs(yawDifference) > halfFov || abs(pitchDifference) > halfFov) return@mapNotNull null
-
-            Candidate(
-                solution,
-                yawDifference,
-                pitchDifference,
-                sqrt(yawDifference * yawDifference + pitchDifference * pitchDifference.toDouble())
-            )
+            val strength = if (solution.isDouble) doubleAimAssistStrength.value else singleAimAssistStrength.value
+            AimAssist.candidate(solution.yaw, solution.pitch, fov, strength)
         }.minByOrNull { it.distance } ?: return null
 
-        val scale = rotationGcd() / 0.15
-        val neededX = candidate.yawDifference / scale
-        val neededY = candidate.pitchDifference / scale
-        val neededMagnitude = sqrt(neededX * neededX + neededY * neededY)
-        if (neededMagnitude < 1e-6) return null
-
-        val userMagnitude = sqrt(accumulatedDX * accumulatedDX + accumulatedDY * accumulatedDY)
-        val strength = if (candidate.solution.isDouble) doubleAimAssistStrength.value else singleAimAssistStrength.value
-        val pull = (userMagnitude * strength).coerceAtMost(neededMagnitude)
-        val assistX = neededX / neededMagnitude * pull
-        val assistY = neededY / neededMagnitude * pull
-
-        return doubleArrayOf(
-            accumulatedDX * (1.0 - strength) + assistX,
-            accumulatedDY * (1.0 - strength) + assistY,
-        )
+        return AimAssist.adjustMouse(accumulatedDX, accumulatedDY, candidate)
     }
 
     fun prepareUseItem(player: Player, interactionHand: InteractionHand) {
@@ -178,29 +151,16 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if (!enabledForType || (aimAssistTimeouts[solution.timeoutKey] ?: 0L) > now) return@filter false
 
             val fov = if (solution.isDouble) doubleAimAssistFov.value else singleAimAssistFov.value
-            abs(angleDifference(solution.yaw, player.yRot)) <= fov / 2.0 &&
+            abs(AimAssist.angleDifference(solution.yaw, player.yRot)) <= fov / 2.0 &&
                 abs(solution.pitch - player.xRot) <= fov / 2.0
         }.minByOrNull { solution ->
-            val yaw = angleDifference(solution.yaw, player.yRot)
+            val yaw = AimAssist.angleDifference(solution.yaw, player.yRot)
             val pitch = solution.pitch - player.xRot
             yaw * yaw + pitch * pitch
         } ?: return
 
         aimAssistTimeouts[target.timeoutKey] = now + AIM_ASSIST_THROW_TIMEOUT_MS
         aimAssistTimeouts.entries.removeIf { it.value <= now }
-    }
-
-    private fun angleDifference(target: Float, current: Float): Float {
-        var difference = (target - current) % 360f
-        if (difference > 180f) difference -= 360f
-        if (difference < -180f) difference += 360f
-        return difference
-    }
-
-    private fun rotationGcd(): Double {
-        val sensitivity = mc.options.sensitivity().get()
-        val base = sensitivity * 0.6 + 0.2
-        return (base * base * base * 8.0 * 0.15).coerceAtLeast(0.0001)
     }
 
     private val colorCodeRegex = Regex("§[0-9a-fk-or]")

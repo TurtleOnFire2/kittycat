@@ -13,9 +13,15 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
     val bestiaryRegex = Regex("""(.+) (\d+): ([\d,]+)/([\d,]+)""")
     val bestiaries = mutableMapOf<String, Bestiary>()
 
+    private var cachedLines: List<String> = emptyList()
+    private var nextTextUpdate = 0L
+    private var cachedActiveOnly = false
+
     fun register() {
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             if (BestiaryHud.resetOnWorldChange.value) bestiaries.clear()
+            nextTextUpdate = 0L
+            cachedLines = emptyList()
         }
         ClientTickEvents.END_CLIENT_TICK.register {
             bestiaries.values.forEach { b ->
@@ -62,6 +68,7 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
     }
 
     fun resetSession() {
+        nextTextUpdate = 0L
         bestiaries.values.forEach { b ->
             b.sessionStart = b.progress.replace(",", "").toInt()
             b.ticksPassed = 0
@@ -72,7 +79,16 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
 
     override fun render(context: GuiGraphicsExtractor) {
         if (!BestiaryHud.enabled) return
-        var y = 0
+        val now = System.nanoTime()
+        if (now >= nextTextUpdate || cachedActiveOnly != BestiaryHud.showActiveOnly.value) {
+            cachedLines = buildLines()
+            cachedActiveOnly = BestiaryHud.showActiveOnly.value
+            nextTextUpdate = now + 250_000_000L
+        }
+        cachedLines.forEachIndexed { index, text -> context.text(mc.font, text, 0, index * 10, -1) }
+    }
+
+    private fun buildLines(): List<String> = buildList {
         bestiaries.values.forEach { b ->
             val progressInt = b.progress.replace(",", "").toInt()
             //val gain = progressInt - b.sessionStart
@@ -96,8 +112,7 @@ object BestiaryHud: Hud.Component("BestiaryHud", 0.0, 0.0, 1f, staticRenderCondi
 
             if (perHour.isEmpty() && BestiaryHud.showActiveOnly.value) return@forEach
 
-            context.text(mc.font, "${b.name} ${b.level}: §b${b.progress}/${b.next} §7(${b.percentage}%)$perHour ", 0, y, -1)
-            y += 10
+            add("${b.name} ${b.level}: §b${b.progress}/${b.next} §7(${b.percentage}%)$perHour ")
         }
     }
 

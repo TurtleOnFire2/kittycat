@@ -3,7 +3,10 @@ package kitty.cat.features.misc
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
-import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.BoxRender
+import kitty.cat.render.world.Render3D.renderBoxesBounds
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import kitty.cat.utils.aabb
 import kitty.cat.utils.flatten
 import kitty.cat.utils.setAlpha
@@ -93,75 +96,92 @@ object Safari : Feature("Safari", "", Categories.Category.MISC) {
     val nozzlenose = booleanSetting("Nozzlenose", false)
     val nozzlenoseColor = colorSetting("Nozzlenose color")
 
+    private data class Target(val entity: Entity, val color: Color, val size: Double = 0.0, val floor: Boolean = false)
+    private val targets = mutableListOf<Target>()
+
     fun register() {
-        LevelRenderEvents.END_MAIN.register { ctx ->
+        ClientTickEvents.END_CLIENT_TICK.register {
+            targets.clear()
             if (!enabled) return@register
 
             mc.level?.entitiesForRendering()?.forEach { e ->
                 if (floorDropEsp.value && e is Display.ItemDisplay && e.itemStack.item == Items.STRING) {
-                    ctx.renderBoxBounds(e.blockPosition().aabb().move(0.0, 1.0, 0.0).flatten(0.1), highlightColor.color.setAlpha(0), highlightColor.color, depthTest = false)
+                    targets.add(Target(e, highlightColor.color, floor = true))
                 }
 
                 when (e) {
                     is Display.ItemDisplay -> {
                         when (e.itemStack.itemName.string) {
-                            "f4c16ce02815426f's Head" -> { if (flitter.value) render(ctx, e, flitterColor.color) } //Flitter
-                            "32fe7a535ee8480e' Head" -> { if (chuckwalla.value) render(ctx, e, chuckwallaColor.color) } //Chuckwalla
-                            "Player Head" -> { if (rockmite.value) render(ctx, e, rockmiteColor.color, 0.2) } //Rockmite
-                            "48e0d28bb1b54d4a's Head" -> { if (mantisShrimp.value) render(ctx, e, mantisShrimpColor.color, 0.2) } //Mantis Shrimp
-                            "ef2580172a474a1b's Head" -> { if (mantisShrimp.value) render(ctx, e, mantisShrimpColor.color, 0.2) } //Mantis Shrimp
-                            "9be41fba60274de3's Head" -> { if (troodon.value) render(ctx, e, troodonColor.color) } //Troodon
-                            in listOf("Bookshelf", "Cherry Wood", "Deepslate") -> {
-                                if (duplico.value) render(ctx, e, duplicoColor.color, 0.5)
+                            "f4c16ce02815426f's Head" -> { if (flitter.value) track(e, flitterColor.color) } //Flitter
+                            "32fe7a535ee8480e' Head" -> { if (chuckwalla.value) track(e, chuckwallaColor.color) } //Chuckwalla
+                            "Player Head" -> { if (rockmite.value) track(e, rockmiteColor.color, 0.2) } //Rockmite
+                            "48e0d28bb1b54d4a's Head" -> { if (mantisShrimp.value) track(e, mantisShrimpColor.color, 0.2) } //Mantis Shrimp
+                            "ef2580172a474a1b's Head" -> { if (mantisShrimp.value) track(e, mantisShrimpColor.color, 0.2) } //Mantis Shrimp
+                            "9be41fba60274de3's Head" -> { if (troodon.value) track(e, troodonColor.color) } //Troodon
+                            "Bookshelf", "Cherry Wood", "Deepslate" -> {
+                                if (duplico.value) track(e, duplicoColor.color, 0.5)
                             }
                             else -> {}
                         }
                     }
                     is TropicalFish -> {
                         when (e.baseColor) {
-                            DyeColor.GRAY -> { if (cavernfish.value) render(ctx, e, cavernfishColor.color) } //Cavernfish
-                            DyeColor.WHITE -> { if (tepid.value) render(ctx, e, tepidColor.color) } //Tepid
+                            DyeColor.GRAY -> { if (cavernfish.value) track(e, cavernfishColor.color) } //Cavernfish
+                            DyeColor.WHITE -> { if (tepid.value) track(e, tepidColor.color) } //Tepid
                             else -> {}
                         }
                     }
                     is Shulker -> {
                         when (e.color) {
-                            DyeColor.GREEN -> { if (hideOnFloor.value) render(ctx, e, hideOnFloorColor.color) }
-                            DyeColor.PURPLE -> { if (hideOnWall.value) render(ctx, e, hideOnWallColor.color) }
+                            DyeColor.GREEN -> { if (hideOnFloor.value) track(e, hideOnFloorColor.color) }
+                            DyeColor.PURPLE -> { if (hideOnWall.value) track(e, hideOnWallColor.color) }
                             else -> {}
                         }
 
                     }
 
-                    is Zombie -> { if (shyworm.value) render(ctx, e, shywormColor.color) } //Shyworm
-                    is Silverfish -> { if (driftling.value && e.inBlockState.block != Blocks.BARRIER) render(ctx, e, driftlingColor.color) } //Flitter
-                    is Armadillo -> { if (scrappy.value) render(ctx, e, scrappyColor.color) } //Driftling
-                    is Sniffer -> { if (snoozle.value) render(ctx, e, snoozleColor.color) } //Snoozle
+                    is Zombie -> { if (shyworm.value) track(e, shywormColor.color) } //Shyworm
+                    is Silverfish -> { if (driftling.value && e.inBlockState.block != Blocks.BARRIER) track(e, driftlingColor.color) } //Flitter
+                    is Armadillo -> { if (scrappy.value) track(e, scrappyColor.color) } //Driftling
+                    is Sniffer -> { if (snoozle.value) track(e, snoozleColor.color) } //Snoozle
 
-                    is Fox -> { if (foxtrot.value) render(ctx, e, foxtrotColor.color) } //Foxtrot
-                    is Frog -> { if (treefrog.value) render(ctx, e, treefrogColor.color) } //Treefrog
-                    is Creaking -> { if (woodchucker.value) render(ctx, e, woodchuckerColor.color) } //Woodchucker
-                    is Panda -> { if (fluffling.value) render(ctx, e, flufflingColor.color) } //Fluffling
+                    is Fox -> { if (foxtrot.value) track(e, foxtrotColor.color) } //Foxtrot
+                    is Frog -> { if (treefrog.value) track(e, treefrogColor.color) } //Treefrog
+                    is Creaking -> { if (woodchucker.value) track(e, woodchuckerColor.color) } //Woodchucker
+                    is Panda -> { if (fluffling.value) track(e, flufflingColor.color) } //Fluffling
 
-                    is CaveSpider -> { if (areita.value) render(ctx, e, areitaColor.color) } //Areita
-                    is Bat -> { if (bloodbat.value) render(ctx, e, bloodbatColor.color) } //Bloodbat
-                    is Endermite -> { if (litterbug.value) render(ctx, e, litterbugColor.color) } //Litterbug
-                    is Phantom -> { if (solsnatcher.value) render(ctx, e, solsnatcherColor.color) } //Solsnatcher
+                    is CaveSpider -> { if (areita.value) track(e, areitaColor.color) } //Areita
+                    is Bat -> { if (bloodbat.value) track(e, bloodbatColor.color) } //Bloodbat
+                    is Endermite -> { if (litterbug.value) track(e, litterbugColor.color) } //Litterbug
+                    is Phantom -> { if (solsnatcher.value) track(e, solsnatcherColor.color) } //Solsnatcher
                     is AbstractClientPlayer -> {
                         if (!e.name.string.contains("Hidey")) return@forEach
-                        if (hideyho.value) render(ctx, e, hideyhoColor.color)
+                        if (hideyho.value) track(e, hideyhoColor.color)
                     } //Hideyho
 
-                    is SnowGolem -> { if (strongarm.value) render(ctx, e, strongarmColor.color) } //Strongarm
-                    is PolarBear -> { if (polaris.value) render(ctx, e, polarisColor.color) } //Polaris
-                    is GlowSquid -> { if (shuddersquid.value) render(ctx, e, shuddersquidColor.color) } //Shuddersquid
-                    is Dolphin -> { if (nozzlenose.value) render(ctx, e, nozzlenoseColor.color) } //Nozzlenose
+                    is SnowGolem -> { if (strongarm.value) track(e, strongarmColor.color) } //Strongarm
+                    is PolarBear -> { if (polaris.value) track(e, polarisColor.color) } //Polaris
+                    is GlowSquid -> { if (shuddersquid.value) track(e, shuddersquidColor.color) } //Shuddersquid
+                    is Dolphin -> { if (nozzlenose.value) track(e, nozzlenoseColor.color) } //Nozzlenose
                 }
             }
         }
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ -> targets.clear() }
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled) return@register
+            ctx.renderBoxesBounds(targets.filter { it.entity.isAlive }.map { target ->
+                if (target.floor) {
+                    BoxRender(target.entity.blockPosition().aabb().move(0.0, 1.0, 0.0).flatten(0.1),
+                        target.color.setAlpha(0), target.color)
+                } else {
+                    BoxRender(target.entity.boundingBox.inflate(target.size).move(0.0, target.size, 0.0),
+                        target.color, target.color.setAlpha(128))
+                }
+            })
+        }
     }
 
-    fun render(ctx: LevelRenderContext, entity: Entity, color: Color, customSize: Double = 0.0) {
-        ctx.renderBoxBounds(entity.boundingBox.inflate(customSize).move(0.0, customSize, 0.0), color, color.setAlpha(128), depthTest = false)
+    private fun track(entity: Entity, color: Color, customSize: Double = 0.0) {
+        targets.add(Target(entity, color, customSize))
     }
 }

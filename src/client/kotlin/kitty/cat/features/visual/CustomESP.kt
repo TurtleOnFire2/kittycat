@@ -55,7 +55,9 @@ object CustomESP: Feature("Custom ESP", "/cesp", Categories.Category.VISUAL) {
     var entities = mutableListOf<Entity>()
     var tracerList = mutableListOf<String>()
     val entityList = mutableListOf<String>()
-    private val textureUrlCache = mutableMapOf<String, String?>()
+    private val textureUrlCache = object : LinkedHashMap<String, String?>(128, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String?>): Boolean = size > 1024
+    }
 
     fun register() {
         loadConfig()
