@@ -50,7 +50,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if (!enabled || !kuudra() || !supplies()) return@register
 
             val pos = mc.player?.position()?.add(0.0, mc.player!!.eyeHeight.toDouble(), 0.0) ?: return@register
-            if (lastPos?.distanceToSqr(pos)?.let { it < 0.0025 } == true) return@register
+            if (lastPos?.distanceToSqr(pos)?.let { it < 0.0005 } == true) return@register
 
             lastPos = pos
             solutions.clear()
@@ -71,6 +71,13 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
             KuudraUtils.doublePearls.forEach {
                 val sol = TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
+
+                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true))
+            }
+
+            KuudraUtils.lowDoublePearls.forEach {
+                val sol = TrajectorySolver.solve(false, pos, it.second) ?: TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
+
                 solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true))
             }
         }

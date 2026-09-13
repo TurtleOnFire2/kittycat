@@ -123,7 +123,11 @@ object KuudraUtils {
 
     val doublePearls = listOf(
         Triple("Square DP", Vec3(-140.0, 77.0, -87.0), Color.GREEN),
-        Triple("Shop DP", Vec3(-76.0, 78.0, -136.0), Color.RED)
+        Triple("Shop DP", Vec3(-76.0, 78.0, -136.0), Color.RED),
+    )
+
+    val lowDoublePearls = listOf(
+        Triple("XC DP", Vec3(-130.5, 79.0, -114.5), Color.ORANGE),
     )
 
     fun getSupply(): Supply {
