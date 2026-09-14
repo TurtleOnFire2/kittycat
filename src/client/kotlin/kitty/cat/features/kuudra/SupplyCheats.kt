@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3
 
 object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
     val reach = booleanSetting("Reach", false)
-    val range = numberSetting("Range", 3.0, 5.5, 3.0, "", 0.1)
+    val range = numberSetting("Range", 3.0, 6.0, 3.0, "", 0.1)
 
     val aura = booleanSetting("Aura", false)
     val auraRange = numberSetting("Aura range", 3.0, 8.0, 5.5, "", 0.1)
