@@ -1,6 +1,5 @@
 package kitty.cat.mixin.client;
 
-import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
@@ -8,10 +7,10 @@ import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.*;
 import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.FarmHelper;
-import kitty.cat.features.misc.Pests;
-import kitty.cat.features.visual.ArrowTracers;
+import kitty.cat.features.debug.PearlLandingDebug;
 import kitty.cat.utils.KuudraUtils;
 import kitty.cat.utils.LocationUtils;
+import kitty.cat.utils.LocationManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -25,17 +24,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ClientPlayNetworkHandleMixin {
     @Inject(method = "handleAddEntity", at = @At("TAIL"))
     void handleAddEntity(ClientboundAddEntityPacket clientboundAddEntityPacket, CallbackInfo ci) {
-        ArrowTracers.INSTANCE.handleAddEntity(clientboundAddEntityPacket);
-    }
-
-    @Inject(method = "handleRemoveEntities", at = @At("TAIL"))
-    void handleRemoveEntities(ClientboundRemoveEntitiesPacket clientboundRemoveEntitiesPacket, CallbackInfo ci) {
-        ArrowTracers.INSTANCE.handleRemoveEntities(clientboundRemoveEntitiesPacket);
+        PearlLandingDebug.INSTANCE.handleAddEntity(clientboundAddEntityPacket);
     }
 
     @Inject(method = "handlePlayerInfoUpdate", at = @At("TAIL"))
     void handleInfoUpdate(ClientboundPlayerInfoUpdatePacket packet, CallbackInfo ci) {
         BestiaryHud.INSTANCE.handleTabChange(packet);
+        LocationManager.INSTANCE.handlePlayerInfo(packet);
+    }
+
+    @Inject(method = "handleAddObjective", at = @At("TAIL"))
+    void handleSetObjective(ClientboundSetObjectivePacket packet, CallbackInfo ci) {
+        LocationManager.INSTANCE.handleObjective(packet);
+    }
+
+    @Inject(method = "handleSetPlayerTeamPacket", at = @At("TAIL"))
+    void handleSetPlayerTeam(ClientboundSetPlayerTeamPacket packet, CallbackInfo ci) {
+        LocationManager.INSTANCE.handlePlayerTeam(packet);
     }
 
     @Inject(method = "handleSystemChat(Lnet/minecraft/network/protocol/game/ClientboundSystemChatPacket;)V", at = @At("HEAD"))
@@ -46,7 +51,6 @@ public class ClientPlayNetworkHandleMixin {
         var message = component.getString();
         var unformatted = ChatFormatting.stripFormatting(message);
 
-        AutoLB.INSTANCE.handleChat(unformatted);
         ChatMacros.INSTANCE.handleChat(unformatted);
         Storm.INSTANCE.handleChat(unformatted);
         Relics.INSTANCE.handleChat(unformatted);
@@ -82,6 +86,7 @@ public class ClientPlayNetworkHandleMixin {
         RendMacro.INSTANCE.onPositionChange(packet);
         Supplies.INSTANCE.onPositionChange(packet);
         Stun.INSTANCE.onPositionChange(packet);
+        PearlLandingDebug.INSTANCE.onPositionChange();
     }
 
     @Inject(method = "setTitleText", at = @At("HEAD"), cancellable = true)

@@ -54,7 +54,6 @@ fabricApi {
 }
 
 dependencies {
-    testImplementation(kotlin("test-junit"))
     val skijaVersion = "0.143.17"
     implementation("io.github.humbleui:types:0.2.0")
     include("io.github.humbleui:types:0.2.0")
@@ -98,20 +97,6 @@ tasks.processResources {
 	filesMatching("fabric.mod.json") {
 		expand("version" to version)
 	}
-}
-
-sourceSets.test {
-    compileClasspath += sourceSets["client"].output + sourceSets["client"].compileClasspath
-    runtimeClasspath += sourceSets["client"].output + sourceSets["client"].runtimeClasspath
-}
-
-tasks.withType<Test>().configureEach {
-    jvmArgs("--enable-native-access=ALL-UNNAMED")
-    testLogging {
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        showCauses = true
-        showStackTraces = true
-    }
 }
 
 tasks.withType<JavaCompile>().configureEach {

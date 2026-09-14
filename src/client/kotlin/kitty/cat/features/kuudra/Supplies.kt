@@ -148,11 +148,7 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
         preparedPearl = PendingPearl(target, player.level().gameTime)
     }
 
-    fun useItem(
-        @Suppress("UNUSED_PARAMETER") player: Player,
-        @Suppress("UNUSED_PARAMETER") interactionHand: InteractionHand,
-        result: InteractionResult,
-    ) {
+    fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult, ) {
         val pearl = preparedPearl
         preparedPearl = null
         if (!enabled || !autoWalk.value || !supplies() || !result.consumesAction() || pearl == null) return

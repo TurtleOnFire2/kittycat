@@ -328,7 +328,8 @@ object TrajectorySolver {
     }
 
     fun PearlSolution.toAimPoint(
-        distance: Double
+        distance: Double,
+        origin: Vec3 = mc.player!!.eyePosition
     ): Vec3 {
         val yawRad = Math.toRadians(yaw.toDouble())
         val pitchRad = Math.toRadians(pitch.toDouble())
@@ -337,7 +338,7 @@ object TrajectorySolver {
         val y = -sin(pitchRad)
         val z = cos(yawRad) * cos(pitchRad)
 
-        return mc.player!!.eyePosition.add(
+        return origin.add(
             x * distance,
             y * distance,
             z * distance

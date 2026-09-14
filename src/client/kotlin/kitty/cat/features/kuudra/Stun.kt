@@ -113,10 +113,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     }
 
     fun handleChat(unformatted: String) {
-        if (unformatted.contains("You equipped")) {
-            Chat.send(System.nanoTime(), unformatted)
-        }
-
         if (unformatted.endsWith(" destroyed one of Kuudra's pods!")) {
             podDestroyed = true
         }
@@ -202,8 +198,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
     fun openScreen(packet: ClientboundOpenScreenPacket): Boolean {
         if (!enabled) return false
-
-        if (packet.title.string.contains("Loadout")) Chat.send(System.nanoTime(), packet.title.string)
 
         if (!stun() && !build()) return false
 

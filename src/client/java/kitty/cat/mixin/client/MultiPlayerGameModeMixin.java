@@ -1,5 +1,6 @@
 package kitty.cat.mixin.client;
 
+import kitty.cat.features.debug.PearlLandingDebug;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.kuudra.*;
 import kitty.cat.utils.BoneUtils;
@@ -20,6 +21,7 @@ public class MultiPlayerGameModeMixin {
     void beforeUseItem(Player player, InteractionHand interactionHand, CallbackInfoReturnable<InteractionResult> cir) {
         Supplies.INSTANCE.prepareUseItem(player, interactionHand);
         PearlWaypoints.INSTANCE.prepareUseItem(player, interactionHand);
+        PearlLandingDebug.INSTANCE.prepareUseItem(player, interactionHand);
     }
 
     @Inject(method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;", at = @At("RETURN"))
@@ -28,7 +30,6 @@ public class MultiPlayerGameModeMixin {
         BoneUtils.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         RendMacro.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         Stun.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
-        AutoGFS.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         Supplies.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         PearlWaypoints.INSTANCE.useItem(cir.getReturnValue());
     }

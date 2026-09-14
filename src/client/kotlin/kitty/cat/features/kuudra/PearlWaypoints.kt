@@ -14,6 +14,7 @@ import kitty.cat.utils.TrajectorySolver
 import kitty.cat.utils.TrajectorySolver.toAimPoint
 import kitty.cat.utils.aabb
 import kitty.cat.utils.lookinAt
+import kitty.cat.utils.renderPos
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
@@ -24,7 +25,6 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import java.util.regex.Pattern
-import kotlin.math.abs
 
 object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA) {
     val offset = numberSetting("Offset", 0.0, 1000.0, 0.0, "ms")
@@ -61,24 +61,24 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if (supply == Supply.Square && square == Supply.None) {
                 KuudraUtils.activeDropOffs.forEach {
                     val sol = TrajectorySolver.solve(false, pos, it.second) ?: return@forEach
-                    solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime - offset.value.toInt(), it.third, sol.yaw, sol.pitch, false))
+                    solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime - offset.value.toInt(), it.third, sol.yaw, sol.pitch, false, it.second, false))
                 }
             } else {
                 val pearl = KuudraUtils.dropOffs.firstOrNull { it.first == supply.name || (supply == Supply.Square && it.first == square.name) } ?: return@register
                 val sol = TrajectorySolver.solve(false, pos, pearl.second) ?: return@register
-                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime - offset.value.toInt(), pearl.third, sol.yaw, sol.pitch, false))
+                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime - offset.value.toInt(), pearl.third, sol.yaw, sol.pitch, false, pearl.second, false))
             }
 
             KuudraUtils.doublePearls.forEach {
                 val sol = TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
 
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true))
+                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true, it.second, true))
             }
 
             KuudraUtils.lowDoublePearls.forEach {
                 val sol = TrajectorySolver.solve(false, pos, it.second) ?: TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
 
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true))
+                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true, it.second, false, true))
             }
         }
         LevelRenderEvents.END_MAIN.register render@{ ctx ->
@@ -89,7 +89,17 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             val iterator = solutions.iterator()
 
             while (iterator.hasNext()) {
-                val solution = iterator.next()
+                val cached = iterator.next()
+                val player = mc.player ?: return@render
+                val eye = player.renderPos.add(0.0, player.eyeHeight.toDouble(), 0.0)
+                val trajectory = TrajectorySolver.solve(cached.sky, eye, cached.target)
+                    ?: (if (cached.fallbackToSky) TrajectorySolver.solve(true, eye, cached.target) else null)
+                    ?: continue
+                val solution = cached.copy(
+                    pos = trajectory.toAimPoint(if (cached.isDouble) 30.0 else 15.0, eye),
+                    yaw = trajectory.yaw,
+                    pitch = trajectory.pitch
+                )
 
                 ctx.renderBoxBounds(solution.pos.aabb(0.1), solution.color)
 
@@ -104,7 +114,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
                 if (
                     triggerbot.value &&
                     remaining <= 0 &&
-                    solution.pos.lookinAt(0.2, 35.0)
+                    cached.pos.lookinAt(0.2, 35.0)
                 ) {
                     mc.options.keyUse.clickCount++
                     iterator.remove()
@@ -158,8 +168,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
             if (!enabledForType || (aimAssistTimeouts[solution.timeoutKey] ?: 0L) > now) return@filter false
 
             val fov = if (solution.isDouble) doubleAimAssistFov.value else singleAimAssistFov.value
-            abs(AimAssist.angleDifference(solution.yaw, player.yRot)) <= fov / 2.0 &&
-                abs(solution.pitch - player.xRot) <= fov / 2.0
+            AimAssist.withinFov(solution.yaw, solution.pitch, player.yRot, player.xRot, fov)
         }.minByOrNull { solution ->
             val yaw = AimAssist.angleDifference(solution.yaw, player.yRot)
             val pitch = solution.pitch - player.xRot
@@ -215,7 +224,10 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
         val color: Color,
         val yaw: Float,
         val pitch: Float,
-        val isDouble: Boolean
+        val isDouble: Boolean,
+        val target: Vec3,
+        val sky: Boolean,
+        val fallbackToSky: Boolean = false
     ) {
         val timeoutKey: Pair<String, Boolean> get() = name to isDouble
     }

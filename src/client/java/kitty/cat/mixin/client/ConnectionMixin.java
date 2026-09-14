@@ -1,13 +1,11 @@
 package kitty.cat.mixin.client;
 
 import io.netty.channel.ChannelHandlerContext;
-import kitty.cat.features.dungeons.AutoLB;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.BackboneAlert;
 import kitty.cat.features.kuudra.Build;
 import kitty.cat.features.kuudra.PearlWaypoints;
-import kitty.cat.features.misc.FarmHelper;
 import kitty.cat.utils.Schedule;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
@@ -24,7 +22,6 @@ public class ConnectionMixin {
     private void handlePacket(Packet<?> packet) {
         if (packet instanceof ClientboundPingPacket common) {
             if (common.getId() == 0) return;
-            AutoLB.INSTANCE.serverTick();
             Storm.INSTANCE.serverTick();
             Schedule.INSTANCE.tickServer();
             PearlWaypoints.INSTANCE.serverTick();

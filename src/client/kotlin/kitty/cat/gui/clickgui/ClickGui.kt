@@ -5,7 +5,7 @@ import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.clickgui.UiRect as Rect
 import kitty.cat.features.Feature
 import kitty.cat.features.debug.ExampleFeature
-import kitty.cat.features.dungeons.AutoLB
+import kitty.cat.features.debug.PearlLandingDebug
 import kitty.cat.features.dungeons.LeverTriggerbot
 import kitty.cat.features.dungeons.Relics
 import kitty.cat.features.dungeons.Storm
@@ -14,7 +14,7 @@ import kitty.cat.features.kuudra.AutoGFS
 import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.Fixes
 import kitty.cat.features.kuudra.HideTags
-import kitty.cat.features.kuudra.KuudraDev
+import kitty.cat.features.debug.KuudraDev
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.features.kuudra.RendMacro
@@ -30,7 +30,6 @@ import kitty.cat.features.misc.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.FarmHelper
 import kitty.cat.features.misc.Pests
-import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.ActionSetting
 import kitty.cat.features.settings.BooleanSetting
 import kitty.cat.features.settings.ColorSetting
@@ -42,10 +41,7 @@ import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.RegistrySetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
-import kitty.cat.features.visual.ArrowTracers
-import kitty.cat.features.visual.BestiaryESP
 import kitty.cat.features.visual.CatEars
-import kitty.cat.features.visual.CustomESP
 import kitty.cat.render.skija.SkijaDraw
 import kitty.cat.render.skija.SkijaRenderer
 import kitty.cat.render.skija.SkijaShapes as GuiUtils
@@ -255,11 +251,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var maxFeatureScroll = 0
 
     val featureList: List<Feature> = listOf(
-        Safari, ArrowTracers, CatEars, CustomESP, BestiaryESP, ClickGuiFeature,
-        Storm, AutoLB, Relics, LeverTriggerbot, Terminals,
+        CatEars, ClickGuiFeature,
+        Storm, Relics, LeverTriggerbot, Terminals,
         CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, Supplies, AutoGFS, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
-        ExampleFeature
+        ExampleFeature, PearlLandingDebug
     )
 
     var activeFeatures: List<Feature> = emptyList()
