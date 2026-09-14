@@ -15,6 +15,8 @@ import net.minecraft.core.Registry
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
 
+///
+
 abstract class Feature {
     internal val name: String
     internal val description: String
