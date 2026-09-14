@@ -2,6 +2,7 @@ package kitty.cat.features.debug
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.kuudra.EtherwarpWaypoints
 import kitty.cat.utils.Chat
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.PrimitiveRenderer
@@ -27,6 +28,7 @@ import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import java.util.Locale
+import kotlin.math.floor
 
 object PearlLandingDebug : Feature(
     "Pearl Landing Debug",
@@ -42,9 +44,11 @@ object PearlLandingDebug : Feature(
     private val tracked = mutableMapOf<Int, Tracked>()
     private data class ThrowAttempt(val time: Long, val eye: Vec3, val direction: Vec3)
     private val throwAttempts = ArrayDeque<ThrowAttempt>()
+    private val trackingRequired: Boolean
+        get() = enabled || EtherwarpWaypoints.enabled
 
     fun prepareUseItem(player: Player, hand: InteractionHand) {
-        if (!enabled || player !== mc.player || !player.getItemInHand(hand).`is`(Items.ENDER_PEARL)) return
+        if (!trackingRequired || player !== mc.player || !player.getItemInHand(hand).`is`(Items.ENDER_PEARL)) return
         val now = System.currentTimeMillis()
         throwAttempts.removeAll { now - it.time > 2000L }
         if (throwAttempts.size >= 16) throwAttempts.removeFirst()
@@ -53,7 +57,7 @@ object PearlLandingDebug : Feature(
     }
 
     private fun debug(message: String) {
-        if (debugMessages.value) Chat.send("[Pearl Debug] $message")
+        if (enabled && debugMessages.value) Chat.send("[Pearl Debug] $message")
     }
 
     // Hypixel centers X/Z and uses the full-block top of the impact cell, even for partial blocks.
@@ -64,7 +68,7 @@ object PearlLandingDebug : Feature(
         val point = if (hit == null) prediction.points.last() else hit.location.add(
             hit.direction.stepX * 1e-7, hit.direction.stepY * 1e-7, hit.direction.stepZ * 1e-7
         )
-        return Vec3(kotlin.math.floor(point.x) + 0.5, kotlin.math.floor(point.y) + 1.0, kotlin.math.floor(point.z) + 0.5)
+        return Vec3(floor(point.x) + 0.5, floor(point.y) + 1.0, floor(point.z) + 0.5)
     }
 
     private fun describe(prediction: Prediction): String =
@@ -92,12 +96,14 @@ object PearlLandingDebug : Feature(
     override fun onEnable() { debug("Enabled; waiting for your pearl spawn packet.") }
     override fun onDisable() {
         debug("Disabled; cleared ${tracked.size} tracked pearls.")
-        tracked.clear()
-        throwAttempts.clear()
+        if (!trackingRequired) {
+            tracked.clear()
+            throwAttempts.clear()
+        }
     }
 
     fun handleAddEntity(packet: ClientboundAddEntityPacket) {
-        if (!enabled) return
+        if (!trackingRequired) return
         val player = mc.player ?: return
         val pearl = mc.level?.getEntity(packet.id) as? ThrownEnderpearl ?: return
         val now = System.currentTimeMillis()
@@ -122,7 +128,7 @@ object PearlLandingDebug : Feature(
     }
 
     fun onPositionChange() {
-        if (!enabled) return
+        if (!trackingRequired) return
         val player = mc.player ?: return
         val now = System.currentTimeMillis()
         if (tracked.values.none { entry -> entry.removedAt?.let { now - it <= 1500L } ?: true }) return
@@ -155,7 +161,7 @@ object PearlLandingDebug : Feature(
             throwAttempts.clear()
         }
         ClientTickEvents.END_CLIENT_TICK.register {
-            if (!enabled || mc.level == null || mc.player == null) {
+            if (!trackingRequired || mc.level == null || mc.player == null) {
                 tracked.clear()
                 throwAttempts.clear()
                 return@register
@@ -216,6 +222,16 @@ object PearlLandingDebug : Feature(
                 ctx.text("${prediction.status}: $coords (${prediction.ticks} ticks)", end.add(0.0, 0.35, 0.0), color.rgb, depth = false)
             }
         }
+    }
+
+    fun currentPredictedLanding(): Vec3? =
+        tracked.values.lastOrNull { it.removedAt == null && it.prediction.impact }
+            ?.prediction
+            ?.let(::centeredImpact)
+
+    fun hasActiveOrRecentPearl(): Boolean {
+        val now = System.currentTimeMillis()
+        return tracked.values.any { entry -> entry.removedAt?.let { now - it <= 1500L } ?: true }
     }
 
     private fun coordinates(pos: Vec3): String =

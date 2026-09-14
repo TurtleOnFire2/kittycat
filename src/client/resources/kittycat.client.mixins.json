@@ -31,6 +31,7 @@
     "FontMixin",
     "LivingEntityMixin",
     "LocalPlayerMixin",
+    "MinecraftMixin",
     "PlayerMixin"
   ]
 }

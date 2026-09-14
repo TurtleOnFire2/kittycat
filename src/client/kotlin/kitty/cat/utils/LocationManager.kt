@@ -17,7 +17,7 @@ object LocationManager {
         private set
 
     private val lobbyRegex = Regex("\\d\\d/\\d\\d/\\d\\d (\\w{0,6}) *")
-    private val formattingRegex = Regex("§.")
+    private val formattingRegex = Regex("\u00A7.")
 
     fun register() {
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
