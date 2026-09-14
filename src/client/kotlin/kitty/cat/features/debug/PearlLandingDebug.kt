@@ -4,11 +4,9 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.utils.Chat
 import kitty.cat.gui.categories.Categories
-import kitty.cat.render.world.PrimitiveRenderer
-import kitty.cat.render.world.RenderLayers
-import kitty.cat.render.world.drawLineBox
-import kitty.cat.render.world.poseScopeWithCamera
-import kitty.cat.render.world.text
+import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.render.world.Render3D.renderLine
+import kitty.cat.render.world.Render3D.renderString
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
@@ -193,27 +191,23 @@ object PearlLandingDebug : Feature(
                 entry.removedAt?.let { now - it < keepSeconds.value * 1000.0 } ?: true
             }.map { it.prediction }
             if (showPath.value && predictions.isNotEmpty()) {
-                ctx.poseStack().poseScopeWithCamera { stack ->
-                    ctx.submitNodeCollector().submitCustomGeometry(stack, RenderLayers.LINES_THROUGH_WALLS) { pose, buffer ->
-                        predictions.forEach { prediction ->
-                            prediction.points.zipWithNext().forEach { (start, end) ->
-                                PrimitiveRenderer.drawLine(pose, buffer, start, end, Color.CYAN.rgb, Color.CYAN.rgb, 1.5f)
-                            }
-                        }
+                predictions.forEach { prediction ->
+                    prediction.points.zipWithNext().forEach { (start, end) ->
+                        ctx.renderLine(start, end, Color.CYAN, 1.5f, phase = true)
                     }
                 }
             }
             predictions.forEach { prediction ->
                 val end = prediction.points.last()
                 val color = if (prediction.impact) Color.GREEN else Color.ORANGE
-                ctx.drawLineBox(AABB(end.x - 0.1, end.y - 0.1, end.z - 0.1, end.x + 0.1, end.y + 0.1, end.z + 0.1), color, 2f, false)
+                ctx.renderBoxBounds(AABB(end.x - 0.1, end.y - 0.1, end.z - 0.1, end.x + 0.1, end.y + 0.1, end.z + 0.1), color, fill = false, phase = true, lineWidth = 2f)
                 if (prediction.impact) {
                     val center = centeredImpact(prediction)
-                    ctx.drawLineBox(AABB(center.x - 0.15, center.y, center.z - 0.15, center.x + 0.15, center.y + 0.1, center.z + 0.15), Color.CYAN, 2f, false)
-                    ctx.text("Estimated Hypixel destination ${coordinates(center)}${impactDetails(prediction)}", center.add(0.0, 0.8, 0.0), Color.CYAN.rgb, depth = false)
+                    ctx.renderBoxBounds(AABB(center.x - 0.15, center.y, center.z - 0.15, center.x + 0.15, center.y + 0.1, center.z + 0.15), Color.CYAN, fill = false, phase = true, lineWidth = 2f)
+                    ctx.renderString("Estimated Hypixel destination ${coordinates(center)}${impactDetails(prediction)}", center.add(0.0, 0.8, 0.0), Color.CYAN, phase = true)
                 }
                 val coords = coordinates(end)
-                ctx.text("${prediction.status}: $coords (${prediction.ticks} ticks)", end.add(0.0, 0.35, 0.0), color.rgb, depth = false)
+                ctx.renderString("${prediction.status}: $coords (${prediction.ticks} ticks)", end.add(0.0, 0.35, 0.0), color, phase = true)
             }
         }
     }

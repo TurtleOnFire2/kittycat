@@ -4,7 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
-import kitty.cat.render.world.text
+import kitty.cat.render.world.Render3D.renderString
 import kitty.cat.utils.Chat
 import kitty.cat.utils.aabb
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
@@ -25,7 +25,7 @@ object BackboneAlert : Feature("Backbone Alert", "", Categories.Category.KUUDRA)
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled || !drawWaypoint.value || pos == null) return@register
-            ctx.text("BB", pos!!.add(0.0, 1.0, 0.0), Color.WHITE.rgb, 4f)
+            ctx.renderString("BB", pos!!.add(0.0, 1.0, 0.0), Color.WHITE, 4f)
             ctx.renderBoxBounds(pos!!.aabb(0.5), Color.ORANGE)
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, level ->
