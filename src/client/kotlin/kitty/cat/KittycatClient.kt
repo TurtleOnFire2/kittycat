@@ -4,7 +4,6 @@ import com.mojang.blaze3d.platform.InputConstants
 import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import kitty.cat.config.ConfigManager
-import kitty.cat.features.dungeons.AutoLB
 import kitty.cat.features.dungeons.LeverTriggerbot
 import kitty.cat.features.dungeons.Relics
 import kitty.cat.features.dungeons.Storm
@@ -14,10 +13,8 @@ import kitty.cat.utils.BoneUtils
 import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
-import kitty.cat.features.visual.ArrowTracers
-import kitty.cat.features.visual.BestiaryESP
+import kitty.cat.features.debug.PearlLandingDebug
 import kitty.cat.features.visual.CatEars
-import kitty.cat.features.visual.CustomESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
@@ -27,6 +24,8 @@ import kitty.cat.features.huds.BuildHud
 import kitty.cat.features.huds.KuudraHpHud
 import kitty.cat.features.kuudra.Build
 import kitty.cat.features.huds.SupplyHud
+import kitty.cat.features.kuudra.AutoGFS
+import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.KuudraDisplay
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
@@ -35,7 +34,6 @@ import kitty.cat.features.kuudra.Stun
 import kitty.cat.features.kuudra.Supplies
 import kitty.cat.features.kuudra.SupplyCheats
 import kitty.cat.features.misc.FarmHelper
-import kitty.cat.features.misc.Safari
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
@@ -57,7 +55,6 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.resources.Identifier
-import net.minecraft.world.phys.AABB
 import org.lwjgl.glfw.GLFW
 import org.reflections.Reflections
 
@@ -159,12 +156,6 @@ object KittycatClient : ClientModInitializer {
 							1
 						}
 					)
-					.then(
-						literal("be").executes {
-							BestiaryESP.openGui = true
-							1
-						}
-					)
 					.executes {
 						openGui = true
 						1
@@ -185,113 +176,6 @@ object KittycatClient : ClientModInitializer {
 							)
 					)
 			)
-			dispatcher.register(
-				literal("cesp")
-					.then(
-						literal("add")
-							.then(
-								argument("name", StringArgumentType.greedyString())
-									.executes { ctx ->
-										val name = StringArgumentType.getString(ctx, "name")
-										val color = if (CustomESP.tracerList.contains(name)) "§2" else "§c"
-										Chat.sendWithClickable("Added $name to CESP",
-											Chat.Clickable("§c[Remove]", ClickEvent.RunCommand("/cesp remove $name")),
-											Chat.Clickable("$color[Tracer]", ClickEvent.RunCommand("/cesp tracer $name"))
-										)
-										CustomESP.entityList.add(name)
-										CustomESP.saveConfig()
-										1
-									}
-							)
-					)
-					.then(
-						literal("remove")
-							.then(
-								argument("name", StringArgumentType.greedyString())
-									.executes { ctx ->
-										val name = StringArgumentType.getString(ctx, "name")
-										Chat.send("Removed $name from CESP")
-										CustomESP.entityList.remove(name)
-										CustomESP.tracerList.remove(name)
-										CustomESP.saveConfig()
-										1
-									}
-							)
-					)
-					.then(
-						literal("clear").executes {
-							Chat.send("Cleared CESP")
-							CustomESP.entityList.clear()
-							CustomESP.tracerList.clear()
-							CustomESP.saveConfig()
-							1
-						}
-					)
-					.then(
-						literal("list").executes {
-							CustomESP.entityList.forEach {
-								val color = if (CustomESP.tracerList.contains(it)) "§2" else "§c"
-								Chat.sendWithClickable(it,
-									Chat.Clickable("§c[Remove]", ClickEvent.RunCommand("/cesp remove $it")),
-									Chat.Clickable("$color[Tracer]", ClickEvent.RunCommand("/cesp tracer $it"))
-								)
-							}
-							1
-						}
-					)
-					.then(
-						literal("tracer")
-							.then(
-								argument("name", StringArgumentType.greedyString())
-									.executes { ctx ->
-										val name = StringArgumentType.getString(ctx, "name")
-										if (CustomESP.tracerList.contains(name)) {
-											CustomESP.tracerList.remove(name)
-										} else {
-											CustomESP.tracerList.add(name)
-										}
-										val color = if (CustomESP.tracerList.contains(name)) "§2" else "§c"
-										Chat.sendWithClickable("$name",
-											Chat.Clickable("§c[Remove]", ClickEvent.RunCommand("/cesp remove $name")),
-											Chat.Clickable("$color[Tracer]", ClickEvent.RunCommand("/cesp tracer $name"))
-										)
-										CustomESP.saveConfig()
-										1
-									}
-							)
-
-					)
-					.then(
-						literal("textures")
-							.executes { ctx ->
-								CustomESP.getAllTextureStrings("")
-								1
-							}
-							.then(
-								argument("name", StringArgumentType.greedyString())
-									.executes { ctx ->
-										val name = StringArgumentType.getString(ctx, "name")
-										CustomESP.getAllTextureStrings(name)
-										1
-									}
-							)
-					)
-					.then(
-						literal("mob")
-							.executes { ctx ->
-								CustomESP.getMobString("")
-								1
-							}
-							.then(
-								argument("name", StringArgumentType.greedyString())
-									.executes { ctx ->
-										val name = StringArgumentType.getString(ctx, "name")
-										CustomESP.getMobString(name)
-										1
-									}
-							)
-					)
-			)
 		}
 
 		kitty.cat.features.kuudra.CratePriority.register()
@@ -300,29 +184,27 @@ object KittycatClient : ClientModInitializer {
 		Supplies.register()
 		Build.register()
 		RendMacro.register()
-		ArrowTracers.register()
+		PearlLandingDebug.register()
 		CatEars.register()
-		AutoLB.register()
 		Pests.register()
 		Hud.register()
 		BestiaryHud.register()
 		ChatMacros.register()
 		Schedule.register()
 		Storm.register()
-		CustomESP.register()
-		BestiaryESP.register()
 		Relics.register()
 		Terminals.register()
 		LeverTriggerbot.register()
 		LocationUtils.register()
 		BoneUtils.register()
 		Stun.register()
-		Safari.register()
 		RendDamage.register()
 		SupplyCheats.register()
 		SafeSpots.register()
 		FarmHelper.register()
 		KuudraDisplay.register()
+		BackboneAlert.register()
+		AutoGFS.register()
 
 		BackboneHud
 		BuildHud

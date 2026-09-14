@@ -106,7 +106,7 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
                     Crate.Slash -> { "pc No Square!" }
                     else -> return
                 }
-                mc.connection?.sendCommand("pc $msg")
+                mc.connection?.sendCommand(msg)
             }
         }
 

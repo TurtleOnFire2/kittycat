@@ -3,11 +3,14 @@ package kitty.cat.features.kuudra
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
+import kitty.cat.render.world.Render3D
 import kitty.cat.render.world.Render3D.renderLine
+import kitty.cat.render.world.Render3D.renderBoxesBounds
 import kitty.cat.render.world.drawFilledPolygon
-import kitty.cat.utils.Chat
+import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.kuudra
+import kitty.cat.utils.aabb
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
@@ -103,6 +106,10 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
                     context.renderLine(bottom[index], bottom[next], pileOutlineColor, 4f, phase = false)
                 }
             }
+            val boxes = KuudraUtils.dropOffs.map { dropOff ->
+                Render3D.BoxRender(dropOff.second.aabb(0.25), Color.CYAN)
+            }
+            context.renderBoxesBounds(boxes)
         }
         ClientTickEvents.END_CLIENT_TICK.register {
             if (mc.level == null || mc.player == null) freshTimeLeft = 0

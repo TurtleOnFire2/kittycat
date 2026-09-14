@@ -92,6 +92,7 @@ object BoneUtils {
                         if (curr == null) return
                         RendMacro.onBackbone()
                         BackboneAlert.alert()
+                        BackboneAlert.pos = curr
                         BackboneHud.render = true
                         schedule(BackboneAlert.time.value) {
                             BackboneHud.render = false

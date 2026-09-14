@@ -2,6 +2,9 @@ package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
 import net.minecraft.world.phys.Vec3
+import kotlin.math.acos
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -27,8 +30,7 @@ object AimAssist {
         val player = mc.player ?: return null
         val yawDifference = angleDifference(targetYaw, player.yRot)
         val pitchDifference = targetPitch - player.xRot
-        val halfFov = fov / 2.0
-        if (abs(yawDifference) > halfFov || abs(pitchDifference) > halfFov) return null
+        if (!withinFov(targetYaw, targetPitch, player.yRot, player.xRot, fov)) return null
 
         return Candidate(
             yawDifference,
@@ -36,6 +38,17 @@ object AimAssist {
             strength,
             sqrt(yawDifference * yawDifference + pitchDifference * pitchDifference.toDouble())
         )
+    }
+
+    fun withinFov(targetYaw: Float, targetPitch: Float, yaw: Float, pitch: Float, fov: Double): Boolean {
+        val dot = direction(targetYaw, targetPitch).dot(direction(yaw, pitch)).coerceIn(-1.0, 1.0)
+        return Math.toDegrees(acos(dot)) <= fov / 2.0 + 1e-6
+    }
+
+    private fun direction(yaw: Float, pitch: Float): Vec3 {
+        val y = Math.toRadians(yaw.toDouble())
+        val p = Math.toRadians(pitch.toDouble())
+        return Vec3(-sin(y) * cos(p), -sin(p), cos(y) * cos(p))
     }
 
     fun adjustMouse(

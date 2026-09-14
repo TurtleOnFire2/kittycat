@@ -255,7 +255,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
             schedule(0) {
                 if (mc.player?.containerMenu != null) {
                     mc.player!!.closeContainer()
-                    schedule(1) {
+                    schedule(0) {
                         if (!useIceSpray.value) return@schedule
 
                         if (mc.player!!.mainHandItem.uuid() == "STARRED_BONE_BOOMERANG") return@schedule

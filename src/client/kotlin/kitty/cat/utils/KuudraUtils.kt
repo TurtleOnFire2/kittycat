@@ -2,9 +2,10 @@ package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.kuudra.BackboneAlert
-import kitty.cat.features.kuudra.KuudraDev
+import kitty.cat.features.debug.KuudraDev
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.utils.Schedule.schedule
+import kitty.cat.utils.skyblock.Island
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.world.entity.Entity
@@ -99,7 +100,7 @@ object KuudraUtils {
     }
 
     fun kuudra(): Boolean {
-        return (phase != Phase.NONE || KuudraDev.forceKuudra.value)
+        return (LocationManager.isCurrentArea(Island.Kuudra) || KuudraDev.forceKuudra.value)
     }
 
     val dropOffs = mutableListOf(

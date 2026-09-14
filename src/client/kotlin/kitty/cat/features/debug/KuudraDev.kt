@@ -1,4 +1,4 @@
-package kitty.cat.features.kuudra
+package kitty.cat.features.debug
 
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories

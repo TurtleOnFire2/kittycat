@@ -5,6 +5,8 @@ import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
 import kitty.cat.render.world.Render3D.TracerRender
 import kitty.cat.render.world.Render3D.renderTracers
+import kitty.cat.utils.LocationManager
+import kitty.cat.utils.skyblock.Island
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
@@ -42,7 +44,7 @@ object Pests: Feature("Pests", "", Categories.Category.MISC) {
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register {
             targets.clear()
-            if (!pestEsp.value || !enabled || mc.level == null) return@register
+            if (!pestEsp.value || !enabled || mc.level == null || !LocationManager.isCurrentArea(Island.Garden)) return@register
             targets.addAll(mc.level!!.entitiesForRendering().mapNotNull {
                 if (it !is ArmorStand) return@mapNotNull null
                 val head = it.getItemBySlot(EquipmentSlot.HEAD)

@@ -4,9 +4,11 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.utils.Chat
+import kitty.cat.utils.LocationManager
 import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.clickSlot
 import kitty.cat.utils.getLoadoutIndex
+import kitty.cat.utils.skyblock.Island
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
@@ -41,6 +43,8 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             lastPestSpawn++
 
+            if (!enabled || !autoLoadout.value || !LocationManager.isCurrentArea(Island.Kuudra)) return@register
+
             val amount = pestCooldown.value.toInt() * 20
 
             if (lastPestSpawn - amount == -20) {
@@ -54,7 +58,7 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
     }
 
     fun handleChat(unformatted: String) {
-        if (!enabled) return
+        if (!enabled || !LocationManager.isCurrentArea(Island.Garden)) return
 
         val match = pestSpawnRegex.find(unformatted)?.groupValues
         val plot = match?.get(2) ?: return
@@ -88,7 +92,7 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
     }
 
     fun openScreen(packet: ClientboundOpenScreenPacket) {
-        if (!enabled || !autoLoadout.value || toClick == -1) return
+        if (!enabled || !autoLoadout.value || toClick == -1 || !LocationManager.isCurrentArea(Island.Garden)) return
 
         if (!packet.title.string.contains("Loadout")) {
             toClick = -1
@@ -110,6 +114,8 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
     }
 
     fun handleEntityRemoved(id: Int) {
+        if (!enabled || !autoWarp.value || !LocationManager.isCurrentArea(Island.Garden)) return
+
         val entity = mc.level?.getEntity(id)
 
         if (entity !is ArmorStand) return
