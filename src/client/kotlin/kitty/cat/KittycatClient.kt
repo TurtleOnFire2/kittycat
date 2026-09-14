@@ -185,6 +185,7 @@ object KittycatClient : ClientModInitializer {
 		Build.register()
 		RendMacro.register()
 		PearlLandingDebug.register()
+		kitty.cat.render.world.Render3D.register()
 		CatEars.register()
 		Pests.register()
 		Hud.register()

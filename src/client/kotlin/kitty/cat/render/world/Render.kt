@@ -3,14 +3,17 @@ package kitty.cat.render.world
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import kitty.cat.KittycatClient.mc
-import kitty.cat.render.world.RenderHelper.width
+import kitty.cat.render.world.Render3D.submit
 import kitty.cat.utils.addColor
 import kitty.cat.utils.setAlpha
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.Font
 import net.minecraft.client.renderer.blockentity.BeaconRenderer
+import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.network.chat.Component
 import net.minecraft.util.LightCoordsUtil
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.AABB
@@ -21,28 +24,30 @@ import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** Fills a single convex polygon using the 26.1.2 world buffer source. */
+/** Fills a single convex polygon. */
 fun LevelRenderContext.drawFilledPolygon(points: List<Vec3>, color: Color) {
     if (points.size < 3) return
-    val stack = poseStack()
-    stack.pushPose()
-    try {
-        stack.translate(levelState().cameraRenderState.pos.reverse())
-        val matrix = stack.last().pose()
-        val buffer = bufferSource().getBuffer(RenderLayers.FILLED)
+    submit(RenderLayers.FILLED) { pose, buffer ->
+        val matrix = pose.pose()
         fun vertex(point: Vec3) {
             buffer.addVertex(matrix, point.x.toFloat(), point.y.toFloat(), point.z.toFloat()).setColor(color.rgb)
         }
         for (index in 1 until points.lastIndex) {
             vertex(points[0]); vertex(points[index]); vertex(points[index + 1])
         }
-    } finally {
-        stack.popPose()
     }
 }
 
 //FULLY PASTED FROM NOAMM. Meow :3
 
+/**
+ * On 26.1.2 the only path that renders world overlays with the correct view transform is the submit node
+ * collector, and submit nodes may only be added during COLLECT_SUBMITS. Anything submitted (or drawn through
+ * the level bufferSource) from END_MAIN ends up camera-locked or leaks into the next frame.
+ *
+ * Features draw from END_MAIN, so every render call here just queues a lambda. The queue is drained in
+ * COLLECT_SUBMITS on the next frame (one frame of latency). [register] must be called once at init.
+ */
 object Render3D {
     data class TracerRender(val point: Vec3, val color: Color, val thickness: Float = 2.5f)
     data class BoxRender(
@@ -55,52 +60,67 @@ object Render3D {
         val lineWidth: Float = 2.5f
     )
 
+    private val pending = mutableListOf<LevelRenderContext.() -> Unit>()
+
+    fun register() {
+        LevelRenderEvents.COLLECT_SUBMITS.register { ctx ->
+            if (pending.isEmpty()) return@register
+            val items = pending.toList()
+            pending.clear()
+            items.forEach { ctx.it() }
+        }
+    }
+
+    private val cameraPos: Vec3 get() = mc.gameRenderer.mainCamera.position()
+
+    /** Queues [block] to be submitted with a camera-relative pose (world coordinates go straight in). */
+    internal fun LevelRenderContext.submit(
+        renderType: RenderType,
+        poseSetup: (PoseStack) -> Unit = { it.translate(cameraPos.reverse()) },
+        block: (PoseStack.Pose, VertexConsumer) -> Unit
+    ) {
+        pending += {
+            val stack = poseStack()
+            stack.pushPose()
+            poseSetup(stack)
+            submitNodeCollector().submitCustomGeometry(stack, renderType) { pose, buffer -> block(pose, buffer) }
+            stack.popPose()
+        }
+    }
+
     fun LevelRenderContext.renderBoxesBounds(boxes: Collection<BoxRender>) {
         if (boxes.isEmpty()) return
-        val stack = poseStack()
-        val consumers = bufferSource()
-        val cam = levelState().cameraRenderState.pos
-        stack.pushPose()
-        stack.translate(-cam.x, -cam.y, -cam.z)
-        try {
-            for (box in boxes) {
-                val b = box.bounds
-                if (box.fill) {
-                    val c = box.fillColor
-                    consumers.getBuffer(if (box.depthTest) RenderLayers.FILLED else RenderLayers.FILLED_THROUGH_WALLS)
-                        .addFilledBoxVertices(stack.last(), b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ,
-                            c.red / 255f, c.green / 255f, c.blue / 255f, c.alpha / 255f)
-                }
-                if (box.outline) {
-                    val c = box.outlineColor
-                    consumers.getBuffer(if (box.depthTest) RenderLayers.LINES else RenderLayers.LINES_THROUGH_WALLS)
-                        .addLineBoxVertices(stack.last(), b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ,
-                            c.red / 255f, c.green / 255f, c.blue / 255f, c.alpha / 255f, box.lineWidth)
+        for (box in boxes) {
+            val b = box.bounds
+            if (box.fill) {
+                val c = box.fillColor
+                submit(if (box.depthTest) RenderLayers.FILLED else RenderLayers.FILLED_THROUGH_WALLS) { pose, buffer ->
+                    buffer.addFilledBoxVertices(pose, b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ,
+                        c.red / 255f, c.green / 255f, c.blue / 255f, c.alpha / 255f)
                 }
             }
-        } finally {
-            stack.popPose()
+            if (box.outline) {
+                val c = box.outlineColor
+                submit(if (box.depthTest) RenderLayers.LINES else RenderLayers.LINES_THROUGH_WALLS) { pose, buffer ->
+                    buffer.addLineBoxVertices(pose, b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ,
+                        c.red / 255f, c.green / 255f, c.blue / 255f, c.alpha / 255f, box.lineWidth)
+                }
+            }
         }
     }
 
     fun LevelRenderContext.renderTracers(tracers: Collection<TracerRender>) {
         if (tracers.isEmpty()) return
-        val stack = poseStack()
-        val camera = levelState().cameraRenderState
-        val start = camera.pos.add(Vec3.directionFromRotation(camera.xRot, camera.yRot))
-        val buffer = bufferSource().getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-        stack.pushPose()
-        stack.translate(camera.pos.reverse())
-        try {
+        submit(RenderLayers.LINES_THROUGH_WALLS) { pose, buffer ->
+            val camera = mc.gameRenderer.mainCamera
+            val start = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()))
             for (tracer in tracers) {
                 val p = tracer.point
                 val c = tracer.color
-                buffer.addLine(stack.last(), start.x.toFloat(), start.y.toFloat(), start.z.toFloat(),
+                buffer.addLine(pose, start.x.toFloat(), start.y.toFloat(), start.z.toFloat(),
                     p.x.toFloat(), p.y.toFloat(), p.z.toFloat(), c.red / 255f, c.green / 255f, c.blue / 255f,
                     c.alpha / 255f, tracer.thickness)
             }
-        } finally {
-            stack.popPose()
         }
     }
 
@@ -111,30 +131,27 @@ object Render3D {
         radiusScale: Number = 1.0f
     ) {
         if (height <= 0) return
-
-        val matrixStack = poseStack()
-        val camera = levelState().cameraRenderState
         val scale = radiusScale.toFloat()
 
-        matrixStack.pushPose()
-        matrixStack.translate(
-            pos.x - camera.pos.x - 0.5,
-            pos.y - camera.pos.y,
-            pos.z - camera.pos.z - 0.5
-        )
-        BeaconRenderer.submitBeaconBeam(
-            matrixStack,
-            submitNodeCollector(),
-            BeaconRenderer.BEAM_LOCATION,
-            1.0f,
-            (mc.level?.gameTime ?: 0L).toFloat() + mc.deltaTracker.getGameTimeDeltaPartialTick(true),
-            0,
-            height,
-            color.rgb,
-            BeaconRenderer.SOLID_BEAM_RADIUS * scale,
-            BeaconRenderer.BEAM_GLOW_RADIUS * scale
-        )
-        matrixStack.popPose()
+        pending += {
+            val matrixStack = poseStack()
+            val cam = cameraPos
+            matrixStack.pushPose()
+            matrixStack.translate(pos.x - cam.x - 0.5, pos.y - cam.y, pos.z - cam.z - 0.5)
+            BeaconRenderer.submitBeaconBeam(
+                matrixStack,
+                submitNodeCollector(),
+                BeaconRenderer.BEAM_LOCATION,
+                1.0f,
+                (mc.level?.gameTime ?: 0L).toFloat() + mc.deltaTracker.getGameTimeDeltaPartialTick(true),
+                0,
+                height,
+                color.rgb,
+                BeaconRenderer.SOLID_BEAM_RADIUS * scale,
+                BeaconRenderer.BEAM_GLOW_RADIUS * scale
+            )
+            matrixStack.popPose()
+        }
     }
 
     fun LevelRenderContext.renderBlock(
@@ -148,21 +165,8 @@ object Render3D {
     ) {
         if (! outline && ! fill) return
 
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-
         val state = mc.level?.getBlockState(pos) ?: return
         val shape = if (state.block != Blocks.AIR) state.getShape(mc.level !!, pos) else Shapes.block()
-
-        val outlineR = outlineColor.red / 255f
-        val outlineG = outlineColor.green / 255f
-        val outlineB = outlineColor.blue / 255f
-
-        val fillR = fillColor.red / 255f
-        val fillG = fillColor.green / 255f
-        val fillB = fillColor.blue / 255f
-        val fillA = fillColor.alpha / 255f
 
         val minX = pos.x + shape.min(Direction.Axis.X)
         val minY = pos.y + shape.min(Direction.Axis.Y)
@@ -171,24 +175,15 @@ object Render3D {
         val maxY = pos.y + shape.max(Direction.Axis.Y)
         val maxZ = pos.z + shape.max(Direction.Axis.Z)
 
-        matrixStack.pushPose()
-        matrixStack.translate(camera.pos.reverse())
+        if (fill) submit(if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED) { pose, buffer ->
+            buffer.addFilledBoxVertices(pose, minX, minY, minZ, maxX, maxY, maxZ,
+                fillColor.red / 255f, fillColor.green / 255f, fillColor.blue / 255f, fillColor.alpha / 255f)
+        }
 
-        if (fill) consumers.getBuffer(if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED).addFilledBoxVertices(
-            matrixStack.last(),
-            minX,
-            minY, minZ, maxX, maxY, maxZ, fillR,
-            fillG, fillB, fillA
-        )
-
-        if (outline) consumers.getBuffer(if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES).addLineBoxVertices(
-            matrixStack.last(),
-            minX,
-            minY, minZ, maxX, maxY, maxZ, outlineR,
-            outlineG, outlineB, 1f, lineWidth.toFloat()
-        )
-
-        matrixStack.popPose()
+        if (outline) submit(if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES) { pose, buffer ->
+            buffer.addLineBoxVertices(pose, minX, minY, minZ, maxX, maxY, maxZ,
+                outlineColor.red / 255f, outlineColor.green / 255f, outlineColor.blue / 255f, 1f, lineWidth.toFloat())
+        }
     }
 
     fun LevelRenderContext.renderBlock(
@@ -207,67 +202,58 @@ object Render3D {
         thickness: Number = 2,
         phase: Boolean = false
     ) {
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
+        submit(if (phase) RenderLayers.CIRCLE_FILLED_THROUGH_WALLS else RenderLayers.CIRCLE_FILLED) { pose, buffer ->
+            val r = color.red / 255f
+            val g = color.green / 255f
+            val b = color.blue / 255f
+            val a = color.alpha / 255f
+            val segments = (36 * radius.toDouble()).toInt()
+            val size = thickness.toDouble() / 40.0
+            val innerR = radius.toDouble() - size
+            val outerR = radius.toDouble() + size
+            val bottomY = (center.y - size).toFloat()
+            val topY = (center.y + size).toFloat()
 
-        matrixStack.pushPose()
-        matrixStack.translate(camera.pos.reverse())
-        val buffer = consumers.getBuffer(if (phase) RenderLayers.CIRCLE_FILLED_THROUGH_WALLS else RenderLayers.CIRCLE_FILLED)
+            for (i in 0 until segments) {
+                val angle1 = i * (2.0 * Math.PI / segments)
+                val angle2 = (i + 1) * (2.0 * Math.PI / segments)
 
-        val r = color.red / 255f
-        val g = color.green / 255f
-        val b = color.blue / 255f
-        val a = color.alpha / 255f
-        val pose = matrixStack.last()
-        val segments = (36 * radius.toDouble()).toInt()
-        val size = thickness.toDouble() / 40.0
-        val innerR = radius.toDouble() - size
-        val outerR = radius.toDouble() + size
-        val bottomY = (center.y - size).toFloat()
-        val topY = (center.y + size).toFloat()
+                val c1 = cos(angle1).toFloat()
+                val s1 = sin(angle1).toFloat()
+                val c2 = cos(angle2).toFloat()
+                val s2 = sin(angle2).toFloat()
 
-        for (i in 0 until segments) {
-            val angle1 = i * (2.0 * Math.PI / segments)
-            val angle2 = (i + 1) * (2.0 * Math.PI / segments)
+                val x1Inner = (center.x + innerR * c1).toFloat()
+                val z1Inner = (center.z + innerR * s1).toFloat()
+                val x1Outer = (center.x + outerR * c1).toFloat()
+                val z1Outer = (center.z + outerR * s1).toFloat()
 
-            val c1 = cos(angle1).toFloat()
-            val s1 = sin(angle1).toFloat()
-            val c2 = cos(angle2).toFloat()
-            val s2 = sin(angle2).toFloat()
+                val x2Inner = (center.x + innerR * c2).toFloat()
+                val z2Inner = (center.z + innerR * s2).toFloat()
+                val x2Outer = (center.x + outerR * c2).toFloat()
+                val z2Outer = (center.z + outerR * s2).toFloat()
 
-            val x1Inner = (center.x + innerR * c1).toFloat()
-            val z1Inner = (center.z + innerR * s1).toFloat()
-            val x1Outer = (center.x + outerR * c1).toFloat()
-            val z1Outer = (center.z + outerR * s1).toFloat()
+                buffer.addVertex(pose, x1Inner, topY, z1Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x1Outer, topY, z1Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Outer, topY, z2Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Inner, topY, z2Inner).setColor(r, g, b, a)
 
-            val x2Inner = (center.x + innerR * c2).toFloat()
-            val z2Inner = (center.z + innerR * s2).toFloat()
-            val x2Outer = (center.x + outerR * c2).toFloat()
-            val z2Outer = (center.z + outerR * s2).toFloat()
+                buffer.addVertex(pose, x1Outer, bottomY, z1Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x1Outer, topY, z1Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Outer, topY, z2Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Outer, bottomY, z2Outer).setColor(r, g, b, a)
 
-            buffer.addVertex(pose, x1Inner, topY, z1Inner).setColor(r, g, b, a)
-            buffer.addVertex(pose, x1Outer, topY, z1Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Outer, topY, z2Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Inner, topY, z2Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x1Inner, bottomY, z1Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x1Inner, topY, z1Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Inner, topY, z2Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Inner, bottomY, z2Inner).setColor(r, g, b, a)
 
-            buffer.addVertex(pose, x1Outer, bottomY, z1Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x1Outer, topY, z1Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Outer, topY, z2Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Outer, bottomY, z2Outer).setColor(r, g, b, a)
-
-            buffer.addVertex(pose, x1Inner, bottomY, z1Inner).setColor(r, g, b, a)
-            buffer.addVertex(pose, x1Inner, topY, z1Inner).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Inner, topY, z2Inner).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Inner, bottomY, z2Inner).setColor(r, g, b, a)
-
-            buffer.addVertex(pose, x1Inner, bottomY, z1Inner).setColor(r, g, b, a)
-            buffer.addVertex(pose, x1Outer, bottomY, z1Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Outer, bottomY, z2Outer).setColor(r, g, b, a)
-            buffer.addVertex(pose, x2Inner, bottomY, z2Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x1Inner, bottomY, z1Inner).setColor(r, g, b, a)
+                buffer.addVertex(pose, x1Outer, bottomY, z1Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Outer, bottomY, z2Outer).setColor(r, g, b, a)
+                buffer.addVertex(pose, x2Inner, bottomY, z2Inner).setColor(r, g, b, a)
+            }
         }
-
-        matrixStack.popPose()
     }
 
     fun LevelRenderContext.renderBillboardedCircle(
@@ -277,57 +263,51 @@ object Render3D {
         thickness: Number = 2,
         phase: Boolean = false
     ) {
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-
-        val cameraPos = camera.pos
         val segments = (radius.toDouble() * 100).toInt().coerceAtLeast(64)
-
-        matrixStack.pushPose()
-        matrixStack.translate(center.x - cameraPos.x, center.y - cameraPos.y, center.z - cameraPos.z)
-        matrixStack.mulPose(camera.orientation)
-
         val layer = if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED
-        val buffer = consumers.getBuffer(layer)
 
-        val r = color.red / 255f
-        val g = color.green / 255f
-        val b = color.blue / 255f
-        val a = color.alpha / 255f
-        val matrix = matrixStack.last().pose()
+        submit(layer, poseSetup = { stack ->
+            val camera = mc.gameRenderer.mainCamera
+            val cam = camera.position()
+            stack.translate(center.x - cam.x, center.y - cam.y, center.z - cam.z)
+            stack.mulPose(camera.rotation())
+        }) { pose, buffer ->
+            val r = color.red / 255f
+            val g = color.green / 255f
+            val b = color.blue / 255f
+            val a = color.alpha / 255f
+            val matrix = pose.pose()
 
-        val thicknessVal = thickness.toDouble() / 40.0
-        val radiusVal = radius.toDouble()
-        val innerR = (radiusVal - thicknessVal).coerceAtLeast(0.0)
-        val outerR = radiusVal + thicknessVal
+            val thicknessVal = thickness.toDouble() / 40.0
+            val radiusVal = radius.toDouble()
+            val innerR = (radiusVal - thicknessVal).coerceAtLeast(0.0)
+            val outerR = radiusVal + thicknessVal
 
-        val step = 2.0 * Math.PI / segments
-        for (i in 0 until segments) {
-            val c1 = cos(i * step).toFloat()
-            val s1 = sin(i * step).toFloat()
-            val c2 = cos((i + 1) * step).toFloat()
-            val s2 = sin((i + 1) * step).toFloat()
+            val step = 2.0 * Math.PI / segments
+            for (i in 0 until segments) {
+                val c1 = cos(i * step).toFloat()
+                val s1 = sin(i * step).toFloat()
+                val c2 = cos((i + 1) * step).toFloat()
+                val s2 = sin((i + 1) * step).toFloat()
 
-            val i1x = (innerR * c1).toFloat()
-            val i1y = (innerR * s1).toFloat()
-            val o1x = (outerR * c1).toFloat()
-            val o1y = (outerR * s1).toFloat()
-            val i2x = (innerR * c2).toFloat()
-            val i2y = (innerR * s2).toFloat()
-            val o2x = (outerR * c2).toFloat()
-            val o2y = (outerR * s2).toFloat()
+                val i1x = (innerR * c1).toFloat()
+                val i1y = (innerR * s1).toFloat()
+                val o1x = (outerR * c1).toFloat()
+                val o1y = (outerR * s1).toFloat()
+                val i2x = (innerR * c2).toFloat()
+                val i2y = (innerR * s2).toFloat()
+                val o2x = (outerR * c2).toFloat()
+                val o2y = (outerR * s2).toFloat()
 
-            buffer.addVertex(matrix, i1x, i1y, 0f).setColor(r, g, b, a)
-            buffer.addVertex(matrix, o1x, o1y, 0f).setColor(r, g, b, a)
-            buffer.addVertex(matrix, o2x, o2y, 0f).setColor(r, g, b, a)
+                buffer.addVertex(matrix, i1x, i1y, 0f).setColor(r, g, b, a)
+                buffer.addVertex(matrix, o1x, o1y, 0f).setColor(r, g, b, a)
+                buffer.addVertex(matrix, o2x, o2y, 0f).setColor(r, g, b, a)
 
-            buffer.addVertex(matrix, i1x, i1y, 0f).setColor(r, g, b, a)
-            buffer.addVertex(matrix, o2x, o2y, 0f).setColor(r, g, b, a)
-            buffer.addVertex(matrix, i2x, i2y, 0f).setColor(r, g, b, a)
+                buffer.addVertex(matrix, i1x, i1y, 0f).setColor(r, g, b, a)
+                buffer.addVertex(matrix, o2x, o2y, 0f).setColor(r, g, b, a)
+                buffer.addVertex(matrix, i2x, i2y, 0f).setColor(r, g, b, a)
+            }
         }
-
-        matrixStack.popPose()
     }
 
     fun LevelRenderContext.renderBox(
@@ -345,37 +325,16 @@ object Render3D {
     ) {
         if (! outline && ! fill) return
 
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-        val cam = camera.pos.reverse()
-
         val xd = x.toDouble()
         val yd = y.toDouble()
         val zd = z.toDouble()
         val hw = width.toDouble() / 2.0
         val hd = height.toDouble()
 
-        matrixStack.pushPose()
-        matrixStack.translate(cam.x, cam.y, cam.z)
-
-        if (fill) consumers.getBuffer(if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED).addFilledBoxVertices(
-            matrixStack.last(),
-            xd - hw,
-            yd, zd - hw, xd + hw,
-            yd + hd, zd + hw, fillColor.red / 255f,
-            fillColor.green / 255f, fillColor.blue / 255f, fillColor.alpha / 255f
+        renderBoxBounds(
+            xd - hw, yd, zd - hw, xd + hw, yd + hd, zd + hw,
+            outlineColor, fillColor, outline, fill, phase, lineWidth
         )
-
-        if (outline) consumers.getBuffer(if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES).addLineBoxVertices(
-            matrixStack.last(),
-            xd - hw,
-            yd, zd - hw, xd + hw,
-            yd + hd, zd + hw, outlineColor.red / 255f,
-            outlineColor.green / 255f, outlineColor.blue / 255f, 1f, lineWidth.toFloat()
-        )
-
-        matrixStack.popPose()
     }
 
     fun LevelRenderContext.renderBox(
@@ -407,29 +366,15 @@ object Render3D {
     ) {
         if (! outline && ! fill) return
 
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-        val cam = camera.pos
+        if (fill) submit(if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED) { pose, buffer ->
+            buffer.addFilledBoxVertices(pose, minX, minY, minZ, maxX, maxY, maxZ,
+                fillColor.red / 255f, fillColor.green / 255f, fillColor.blue / 255f, fillColor.alpha / 255f)
+        }
 
-        matrixStack.pushPose()
-        matrixStack.translate(- cam.x, - cam.y, - cam.z)
-
-        if (fill) consumers.getBuffer(if (phase) RenderLayers.FILLED_THROUGH_WALLS else RenderLayers.FILLED).addFilledBoxVertices(
-            matrixStack.last(),
-            minX,
-            minY, minZ, maxX, maxY, maxZ, fillColor.red / 255f,
-            fillColor.green / 255f, fillColor.blue / 255f, fillColor.alpha / 255f
-        )
-
-        if (outline) consumers.getBuffer(if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES).addLineBoxVertices(
-            matrixStack.last(),
-            minX,
-            minY, minZ, maxX, maxY, maxZ, outlineColor.red / 255f,
-            outlineColor.green / 255f, outlineColor.blue / 255f, outlineColor.alpha / 255f, lineWidth.toFloat()
-        )
-
-        matrixStack.popPose()
+        if (outline) submit(if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES) { pose, buffer ->
+            buffer.addLineBoxVertices(pose, minX, minY, minZ, maxX, maxY, maxZ,
+                outlineColor.red / 255f, outlineColor.green / 255f, outlineColor.blue / 255f, outlineColor.alpha / 255f, lineWidth.toFloat())
+        }
     }
 
     fun LevelRenderContext.renderBoxBounds(
@@ -447,41 +392,49 @@ object Render3D {
         x: Number, y: Number, z: Number,
         color: Color = Color.WHITE,
         scale: Number = 1f,
-        phase: Boolean = false
+        phase: Boolean = false,
+        shadow: Boolean = true,
+        distanceScale: Boolean = true
     ) {
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-
-        val camPos = camera.pos
-        val dx = (x.toDouble() - camPos.x).toFloat()
-        val dy = (y.toDouble() - camPos.y).toFloat()
-        val dz = (z.toDouble() - camPos.z).toFloat()
-        val toScale = (scale.toFloat() * 0.025f)
-
-        matrixStack.pushPose()
-        matrixStack.translate(dx, dy, dz)
-        matrixStack.mulPose(camera.orientation)
-        matrixStack.scale(toScale, - toScale, toScale)
-
         val textLayer = if (phase) Font.DisplayMode.SEE_THROUGH else Font.DisplayMode.NORMAL
-        val lines = text.addColor().lineSequence()
+        val lines = text.addColor().lineSequence().toList()
 
-        for ((i, line) in lines.withIndex())
-            mc.font.drawInBatch(
-                line,
-                - line.width() / 2f,
-                i * 9f,
-                color.rgb,
-                true,
-                matrixStack.last().pose(),
-                consumers,
-                textLayer,
-                0,
-                LightCoordsUtil.FULL_BRIGHT
-            )
+        pending += {
+            val matrixStack = poseStack()
+            val camera = mc.gameRenderer.mainCamera
+            val camPos = camera.position()
 
-        matrixStack.popPose()
+            val dx = x.toDouble() - camPos.x
+            val dy = y.toDouble() - camPos.y
+            val dz = z.toDouble() - camPos.z
+
+            val distFactor = if (distanceScale) {
+                val dist = kotlin.math.sqrt(dx * dx + dy * dy + dz * dz).toFloat().coerceAtLeast(0.01f)
+                (dist * 0.02f).coerceIn(0.5f, 25f)
+            } else 1f
+            val toScale = scale.toFloat() * distFactor * 0.025f
+
+            matrixStack.pushPose()
+            matrixStack.translate(dx, dy, dz)
+            matrixStack.mulPose(camera.rotation())
+            matrixStack.scale(toScale, - toScale, toScale)
+
+            for ((i, line) in lines.withIndex())
+                submitNodeCollector().submitText(
+                    matrixStack,
+                    - mc.font.width(line) / 2f,
+                    i * 9f,
+                    Component.literal(line).visualOrderText,
+                    shadow,
+                    textLayer,
+                    LightCoordsUtil.FULL_BRIGHT,
+                    color.rgb,
+                    0,
+                    0
+                )
+
+            matrixStack.popPose()
+        }
     }
 
     fun LevelRenderContext.renderString(
@@ -489,94 +442,68 @@ object Render3D {
         pos: Vec3,
         color: Color = Color.WHITE,
         scale: Number = 1f,
-        phase: Boolean = false
-    ) = renderString(text, pos.x, pos.y, pos.z, color, scale, phase)
+        phase: Boolean = false,
+        shadow: Boolean = true,
+        distanceScale: Boolean = true
+    ) = renderString(text, pos.x, pos.y, pos.z, color, scale, phase, shadow, distanceScale)
 
     fun LevelRenderContext.renderRainbowLine(start: Vec3, finish: Vec3, thickness: Number, alpha: Float) {
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
+        submit(RenderLayers.LINES) { matrix, buffer ->
+            val direction = finish.subtract(start).normalize().toVector3f()
+            val timeOffset = (System.currentTimeMillis() % 100000L) / 1000f
+            val segments = 10
 
-        matrixStack.pushPose()
-        matrixStack.translate(camera.pos.reverse())
+            for (i in 0 until segments) {
+                val t0 = i / segments.toFloat()
+                val t1 = (i + 1) / segments.toFloat()
 
-        val buffer = consumers.getBuffer(RenderLayers.LINES)
-        val direction = finish.subtract(start).normalize().toVector3f()
-        val timeOffset = (System.currentTimeMillis() % 100000L) / 1000f
-        val matrix = matrixStack.last()
-        val segments = 10
+                val p0 = start.lerp(finish, t0.toDouble())
+                val p1 = start.lerp(finish, t1.toDouble())
 
-        for (i in 0 until segments) {
-            val t0 = i / segments.toFloat()
-            val t1 = (i + 1) / segments.toFloat()
+                val hue0 = (t0 - timeOffset).mod(1f)
+                val hue1 = (t1 - timeOffset).mod(1f)
 
-            val p0 = start.lerp(finish, t0.toDouble())
-            val p1 = start.lerp(finish, t1.toDouble())
+                val rgb0 = Color.HSBtoRGB(hue0, 1f, 1f)
+                val rgb1 = Color.HSBtoRGB(hue1, 1f, 1f)
 
-            val hue0 = (t0 - timeOffset).mod(1f)
-            val hue1 = (t1 - timeOffset).mod(1f)
+                val r0 = ((rgb0 shr 16) and 0xFF) / 255f
+                val g0 = ((rgb0 shr 8) and 0xFF) / 255f
+                val b0 = (rgb0 and 0xFF) / 255f
 
-            val rgb0 = Color.HSBtoRGB(hue0, 1f, 1f)
-            val rgb1 = Color.HSBtoRGB(hue1, 1f, 1f)
+                val r1 = ((rgb1 shr 16) and 0xFF) / 255f
+                val g1 = ((rgb1 shr 8) and 0xFF) / 255f
+                val b1 = (rgb1 and 0xFF) / 255f
 
-            val r0 = ((rgb0 shr 16) and 0xFF) / 255f
-            val g0 = ((rgb0 shr 8) and 0xFF) / 255f
-            val b0 = (rgb0 and 0xFF) / 255f
-
-            val r1 = ((rgb1 shr 16) and 0xFF) / 255f
-            val g1 = ((rgb1 shr 8) and 0xFF) / 255f
-            val b1 = (rgb1 and 0xFF) / 255f
-
-            buffer.addVertex(matrix, p0.x.toFloat(), p0.y.toFloat(), p0.z.toFloat()).setColor(r0, g0, b0, alpha).setNormal(matrix, direction).setLineWidth(thickness.toFloat())
-            buffer.addVertex(matrix, p1.x.toFloat(), p1.y.toFloat(), p1.z.toFloat()).setColor(r1, g1, b1, alpha).setNormal(matrix, direction).setLineWidth(thickness.toFloat())
+                buffer.addVertex(matrix, p0.x.toFloat(), p0.y.toFloat(), p0.z.toFloat()).setColor(r0, g0, b0, alpha).setNormal(matrix, direction).setLineWidth(thickness.toFloat())
+                buffer.addVertex(matrix, p1.x.toFloat(), p1.y.toFloat(), p1.z.toFloat()).setColor(r1, g1, b1, alpha).setNormal(matrix, direction).setLineWidth(thickness.toFloat())
+            }
         }
-
-        matrixStack.popPose()
     }
 
     fun LevelRenderContext.renderLine(start: Vec3, finish: Vec3, color: Color, thickness: Number = 2, phase: Boolean = false) {
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-
-        val cameraPos = camera.pos
-        matrixStack.pushPose()
-        matrixStack.translate(- cameraPos.x, - cameraPos.y, - cameraPos.z)
-
-        val lines = if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES
-        val buffer = consumers.getBuffer(lines)
-
-        buffer.addLine(
-            matrixStack.last(),
-            start.x.toFloat(), start.y.toFloat(), start.z.toFloat(),
-            finish.x.toFloat(), finish.y.toFloat(), finish.z.toFloat(),
-            color.red / 255f, color.green / 255f, color.blue / 255f, color.alpha / 255f,
-            thickness.toFloat()
-        )
-
-        matrixStack.popPose()
+        submit(if (phase) RenderLayers.LINES_THROUGH_WALLS else RenderLayers.LINES) { pose, buffer ->
+            buffer.addLine(
+                pose,
+                start.x.toFloat(), start.y.toFloat(), start.z.toFloat(),
+                finish.x.toFloat(), finish.y.toFloat(), finish.z.toFloat(),
+                color.red / 255f, color.green / 255f, color.blue / 255f, color.alpha / 255f,
+                thickness.toFloat()
+            )
+        }
     }
 
     fun LevelRenderContext.renderTracer(point: Vec3, color: Color, thickness: Number = 2.5) {
-        val matrixStack = this.poseStack()
-        val consumers = this.bufferSource()
-        val camera = levelState().cameraRenderState
-
-        matrixStack.pushPose()
-        matrixStack.translate(camera.pos.reverse())
-
-        val buffer = consumers.getBuffer(RenderLayers.LINES_THROUGH_WALLS)
-        val cameraPoint = camera.pos.add(Vec3.directionFromRotation(camera.xRot, camera.yRot))
-
-        buffer.addLine(
-            matrixStack.last(),
-            cameraPoint.x.toFloat(), cameraPoint.y.toFloat(), cameraPoint.z.toFloat(),
-            point.x.toFloat(), point.y.toFloat(), point.z.toFloat(),
-            color.red / 255f, color.green / 255f, color.blue / 255f, 1f,
-            thickness.toFloat()
-        )
-
-        matrixStack.popPose()
+        submit(RenderLayers.LINES_THROUGH_WALLS) { pose, buffer ->
+            val camera = mc.gameRenderer.mainCamera
+            val cameraPoint = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()))
+            buffer.addLine(
+                pose,
+                cameraPoint.x.toFloat(), cameraPoint.y.toFloat(), cameraPoint.z.toFloat(),
+                point.x.toFloat(), point.y.toFloat(), point.z.toFloat(),
+                color.red / 255f, color.green / 255f, color.blue / 255f, 1f,
+                thickness.toFloat()
+            )
+        }
     }
 
     private fun VertexConsumer.addFilledBoxVertices(pose: PoseStack.Pose, x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, z2: Double, r: Float, g: Float, b: Float, a: Float) {
