@@ -73,6 +73,7 @@ dependencies {
 	implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
 
 	runtimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.2")
+	testImplementation(kotlin("test-junit"))
 
 	// NanoVG for custom font rendering
 	implementation("org.lwjgl:lwjgl-nanovg:3.3.3")
