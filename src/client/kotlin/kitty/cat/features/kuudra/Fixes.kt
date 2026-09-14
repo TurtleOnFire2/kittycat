@@ -4,11 +4,50 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.utils.uuid
+import net.minecraft.tags.FluidTags
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.ClipContext
+import net.minecraft.world.phys.HitResult
 
 object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val hollowFix = booleanSetting("Hollow wand fix", false)
     val cancelPlacingConduit = booleanSetting("Cancel placing conduit", false)
+    val fixSkillIssue = booleanSetting("Cancel teleporting into lava")
+    val noSkyblockMenu = booleanSetting("Cancel open skyblock menu", false)
+
+    fun cancelClick(): Boolean {
+        if (!enabled) return false
+
+        val player = mc.player ?: return false
+
+        if (noSkyblockMenu.value) {
+            if (player.inventory.selectedSlot == 8) return true
+        }
+
+        if (!fixSkillIssue.value) return false
+
+        val id = player.mainHandItem.uuid()
+        val isEtherwarp = id == "ETHERWARP_CONDUIT" ||
+                (id == "ASPECT_OF_THE_VOID" && player.isCrouching)
+
+        if (!isEtherwarp) return false
+
+        val level = player.level()
+        val start = player.eyePosition
+        val end = start.add(player.lookAngle.scale(60.0))
+        val hit = level.clip(
+            ClipContext(
+                start,
+                end,
+                ClipContext.Block.OUTLINE,
+                ClipContext.Fluid.ANY,
+                player
+            )
+        )
+        if (hit.type != HitResult.Type.BLOCK) return false
+
+        return level.getFluidState(hit.blockPos).`is`(FluidTags.LAVA)
+    }
 
     fun cancelPlacement(player: Player): Boolean {
         val uuid = player.mainHandItem.uuid()

@@ -1,5 +1,6 @@
 package kitty.cat.mixin.client;
 
+import kitty.cat.features.kuudra.EtherwarpWaypoints;
 import kitty.cat.features.kuudra.Stun;
 import kitty.cat.features.kuudra.PearlWaypoints;
 import net.minecraft.client.MouseHandler;
@@ -26,6 +27,12 @@ public class MouseHandlerMixin {
         }
 
         adjusted = PearlWaypoints.INSTANCE.onTurn(this.accumulatedDX, this.accumulatedDY);
+        if (adjusted != null) {
+            this.accumulatedDX = adjusted[0];
+            this.accumulatedDY = adjusted[1];
+        }
+
+        adjusted = EtherwarpWaypoints.INSTANCE.onTurn(this.accumulatedDX, this.accumulatedDY);
         if (adjusted != null) {
             this.accumulatedDX = adjusted[0];
             this.accumulatedDY = adjusted[1];

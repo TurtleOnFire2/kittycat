@@ -1,6 +1,7 @@
 package kitty.cat.mixin.client;
 
 import com.mojang.blaze3d.platform.Window;
+import kitty.cat.features.kuudra.Fixes;
 import kitty.cat.gui.ImGuiHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.main.GameConfig;
@@ -25,5 +26,10 @@ public class MinecraftMixin {
     @Inject(method = "close", at = @At("HEAD"))
     public void closeImGui(CallbackInfo ci) {
         ImGuiHandler.INSTANCE.dispose();
+    }
+
+    @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
+    void startUseItem(CallbackInfo ci) {
+        if (Fixes.INSTANCE.cancelClick()) ci.cancel();
     }
 }

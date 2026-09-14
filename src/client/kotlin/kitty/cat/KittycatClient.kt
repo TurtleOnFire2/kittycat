@@ -27,6 +27,7 @@ import kitty.cat.features.huds.SupplyHud
 import kitty.cat.features.kuudra.AutoGFS
 import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.KuudraDisplay
+import kitty.cat.features.kuudra.EtherwarpWaypoints
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.features.kuudra.SafeSpots
@@ -39,6 +40,7 @@ import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
 import kitty.cat.utils.NameChanger
+import kitty.cat.utils.LocationManager
 import kitty.cat.render.world.RenderLayers
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.RotationUtils
@@ -179,6 +181,7 @@ object KittycatClient : ClientModInitializer {
 		}
 
 		kitty.cat.features.kuudra.CratePriority.register()
+		LocationManager.register()
 		KuudraUtils.register()
 		PearlWaypoints.register()
 		Supplies.register()
@@ -186,6 +189,7 @@ object KittycatClient : ClientModInitializer {
 		RendMacro.register()
 		PearlLandingDebug.register()
 		kitty.cat.render.world.Render3D.register()
+		EtherwarpWaypoints.register()
 		CatEars.register()
 		Pests.register()
 		Hud.register()

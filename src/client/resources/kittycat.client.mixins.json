@@ -8,7 +8,6 @@
     "GameRendererMixin",
     "ItemInHandRendererMixin",
     "LayerRenderStateMixin",
-    "MinecraftMixin",
     "MouseHandlerMixin",
     "MultiPlayerGameModeMixin",
     "SoundManagerMixin",
@@ -30,6 +29,7 @@
     "FontMixin",
     "LivingEntityMixin",
     "LocalPlayerMixin",
+    "MinecraftMixin",
     "PlayerMixin"
   ]
 }
