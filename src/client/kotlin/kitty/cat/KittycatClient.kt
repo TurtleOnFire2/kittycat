@@ -24,6 +24,8 @@ import kitty.cat.features.huds.BuildHud
 import kitty.cat.features.huds.KuudraHpHud
 import kitty.cat.features.kuudra.Build
 import kitty.cat.features.huds.SupplyHud
+import kitty.cat.features.huds.SupplyAlertHud
+import kitty.cat.features.huds.GiantAlertHud
 import kitty.cat.features.kuudra.AutoGFS
 import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.KuudraDisplay
@@ -215,5 +217,7 @@ object KittycatClient : ClientModInitializer {
 		BuildHud
 		KuudraHpHud
 		SupplyHud
+		SupplyAlertHud
+		GiantAlertHud
 	}
 }

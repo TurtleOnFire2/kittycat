@@ -80,15 +80,13 @@ object EtherwarpWaypoints : Feature(
         val player = mc.player ?: return null
         if (!enabled || !aimAssist.value || !supplies()) return null
 
-        val landing = pearlLanding
-        val centered = landing?.let {
+        val landing = pearlLanding ?: return null
+        val centered = landing.let {
             Vec3(floor(it.x) + 0.5, floor(it.y) + 1.0, floor(it.z) + 0.5)
         }
         val candidate = matchingWaypoints().mapNotNull { waypoint ->
             if (player.position().distanceToSqr(waypoint.second) <= 100.0) return@mapNotNull null
-            val target = if (centered == null) {
-                waypoint.second
-            } else {
+            val target = run {
                 var y = 0.0
                 if (yOffset.value) y = 1.0
                 player.position().add(waypoint.second.subtract(centered)).add(0.0, +1.0, 0.0).add(y)
