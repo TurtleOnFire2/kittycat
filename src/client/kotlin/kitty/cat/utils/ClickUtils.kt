@@ -2,11 +2,14 @@ package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
 import net.minecraft.network.protocol.game.ServerboundInteractPacket
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket
 import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.Vec3
+import kotlin.io.use
 
 object ClickUtils {
     fun rightClickEntity(entity: Entity) {
