@@ -4,6 +4,7 @@ import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.clickgui.UiRect as Rect
 import kitty.cat.features.Feature
+import kitty.cat.features.debug.Debug
 import kitty.cat.features.debug.ExampleFeature
 import kitty.cat.features.debug.PearlLandingDebug
 import kitty.cat.features.dungeons.LeverTriggerbot
@@ -256,7 +257,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         Storm, Relics, LeverTriggerbot, Terminals,
         CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
-        ExampleFeature, PearlLandingDebug
+        ExampleFeature, PearlLandingDebug, Debug
     )
 
     var activeFeatures: List<Feature> = emptyList()

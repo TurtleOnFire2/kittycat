@@ -1,6 +1,7 @@
 package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
+import kitty.cat.features.debug.Debug
 import kitty.cat.utils.skyblock.Island
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
@@ -39,6 +40,10 @@ object LocationManager {
         currentArea = Island.entries.firstOrNull {
             normalized.contains(it.displayName.lowercase(Locale.getDefault()))
         } ?: Island.Unknown
+
+        if (Debug.sendLocation.value) {
+            Chat.send(currentArea)
+        }
     }
 
     fun handleObjective(packet: ClientboundSetObjectivePacket) {

@@ -61,6 +61,7 @@ public class ClientPlayNetworkHandleMixin {
         Stun.INSTANCE.handleChat(unformatted);
         FarmHelper.INSTANCE.handleChat(unformatted);
         CratePriority.INSTANCE.handleChat(unformatted);
+        Supplies.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)
@@ -84,15 +85,14 @@ public class ClientPlayNetworkHandleMixin {
     @Inject(method = "handleMovePlayer(Lnet/minecraft/network/protocol/game/ClientboundPlayerPositionPacket;)V", at = @At("TAIL"))
     void handleMovePlayer(ClientboundPlayerPositionPacket packet, CallbackInfo ci) {
         RendMacro.INSTANCE.onPositionChange(packet);
-        Supplies.INSTANCE.onPositionChange(packet);
         Stun.INSTANCE.onPositionChange(packet);
         PearlLandingDebug.INSTANCE.onPositionChange();
     }
 
     @Inject(method = "setTitleText", at = @At("HEAD"), cancellable = true)
-    void handleSetTitleText(ClientboundSetTitleTextPacket clientboundSetTitleTextPacket, CallbackInfo ci) {
-        PearlWaypoints.INSTANCE.handleTitle(clientboundSetTitleTextPacket);
-        if(SupplyHud.INSTANCE.handleTitle(clientboundSetTitleTextPacket)) {
+    void handleSetTitleText(ClientboundSetTitleTextPacket packet, CallbackInfo ci) {
+        PearlWaypoints.INSTANCE.handleTitle(packet);
+        if (SupplyHud.INSTANCE.handleTitle(packet)) {
             ci.cancel();
         };
     }

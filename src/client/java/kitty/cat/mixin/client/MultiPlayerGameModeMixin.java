@@ -19,7 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MultiPlayerGameModeMixin {
     @Inject(method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;", at = @At("HEAD"))
     void beforeUseItem(Player player, InteractionHand interactionHand, CallbackInfoReturnable<InteractionResult> cir) {
-        Supplies.INSTANCE.prepareUseItem(player, interactionHand);
         PearlWaypoints.INSTANCE.prepareUseItem(player, interactionHand);
         PearlLandingDebug.INSTANCE.prepareUseItem(player, interactionHand);
     }
@@ -30,7 +29,6 @@ public class MultiPlayerGameModeMixin {
         BoneUtils.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         RendMacro.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         Stun.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
-        Supplies.INSTANCE.useItem(player, interactionHand, cir.getReturnValue());
         PearlWaypoints.INSTANCE.useItem(cir.getReturnValue());
     }
 
