@@ -43,6 +43,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     private var timeSinceLastTitle = 0
     private var tracking = false
     private var preparedPearlThrow = false
+    private var triggerbotCooldownUntil = 0L
     private val aimAssistTimeouts = mutableMapOf<Pair<String, Boolean>, Long>()
 
     fun register() {
@@ -113,10 +114,12 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
                 if (
                     triggerbot.value &&
+                    System.currentTimeMillis() >= triggerbotCooldownUntil &&
                     remaining <= 0 &&
                     cached.pos.lookinAt(0.2, 35.0)
                 ) {
                     mc.options.keyUse.clickCount++
+                    triggerbotCooldownUntil = System.currentTimeMillis() + TRIGGERBOT_COOLDOWN_MS
                     iterator.remove()
                     break
                 }
@@ -233,4 +236,5 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     }
 
     private const val AIM_ASSIST_THROW_TIMEOUT_MS = 2_000L
+    private const val TRIGGERBOT_COOLDOWN_MS = 1_000L
 }

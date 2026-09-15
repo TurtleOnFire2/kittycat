@@ -8,13 +8,21 @@ import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
 import kitty.cat.utils.aabb
 import kitty.cat.utils.AimAssist
+import kitty.cat.utils.Chat
+import kitty.cat.utils.ClickUtils
 import kitty.cat.utils.KuudraUtils.supplies
+import kitty.cat.utils.RotationUtils
+import kitty.cat.utils.Schedule.schedule
+import kitty.cat.utils.getLook
+import kitty.cat.utils.lore
+import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
 import kotlin.math.floor
+import kotlin.math.hypot
 
 object EtherwarpWaypoints : Feature(
     "Etherwarp Waypoints",
@@ -26,6 +34,57 @@ object EtherwarpWaypoints : Feature(
     val aimAssist = booleanSetting("Aim assist", false)
     val aimAssistFov = numberSetting("Aim assist FOV", 1.0, 180.0, 40.0, "°", 1.0)
     val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
+
+    val autoWarpOnSupply = booleanSetting("Auto warp on supply place", false)
+    val autoWarpFov = numberSetting("Auto warp FOV", 1.0, 180.0, 20.0, "°", 1.0)
+
+    private val placedRegex = Regex("(.+) recovered one of Elle's supplies!")
+
+    fun handleChat(unformatted: String) {
+        if (!enabled || !autoWarpOnSupply.value) return
+        val player = mc.player ?: return
+
+        placedRegex.find(unformatted)?.destructured?.let { (name) ->
+            if (!name.contains(mc.player!!.name.string)) return
+        } ?: return
+
+        var slot: Int? = null
+
+        for (i in 0..7) {
+            val uuid = mc.player!!.inventory.getItem(i).uuid()
+
+            if (uuid in listOf("ETHERWARP_CONDUIT", "ASPECT_OF_THE_VOID")) {
+                slot = i
+            }
+        }
+
+        slot ?: return
+
+        if (mc.player?.inventory?.selectedSlot != slot) mc.player?.inventory?.selectedSlot = slot
+
+        schedule(0) {
+            val (waypoint, rotation) = waypoints.mapNotNull { waypoint ->
+                val target = waypoint.second
+                val (yaw, pitch) = target.getLook(player.eyePosition)
+                if (!AimAssist.withinFov(yaw, pitch, player.yRot, player.xRot, autoWarpFov.value)) {
+                    return@mapNotNull null
+                }
+
+                (waypoint to (yaw to pitch)) to hypot(
+                    AimAssist.angleDifference(yaw, player.yRot).toDouble(),
+                    (pitch - player.xRot).toDouble()
+                )
+            }.minByOrNull { it.second }?.first ?: return@schedule
+
+            val (yaw, pitch) = rotation
+
+            RotationUtils.applyGcd(yaw, pitch)
+
+            schedule(1) {
+                mc.options.keyUse.clickCount++
+            }
+        }
+    }
 
     val waypoints = listOf(
         Triple("Square", Vec3(-139.5, 79.0, -89.5), Crate.Square),
