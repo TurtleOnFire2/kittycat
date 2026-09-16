@@ -14,6 +14,7 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val cancelPlacingConduit = booleanSetting("Cancel placing conduit", false)
     val fixSkillIssue = booleanSetting("Cancel teleporting into lava")
     val noSkyblockMenu = booleanSetting("Cancel open skyblock menu", false)
+    val clickThroughGiants = booleanSetting("Click through giants", false)
 
     fun cancelClick(): Boolean {
         if (!enabled) return false
@@ -63,5 +64,9 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
         if (uuid != "HOLLOW_WAND") return false
 
         return (enabled && hollowFix.value)
+    }
+
+    fun ignoreGiant(): Boolean {
+        return enabled && clickThroughGiants.value
     }
 }
