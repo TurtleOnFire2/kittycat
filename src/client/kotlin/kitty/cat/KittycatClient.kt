@@ -14,6 +14,7 @@ import kitty.cat.features.kuudra.RendMacro
 import kitty.cat.features.misc.ChatMacros
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.debug.PearlLandingDebug
+import kitty.cat.features.visual.BestiaryESP
 import kitty.cat.features.visual.CatEars
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
@@ -151,6 +152,12 @@ object KittycatClient : ClientModInitializer {
 			dispatcher.register(
 				literal("kc")
 					.then(
+						literal("be").executes {
+							BestiaryESP.openGui = true
+							1
+						}
+					)
+					.then(
 						literal("gui").executes { context ->
 							openGui = true
 							1
@@ -203,6 +210,7 @@ object KittycatClient : ClientModInitializer {
 		Pests.register()
 		Hud.register()
 		BestiaryHud.register()
+		BestiaryESP.register()
 		ChatMacros.register()
 		Schedule.register()
 		Storm.register()
