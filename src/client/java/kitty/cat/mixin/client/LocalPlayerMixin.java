@@ -4,6 +4,7 @@ import kitty.cat.features.kuudra.Fixes;
 import kitty.cat.features.kuudra.Stun;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.Giant;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
@@ -17,6 +18,9 @@ public class LocalPlayerMixin {
     void getClosestHit(Args args) {
         if (Fixes.INSTANCE.clickThrough()) {
             args.set(2, (Predicate<Entity>) entity -> false);
+        } else if (Fixes.INSTANCE.ignoreGiant()) {
+            Predicate<Entity> original = args.get(2);
+            args.set(2, original.and(entity -> !(entity instanceof Giant)));
         }
     }
 
@@ -24,6 +28,9 @@ public class LocalPlayerMixin {
     private static void getEntityHitResult(Args args) {
         if (Fixes.INSTANCE.clickThrough()) {
             args.set(4, (Predicate<Entity>) entity -> false);
+        } else if (Fixes.INSTANCE.ignoreGiant()) {
+            Predicate<Entity> original = args.get(4);
+            args.set(4, original.and(entity -> !(entity instanceof Giant)));
         }
     }
 }
