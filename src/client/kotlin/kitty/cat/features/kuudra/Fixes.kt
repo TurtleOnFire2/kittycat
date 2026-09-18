@@ -2,6 +2,7 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.cheat
 import kitty.cat.gui.categories.Categories
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.isEtherwarpItem
@@ -14,10 +15,10 @@ import net.minecraft.world.phys.HitResult
 object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val hollowFix = booleanSetting("Hollow wand fix", false)
     val cancelPlacingConduit = booleanSetting("Cancel placing conduit", false)
-    val fixSkillIssue = booleanSetting("Cancel teleporting into lava")
+    val fixSkillIssue = booleanSetting("Cancel teleporting into lava. (Disable for stun").cheat()
     val noSkyblockMenu = booleanSetting("Cancel open skyblock menu", false)
-    val clickThroughGiants = booleanSetting("Click through giants", false)
-    val clickThroughEther = booleanSetting("Click through ether", false)
+    val clickThroughGiants = booleanSetting("Click through giants", false).cheat()
+    val clickThroughEther = booleanSetting("Click through ether", false).cheat()
 
     fun cancelClick(): Boolean {
         if (!enabled) return false

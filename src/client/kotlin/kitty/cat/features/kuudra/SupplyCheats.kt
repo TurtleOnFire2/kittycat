@@ -13,6 +13,11 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
 
 object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
+
+    init {
+        cheat()
+    }
+
     val reach = booleanSetting("Reach", false)
     val range = numberSetting("Range", 3.0, 5.5, 3.0, "", 0.1)
 

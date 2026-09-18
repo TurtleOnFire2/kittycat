@@ -23,6 +23,11 @@ import net.minecraft.world.phys.Vec3
 import java.awt.Color
 
 object Fireball : Feature("Fireball", "", Category.KUUDRA) {
+
+    init {
+        cheat()
+    }
+
     val pile = selectorSetting("Start pile", listOf("Tri", "X", "Slash", "Equals"))
     val delay = numberSetting("Delay", 1.0, 10.0, 1.0)
     val assumeStun = booleanSetting("Assume Stun", false)

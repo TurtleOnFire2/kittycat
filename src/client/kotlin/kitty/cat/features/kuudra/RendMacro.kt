@@ -38,8 +38,12 @@ import java.awt.Color
 import kotlin.random.Random
 
 object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
-    val autoSneak = booleanSetting("Auto sneak", false)
 
+    init {
+        cheat()
+    }
+
+    val autoSneak = booleanSetting("Auto sneak", false)
     val autoRotate = booleanSetting("Auto rotate", false)
     val yawOffset = rangeSetting("Yaw offset", -10.0, 10.0, 0.0, 0.0, "°", 0.1)
     val pitchOffset = rangeSetting("Pitch offset", -10.0, 10.0, 0.0, 0.0, "°", 0.1)

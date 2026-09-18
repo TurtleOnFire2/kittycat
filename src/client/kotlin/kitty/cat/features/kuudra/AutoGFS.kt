@@ -3,19 +3,17 @@ package kitty.cat.features.kuudra
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
-import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationManager
-import kitty.cat.utils.LocationUtils
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.InteractionResult
-import net.minecraft.world.entity.player.Player
-import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
 object AutoGFS : Feature("Auto GFS", "", Categories.Category.KUUDRA) {
+
+    init {
+        cheat()
+    }
+
     val enderPearls = booleanSetting("Ender pearls", true)
     val toxicArrowPoison = booleanSetting("Toxic arrow poison", true)
     val amountTap = numberSetting("Tap amount", 16.0, 32.0, 64.0, "", 1.0)

@@ -3,6 +3,7 @@ package kitty.cat.features.dungeons
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.cheat
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.canInteract
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -15,7 +16,7 @@ import net.minecraft.world.phys.HitResult
 import java.awt.Color
 
 object Relics: Feature("Relics", "Features for M7 relics", Categories.Category.DUNGEONS) {
-    val cauldronTriggerbot = booleanSetting("Cauldron triggerbot", false)
+    val cauldronTriggerbot = booleanSetting("Cauldron triggerbot", false).cheat()
     val renderSpawnBox = booleanSetting("Render spawn box", false)
 
     var active = false

@@ -3,6 +3,7 @@ package kitty.cat.features.dungeons
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.cheat
 import kitty.cat.utils.Chat
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.Schedule.schedule
@@ -32,28 +33,28 @@ import kotlin.math.abs
 object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNGEONS) {
     //Arch
     val bowTint = booleanSetting("Apply tint at max pull", false, description = "Applies a red tint when the Death Bow is at max charge")
-    val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow")
-    val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
-    val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0)
-    val autoSwapArmor = booleanSetting("Auto swap armor")
-    val clickDelay = numberSetting("Click delay", min = 0.0, max = 10.0, 1.0, step = 1.0)
-    val swapWardrobeSlot = numberSetting("Loadout slot", 1.0, 12.0, 1.0, step = 1.0)
-    val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY")
-    val releaseTime = numberSetting("Release time", min = 34.00, max = 35.0, 34.5, step = 0.05, unit = "s")
-    val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath")
-    val pitchLimit = numberSetting("Pitch limit", min = -85.0, max = -0.0, -70.0, step = 1.0)
+    val autoSwapCritItem = booleanSetting("Auto swap crit item", description = "Automatically swaps to the selected slot after letting go of the Death Bow").cheat()
+    val swapDelay = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0).cheat()
+    val swapSlot = numberSetting("Item slot", 1.0, 8.0, 1.0, step = 1.0).cheat()
+    val autoSwapArmor = booleanSetting("Auto swap armor").cheat()
+    val clickDelay = numberSetting("Click delay", min = 0.0, max = 10.0, 1.0, step = 1.0).cheat()
+    val swapWardrobeSlot = numberSetting("Loadout slot", 1.0, 12.0, 1.0, step = 1.0).cheat()
+    val autoReleaseLB = booleanSetting("Auto release Last Breath", description = "Automatically releases the Last Breath for Storm PY").cheat()
+    val releaseTime = numberSetting("Release time", min = 34.00, max = 35.0, 34.5, step = 0.05, unit = "s").cheat()
+    val autoTrack = booleanSetting("Auto track Storm", description = "Tracks Storm for you after releasing Last Breath").cheat()
+    val pitchLimit = numberSetting("Pitch limit", min = -85.0, max = -0.0, -70.0, step = 1.0).cheat()
     val waypointOffset = numberSetting("Waypoint offset", min = -2.0, max = 2.0, 0.0, step = 0.1)
-    val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath")
-    val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath")
-    val leftClickWithTerm = booleanSetting("Left click with term after")
+    val autoWalkForward = booleanSetting("Auto walk forward",  description = "Walks forward for you after releasing Last Breath").cheat()
+    val autoSwapTerm = booleanSetting("Auto swap term in Storm", description = "Swaps to Term for you after releasing Last Breath").cheat()
+    val leftClickWithTerm = booleanSetting("Left click with term after").cheat()
     //Mage
-    val autoHit = booleanSetting("Auto hit storm", description = "Automatically hits storm at the specified time")
-    val hitTimePurple = numberSetting("Hit time purple", min = 16.00, max = 24.0, 17.9, step = 0.05, unit = "s")
-    val hitTimeYellow = numberSetting("Hit time yellow", min = 36.00, max = 40.0, 37.9, step = 0.05, unit = "s")
-    val autoSwapAfterLeap = booleanSetting("Swap item after right click leap")
-    val swapDelayLeap = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0)
-    val swapSlotAfterLeap = numberSetting("Item slot leap", 1.0, 8.0, 1.0, step = 1.0)
-    val autoSneak = booleanSetting("Auto sneak at yellow")
+    val autoHit = booleanSetting("Auto hit storm", description = "Automatically hits storm at the specified time").cheat()
+    val hitTimePurple = numberSetting("Hit time purple", min = 16.00, max = 24.0, 17.9, step = 0.05, unit = "s").cheat()
+    val hitTimeYellow = numberSetting("Hit time yellow", min = 36.00, max = 40.0, 37.9, step = 0.05, unit = "s").cheat()
+    val autoSwapAfterLeap = booleanSetting("Swap item after right click leap").cheat()
+    val swapDelayLeap = numberSetting("Swap delay", min = 0.0, max = 10.0, 0.0, step = 1.0).cheat()
+    val swapSlotAfterLeap = numberSetting("Item slot leap", 1.0, 8.0, 1.0, step = 1.0).cheat()
+    val autoSneak = booleanSetting("Auto sneak at yellow").cheat()
 
 
     var maxor = false

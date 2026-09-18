@@ -7,6 +7,7 @@ import kitty.cat.features.kuudra.RendMacro.offsetLeft
 import kitty.cat.features.kuudra.RendMacro.offsetRight
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.cheat
 import kitty.cat.render.world.Render3D.BoxRender
 import kitty.cat.render.world.Render3D.renderBoxesBounds
 import kitty.cat.utils.canInteract
@@ -18,7 +19,7 @@ import net.minecraft.world.phys.EntityHitResult
 import java.awt.Color
 
 object Terminals: Feature("Terminals", "", Categories.Category.DUNGEONS) {
-    val triggerbot = booleanSetting("Triggerbot", false)
+    val triggerbot = booleanSetting("Triggerbot", false).cheat()
     val showHitbox = booleanSetting("Show Hitbox", false)
 
     private val terminalNames = setOf("Inactive Terminal", "CLICK HERE")

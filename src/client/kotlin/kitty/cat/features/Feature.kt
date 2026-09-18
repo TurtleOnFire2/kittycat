@@ -1,5 +1,6 @@
 package kitty.cat.features
 
+import kitty.cat.config.BuildFlags
 import kitty.cat.config.ConfigManager
 import kitty.cat.gui.categories.Categories
 import kitty.cat.features.settings.ActionSetting
@@ -14,6 +15,7 @@ import kitty.cat.features.settings.RegistrySetting
 import net.minecraft.core.Registry
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
+import kitty.cat.features.settings.isCheatOnly
 
 abstract class Feature {
     internal val name: String
@@ -22,38 +24,51 @@ abstract class Feature {
     var enabled: Boolean = false
         private set
 
+    var isCheatOnly: Boolean = false
+        private set
+
+    // Marks the whole feature (not just individual settings) as cheat-only.
+    protected fun cheat() {
+        isCheatOnly = true
+    }
+
+    private fun <T : Setting> List<T>.visible(): List<T> {
+        if (isCheatOnly && !BuildFlags.CHEATS_ENABLED) return emptyList()
+        return if (BuildFlags.CHEATS_ENABLED) this else filterNot { it.isCheatOnly }
+    }
+
     private val _settings = mutableListOf<Setting>()
     val settings: List<Setting>
-        get() = _settings
+        get() = _settings.visible()
 
     private val _booleanSettings = mutableListOf<BooleanSetting>()
     val booleanSettings: List<BooleanSetting>
-        get() = _booleanSettings
+        get() = _booleanSettings.visible()
     private val _keybindSettings = mutableListOf<KeybindSetting>()
     val keybindSettings: List<KeybindSetting>
-        get() = _keybindSettings
+        get() = _keybindSettings.visible()
     private val _numberSettings = mutableListOf<NumberSetting>()
     val numberSettings: List<NumberSetting>
-        get() = _numberSettings
+        get() = _numberSettings.visible()
     private val _rangeSettings = mutableListOf<RangeSetting>()
     val rangeSettings: List<RangeSetting>
-        get() = _rangeSettings
+        get() = _rangeSettings.visible()
     private val _selectorSettings = mutableListOf<SelectorSetting>()
     private val _registrySettings = mutableListOf<RegistrySetting>()
-    val registrySettings: List<RegistrySetting> get() = _registrySettings
+    val registrySettings: List<RegistrySetting> get() = _registrySettings.visible()
     val selectorSettings: List<SelectorSetting>
-        get() = _selectorSettings
+        get() = _selectorSettings.visible()
     private val _colorSettings = mutableListOf<ColorSetting>()
     val colorSettings: List<ColorSetting>
-        get() = _colorSettings
+        get() = _colorSettings.visible()
     private val _actionSettings = mutableListOf<ActionSetting>()
     val actionSettings: List<ActionSetting>
-        get() = _actionSettings
+        get() = _actionSettings.visible()
     private val _stringSettings = mutableListOf<StringSetting>()
     val stringSettings: List<StringSetting>
-        get() = _stringSettings
+        get() = _stringSettings.visible()
     private val _orderSettings = mutableListOf<OrderSetting>()
-    val orderSettings: List<OrderSetting> get() = _orderSettings
+    val orderSettings: List<OrderSetting> get() = _orderSettings.visible()
 
     constructor(name: String, description: String, category: Categories.Category) {
         this.name = name
@@ -62,6 +77,7 @@ abstract class Feature {
     }
 
     fun setEnabled(enabled: Boolean) {
+        if (enabled && isCheatOnly && !BuildFlags.CHEATS_ENABLED) return
         if (this.enabled == enabled) return
         this.enabled = enabled
         ConfigManager.markDirty()
@@ -228,3 +244,6 @@ abstract class Feature {
         return setting
     }
 }
+
+fun List<Feature>.visible(): List<Feature> =
+    if (BuildFlags.CHEATS_ENABLED) this else filterNot { it.isCheatOnly }

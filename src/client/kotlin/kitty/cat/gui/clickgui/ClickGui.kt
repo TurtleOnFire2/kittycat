@@ -45,6 +45,7 @@ import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.RegistrySetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
+import kitty.cat.features.visible
 import kitty.cat.features.visual.CatEars
 import kitty.cat.render.skija.SkijaDraw
 import kitty.cat.render.skija.SkijaRenderer
@@ -260,7 +261,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
         ExampleFeature, PearlLandingDebug, Debug
-    )
+    ).visible()
 
     var activeFeatures: List<Feature> = emptyList()
     private val expandedFeatures = mutableSetOf<Feature>()

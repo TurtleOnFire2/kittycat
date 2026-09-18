@@ -45,6 +45,17 @@ loom {
 		jvmArguments.add("-Ddevauth.enabled=true")
 		jvmArguments.add("-Ddevauth.account=main")
 	}
+
+	// Second dev run config: same as "client" but launches with cheats disabled
+	// (kittycat-build.properties is only consulted as a fallback), so the legit
+	// build can be tested from the IDE/gradlew without producing a separate jar.
+	runConfigs.register("clientLegit") {
+		inherit(runConfigs.getByName("client"))
+		configName = "Client (Legit)"
+		jvmArguments.add("-Ddevauth.enabled=true")
+		jvmArguments.add("-Ddevauth.account=main")
+		jvmArguments.add("-Dkittycat.cheats=false")
+	}
 }
 
 fabricApi {
@@ -125,6 +136,35 @@ tasks.jar {
 	from("LICENSE") {
 		rename { "${it}_${base.archivesName.get()}" }
 	}
+}
+
+// Repackages the built jar with kittycat-build.properties flipped to
+// cheats=false, so settings tagged .cheat() are hidden/locked in this jar.
+val legitJarFlagFile = layout.buildDirectory.file("tmp/legitJar/kittycat-build.properties")
+
+val writeLegitJarFlag = tasks.register("writeLegitJarFlag") {
+	outputs.file(legitJarFlagFile)
+	doLast {
+		val file = legitJarFlagFile.get().asFile
+		file.parentFile.mkdirs()
+		file.writeText("cheats=false\n")
+	}
+}
+
+val legitJar = tasks.register<Jar>("legitJar") {
+	group = "build"
+	description = "Assembles a jar with cheat-tagged settings hidden and locked to their defaults."
+	archiveClassifier = "legit"
+
+	dependsOn(tasks.jar, writeLegitJarFlag)
+	from(zipTree(tasks.jar.flatMap { it.archiveFile })) {
+		exclude("kittycat-build.properties")
+	}
+	from(writeLegitJarFlag)
+}
+
+tasks.build {
+	dependsOn(legitJar)
 }
 
 // configure the maven publication

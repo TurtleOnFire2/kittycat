@@ -20,6 +20,7 @@ import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.Hud
 import kitty.cat.gui.clickgui.ClickGui
 import kitty.cat.features.Feature
+import kitty.cat.features.visible
 import kitty.cat.features.huds.BackboneHud
 import kitty.cat.features.huds.BuildHud
 import kitty.cat.features.huds.KuudraHpHud
@@ -77,6 +78,7 @@ object KittycatClient : ClientModInitializer {
 					null
 				}
 			}
+			.visible()
 
 	val mc get() = Minecraft.getInstance()
 	var openGui = false

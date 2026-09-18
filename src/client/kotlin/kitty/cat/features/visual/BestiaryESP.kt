@@ -32,6 +32,10 @@ import kotlin.io.path.createParentDirectories
 import kotlin.io.path.exists
 
 object BestiaryESP : Feature("Bestiary ESP", "", Categories.Category.VISUAL) {
+    init {
+        cheat()
+    }
+
     val openGuiAction = actionSetting("Open Bestiary ESP") { openGui = true }
 
     var openGui = false

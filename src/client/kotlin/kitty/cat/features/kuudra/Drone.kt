@@ -2,16 +2,23 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.features.Feature
 import kitty.cat.features.settings.KeybindSetting
+import kitty.cat.features.settings.cheat
 import kitty.cat.gui.categories.Categories
 import kitty.cat.utils.Chat
 import kitty.cat.utils.Schedule.schedule
 
 object Drone: Feature("Drone", "", Categories.Category.KUUDRA) {
-    val freezeKeybind = keybindSetting("Toggle freeze")
+
+    init {
+        cheat()
+    }
+
+    val freezeKeybind = keybindSetting("Toggle freeze").cheat()
 
     var freeze = false
 
     override fun onKeybindPressed(setting: KeybindSetting) {
+        if (!enabled) return
         freeze = true
         Chat.send("Freezing: $freeze")
         schedule(200, true) {
