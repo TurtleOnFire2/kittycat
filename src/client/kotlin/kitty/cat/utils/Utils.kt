@@ -115,6 +115,10 @@ fun ItemStack.uuid(): String? {
     return getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getString("id").getOrNull()
 }
 
+fun ItemStack.isEtherwarpItem(): Boolean {
+    return uuid() in listOf("ETHERWARP_CONDUIT", "ASPECT_OF_THE_VOID")
+}
+
 fun String.addColor() = replace("&", "§")
 
 fun Color.setRed(r: Int): Color {
