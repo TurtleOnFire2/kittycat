@@ -88,6 +88,7 @@ public class ClientPlayNetworkHandleMixin {
         RendMacro.INSTANCE.onPositionChange(packet);
         Stun.INSTANCE.onPositionChange(packet);
         PearlLandingDebug.INSTANCE.onPositionChange();
+        Fireball.INSTANCE.handlePosition(packet);
     }
 
     @Inject(method = "setTitleText", at = @At("HEAD"), cancellable = true)

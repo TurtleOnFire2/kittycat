@@ -31,6 +31,7 @@ import kitty.cat.features.kuudra.AutoGFS
 import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.KuudraDisplay
 import kitty.cat.features.kuudra.EtherwarpWaypoints
+import kitty.cat.features.kuudra.Fireball
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.features.kuudra.SafeSpots
@@ -220,6 +221,7 @@ object KittycatClient : ClientModInitializer {
 		KuudraDisplay.register()
 		BackboneAlert.register()
 		AutoGFS.register()
+		Fireball.register()
 
 		BackboneHud
 		BuildHud
