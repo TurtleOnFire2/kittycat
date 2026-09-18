@@ -2,20 +2,22 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
-import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.gui.categories.Categories.Category
-import kitty.cat.utils.Chat
+import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.kuudra
+import kitty.cat.utils.KuudraUtils.supplies
 import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.RotationUtils.framePartialTick
-import kitty.cat.utils.Schedule.schedule
+import kitty.cat.utils.aabb
 import kitty.cat.utils.getLook
 import kitty.cat.utils.isEtherwarpItem
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.phys.Vec3
+import java.awt.Color
 
 object Fireball : Feature("Fireball", "", Category.KUUDRA) {
     val pile = selectorSetting("Start pile", listOf("Tri", "X", "Slash", "Equals"))
@@ -60,6 +62,14 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
     var lastTp = 0
 
     fun register() {
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled || !kuudra() || !supplies()) return@register
+
+            val offset = getOffset()
+            val startPos = positions[offset]
+
+            ctx.renderBoxBounds(startPos.aabb(0.5), Color.RED)
+        }
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (!enabled || !kuudra() || !build()) {
                 ticks = 0
