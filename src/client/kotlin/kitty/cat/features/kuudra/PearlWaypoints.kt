@@ -236,5 +236,5 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     }
 
     private const val AIM_ASSIST_THROW_TIMEOUT_MS = 2_000L
-    private const val TRIGGERBOT_COOLDOWN_MS = 1_000L
+    private const val TRIGGERBOT_COOLDOWN_MS = 4_000L
 }

@@ -9,6 +9,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.Vec3
+import kotlin.inc
 import kotlin.io.use
 
 object ClickUtils {
@@ -37,5 +38,26 @@ object ClickUtils {
         gameMode.startPrediction(mc.level!!) { i ->
             ServerboundInteractPacket(entity.id, InteractionHand.MAIN_HAND, vec3, player.isShiftKeyDown)
         }
+    }
+
+    fun useItem(yaw: Float, pitch: Float) {
+        val gameMode = mc.gameMode ?: return
+        val player = mc.player ?: return
+        if (gameMode.playerMode == GameType.SPECTATOR) return
+
+        val interactionHand = InteractionHand.MAIN_HAND
+
+        gameMode.startPrediction(mc.level!!) { i ->
+            val packet = ServerboundUseItemPacket(interactionHand, i, yaw, pitch)
+            val stack = player.getItemInHand(interactionHand)
+            if (player.cooldowns.isOnCooldown(stack)) {
+                return@startPrediction packet
+            } else {
+                val res = stack.use(mc.level!!, player, interactionHand)
+                val stack2 = if (res is InteractionResult.Success) (res.heldItemTransformedTo() ?: player.getItemInHand(interactionHand)) else player.getItemInHand(interactionHand)
+                if (stack2 != stack) player.setItemInHand(interactionHand, stack2)
+                    return@startPrediction packet
+                }
+            }
     }
 }
