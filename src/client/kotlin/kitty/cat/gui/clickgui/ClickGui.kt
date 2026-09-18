@@ -15,6 +15,7 @@ import kitty.cat.features.settings.SelectorSetting
 import kitty.cat.features.settings.RegistrySetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
+import kitty.cat.features.visible
 import kitty.cat.render.skija.SkijaDraw
 import kitty.cat.render.skija.SkijaRenderer
 import kitty.cat.render.skija.SkijaShapes as GuiUtils
@@ -234,6 +235,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                     null
                 }
             }
+            .visible()
 
     var activeFeatures: List<Feature> = emptyList()
     private val expandedFeatures = mutableSetOf<Feature>()

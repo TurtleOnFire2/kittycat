@@ -3,6 +3,7 @@ package kitty.cat.features.kuudra
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.features.debug.PearlLandingDebug
+import kitty.cat.features.settings.cheat
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
@@ -31,13 +32,13 @@ object EtherwarpWaypoints : Feature(
 ) {
     val yOffset = booleanSetting("You probably dont want to turn this off", true)
 
-    val aimAssist = booleanSetting("Aim assist", false)
-    val aimAssistFov = numberSetting("Aim assist FOV", 1.0, 180.0, 40.0, "°", 1.0)
-    val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
+    val aimAssist = booleanSetting("Aim assist", false).cheat()
+    val aimAssistFov = numberSetting("Aim assist FOV", 1.0, 180.0, 40.0, "°", 1.0).cheat()
+    val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
 
-    val autoWarpOnSupply = booleanSetting("Auto warp on supply place", false)
-    val delay = numberSetting("Delay", 0.0, 10.0, 1.0, "",1.0)
-    val autoWarpFov = numberSetting("Auto warp FOV", 1.0, 180.0, 20.0, "°", 1.0)
+    val autoWarpOnSupply = booleanSetting("Auto warp on supply place", false).cheat()
+    val delay = numberSetting("Delay", 0.0, 10.0, 1.0, "",1.0).cheat()
+    val autoWarpFov = numberSetting("Auto warp FOV", 1.0, 180.0, 20.0, "°", 1.0).cheat()
 
     private val placedRegex = Regex("(.+) recovered one of Elle's supplies!")
 

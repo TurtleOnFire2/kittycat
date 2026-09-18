@@ -2,6 +2,7 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.cheat
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
@@ -29,13 +30,13 @@ import java.util.regex.Pattern
 object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA) {
     val offset = numberSetting("Offset", 0.0, 1000.0, 0.0, "ms")
     val doubleOffset = numberSetting("Double pearl offset", 0.0, 1000.0, 0.0, "ms")
-    val triggerbot = booleanSetting("Triggerbot", false)
-    val singleAimAssist = booleanSetting("Single pearl aim assist", false)
-    val singleAimAssistFov = numberSetting("Single pearl aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
-    val singleAimAssistStrength = numberSetting("Single pearl aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
-    val doubleAimAssist = booleanSetting("Double pearl aim assist", false)
-    val doubleAimAssistFov = numberSetting("Double pearl aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
-    val doubleAimAssistStrength = numberSetting("Double pearl aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
+    val triggerbot = booleanSetting("Triggerbot", false).cheat()
+    val singleAimAssist = booleanSetting("Single pearl aim assist", false).cheat()
+    val singleAimAssistFov = numberSetting("Single pearl aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0).cheat()
+    val singleAimAssistStrength = numberSetting("Single pearl aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
+    val doubleAimAssist = booleanSetting("Double pearl aim assist", false).cheat()
+    val doubleAimAssistFov = numberSetting("Double pearl aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0).cheat()
+    val doubleAimAssistStrength = numberSetting("Double pearl aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
 
     private var lastPos: Vec3? = null
     private var solutions: MutableList<AimPoint> = mutableListOf()

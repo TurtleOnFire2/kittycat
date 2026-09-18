@@ -18,7 +18,8 @@ public class LivingEntityMixin {
         LivingEntity self = (LivingEntity) (Object) this;
 
         if (
-                Stun.INSTANCE.getNoBlind().getValue() &&
+                Stun.INSTANCE.getEnabled() &&
+                        Stun.INSTANCE.getNoBlind().getValue() &&
                         self == Minecraft.getInstance().player &&
                         effect != null &&
                         effect.is(MobEffects.BLINDNESS)

@@ -18,6 +18,10 @@ import kotlin.random.Random
 
 object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
 
+    init {
+        cheat()
+    }
+
     val autoWarp = booleanSetting("Auto warp", false, "Also sets your spawn beforehand")
     val autoLoadout = booleanSetting("Auto loadout", false)
 

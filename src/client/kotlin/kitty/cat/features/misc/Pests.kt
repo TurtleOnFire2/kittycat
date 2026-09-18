@@ -18,6 +18,10 @@ import java.awt.Color
 
 object Pests: Feature("Pests", "", Categories.Category.MISC) {
 
+    init {
+        cheat()
+    }
+
     val pestEsp = booleanSetting("Pest ESP", false)
     val color = colorSetting("Color")
 

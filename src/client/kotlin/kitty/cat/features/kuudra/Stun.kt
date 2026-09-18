@@ -2,6 +2,7 @@ package kitty.cat.features.kuudra
 
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.settings.cheat
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.AimAssist
@@ -32,20 +33,20 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     val autoOpenShop = booleanSetting("Auto open shop", false)
     val renderArea = booleanSetting("Render area for auto open", false)
     val showWaypoint = booleanSetting("Show a waypoint", false, "Shows a waypoint on where to etherwarp to to also insta mount cannon.")
-    val shopAimAssist = booleanSetting("Shop waypoint aim assist", false)
+    val shopAimAssist = booleanSetting("Shop waypoint aim assist", false).cheat()
     val onlyOnLeftSide = booleanSetting("Only work on left side of ballista", false)
-    val shopAimAssistFov = numberSetting("Shop waypoint aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
-    val shopAimAssistStrength = numberSetting("Shop waypoint aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
-    val autoSetCursor = booleanSetting("Auto set cursor on shop open", false)
-    val autoCloseShop = booleanSetting("Auto close shop", false)
-    val noBlind = booleanSetting("No blindness", false)
+    val shopAimAssistFov = numberSetting("Shop waypoint aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0).cheat()
+    val shopAimAssistStrength = numberSetting("Shop waypoint aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
+    val autoSetCursor = booleanSetting("Auto set cursor on shop open", false).cheat()
+    val autoCloseShop = booleanSetting("Auto close shop", false).cheat()
+    val noBlind = booleanSetting("No blindness", false).cheat()
     val stunWaypoint = booleanSetting("Stun waypoint", false)
     val pod = selectorSetting("Pod", listOf("Left", "Back", "Right"), listOf("Back"), false)
-    val aimAssist = booleanSetting("Aim assist", false)
-    val aimAssistFov = numberSetting("Aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0)
-    val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
-    val autoPickobulus = booleanSetting("Auto pickobulus", false)
-    val earlyPicko = booleanSetting("Pickobulus early", false, "Pickos when entering belly (Requires you to spam etherwarp)")
+    val aimAssist = booleanSetting("Aim assist", false).cheat()
+    val aimAssistFov = numberSetting("Aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0).cheat()
+    val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
+    val autoPickobulus = booleanSetting("Auto pickobulus", false).cheat()
+    val earlyPicko = booleanSetting("Pickobulus early", false, "Pickos when entering belly (Requires you to spam etherwarp)").cheat()
 
     var purchased = false
     private var podDestroyed = false
@@ -207,7 +208,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
     }
 
     fun handleSetSlot(packet: ClientboundContainerSetSlotPacket) {
-        if (packet.item.hoverName.string != "Human Cannonball" || !autoSetCursor.value) return
+        if (packet.item.hoverName.string != "Human Cannonball" || !autoSetCursor.value || !enabled) return
 
         if (!build() && !stun()) return
 
