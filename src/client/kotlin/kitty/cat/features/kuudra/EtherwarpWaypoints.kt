@@ -36,6 +36,7 @@ object EtherwarpWaypoints : Feature(
     val aimAssistStrength = numberSetting("Aim assist strength", 0.01, 1.0, 0.5, "", 0.005)
 
     val autoWarpOnSupply = booleanSetting("Auto warp on supply place", false)
+    val delay = numberSetting("Delay", 0.0, 10.0, 1.0, "",1.0)
     val autoWarpFov = numberSetting("Auto warp FOV", 1.0, 180.0, 20.0, "°", 1.0)
 
     private val placedRegex = Regex("(.+) recovered one of Elle's supplies!")
@@ -62,7 +63,7 @@ object EtherwarpWaypoints : Feature(
 
         if (mc.player?.inventory?.selectedSlot != slot) mc.player?.inventory?.selectedSlot = slot
 
-        schedule(0) {
+        schedule(delay.value) {
             val (waypoint, rotation) = waypoints.mapNotNull { waypoint ->
                 val target = waypoint.second
                 val (yaw, pitch) = target.getLook(player.eyePosition)
@@ -80,9 +81,7 @@ object EtherwarpWaypoints : Feature(
 
             RotationUtils.applyGcd(yaw, pitch)
 
-            schedule(1) {
-                mc.options.keyUse.clickCount++
-            }
+            mc.options.keyUse.clickCount++
         }
     }
 

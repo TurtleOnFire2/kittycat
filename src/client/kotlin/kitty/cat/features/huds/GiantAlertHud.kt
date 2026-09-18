@@ -22,7 +22,7 @@ object GiantAlertHud : Hud.Component(
         val inGiant = mc.level
             ?.entitiesForRendering()
             ?.filterIsInstance<Giant>()
-            ?.any { it.boundingBox.contains(eyePos) }
+            ?.any { it.boundingBox.contains(eyePos.subtract(0.0, 0.12, 0.0)) }
             ?: false
 
         if (inGiant) context.text(mc.font, "Standing in giant!", 0, 0, Color.RED)

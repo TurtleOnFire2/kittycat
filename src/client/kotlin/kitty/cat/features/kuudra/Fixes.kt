@@ -3,6 +3,8 @@ package kitty.cat.features.kuudra
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
+import kitty.cat.utils.KuudraUtils.kuudra
+import kitty.cat.utils.isEtherwarpItem
 import kitty.cat.utils.uuid
 import net.minecraft.tags.FluidTags
 import net.minecraft.world.entity.player.Player
@@ -15,6 +17,7 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val fixSkillIssue = booleanSetting("Cancel teleporting into lava")
     val noSkyblockMenu = booleanSetting("Cancel open skyblock menu", false)
     val clickThroughGiants = booleanSetting("Click through giants", false)
+    val clickThroughEther = booleanSetting("Click through ether", false)
 
     fun cancelClick(): Boolean {
         if (!enabled) return false
@@ -64,6 +67,10 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
         if (uuid != "HOLLOW_WAND") return false
 
         return (enabled && hollowFix.value)
+    }
+
+    fun clickThroughEther(): Boolean {
+        return (enabled && clickThroughEther.value && mc.player?.mainHandItem?.isEtherwarpItem() == true && kuudra())
     }
 
     fun ignoreGiant(): Boolean {

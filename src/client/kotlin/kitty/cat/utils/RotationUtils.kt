@@ -384,7 +384,7 @@
 
         private fun smootherStep(p: Float) = p * p * p * (p * (p * 6f - 15f) + 10f)
         private fun lerp(a: Float, b: Float, p: Float) = a + (b - a) * p
-        private fun framePartialTick() = mc.deltaTracker.getGameTimeDeltaPartialTick(true)
+        fun framePartialTick() = mc.deltaTracker.getGameTimeDeltaPartialTick(true)
 
         private fun pulse(progress: Float, center: Float, width: Float): Float {
             val distance = abs(progress - center)

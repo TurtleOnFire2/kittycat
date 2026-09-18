@@ -5,6 +5,7 @@ import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.BackboneAlert;
 import kitty.cat.features.kuudra.Build;
+import kitty.cat.features.kuudra.Fireball;
 import kitty.cat.features.kuudra.PearlWaypoints;
 import kitty.cat.utils.Schedule;
 import net.minecraft.network.Connection;
@@ -28,6 +29,7 @@ public class ConnectionMixin {
             SupplyHud.INSTANCE.serverTick();
             BackboneAlert.INSTANCE.serverTick();
             Build.INSTANCE.serverTick();
+            Fireball.INSTANCE.serverTick();
         }
     }
 
