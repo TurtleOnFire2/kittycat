@@ -38,9 +38,13 @@ object EtherwarpWaypoints : Feature(
 
     val autoWarpOnSupply = booleanSetting("Auto warp on supply place", false).cheat()
     val delay = numberSetting("Delay", 0.0, 10.0, 1.0, "",1.0).cheat()
+
+    val noLook = booleanSetting("Serverside click (Ignores FOV)", false).cheat()
     val autoWarpFov = numberSetting("Auto warp FOV", 1.0, 180.0, 20.0, "°", 1.0).cheat()
 
     private val placedRegex = Regex("(.+) recovered one of Elle's supplies!")
+
+    private val warpedCrates = mutableSetOf<Crate>()
 
     fun handleChat(unformatted: String) {
         if (!enabled || !autoWarpOnSupply.value) return
@@ -65,31 +69,32 @@ object EtherwarpWaypoints : Feature(
         if (mc.player?.inventory?.selectedSlot != slot) mc.player?.inventory?.selectedSlot = slot
 
         schedule(delay.value) {
-            val (waypoint, rotation) = waypoints.mapNotNull { waypoint ->
-                val target = waypoint.second
-                val (yaw, pitch) = target.getLook(player.eyePosition)
-                if (!AimAssist.withinFov(yaw, pitch, player.yRot, player.xRot, autoWarpFov.value)) {
-                    return@mapNotNull null
-                }
+            val waypoint = waypoints.find { it.third == CratePriority.missing } ?: return@schedule
+            if (waypoint.third in warpedCrates) return@schedule
 
-                (waypoint to (yaw to pitch)) to hypot(
-                    AimAssist.angleDifference(yaw, player.yRot).toDouble(),
-                    (pitch - player.xRot).toDouble()
-                )
-            }.minByOrNull { it.second }?.first ?: return@schedule
+            if (noLook.value) {
+                ClickUtils.queueClick(waypoint.second)
+                warpedCrates.add(waypoint.third)
 
-            val (yaw, pitch) = rotation
+                return@schedule
+            }
 
-            RotationUtils.applyGcd(yaw, pitch)
+            val rotation = waypoint.second.getLook(player.eyePosition)
+
+            if (!AimAssist.withinFov(rotation.first, rotation.second, player.yRot, player.xRot, autoWarpFov.value)) {
+                return@schedule
+            }
+
+            RotationUtils.applyGcd(rotation.first, rotation.second)
 
             mc.options.keyUse.clickCount++
+            warpedCrates.add(waypoint.third)
         }
     }
 
     val waypoints = listOf(
-        Triple("Square", Vec3(-139.5, 79.0, -89.5), Crate.Square),
+        Triple("Square", Vec3(-138.5, 79.0, -87.5), Crate.Square),
         Triple("Shop", Vec3(-77.5, 79.0, -134.5), Crate.Shop),
-        Triple("Coal", Vec3(-134.5, 79.0, -127.5), Crate.xCannon),
         Triple("XC", Vec3(-129.5, 79.0, -114.5), Crate.xCannon),
     )
 
@@ -105,6 +110,7 @@ object EtherwarpWaypoints : Feature(
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             pearlLanding = null
+            warpedCrates.clear()
         }
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register

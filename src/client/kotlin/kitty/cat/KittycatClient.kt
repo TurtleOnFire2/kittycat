@@ -46,6 +46,7 @@ import kitty.cat.utils.Chat
 import kitty.cat.utils.LocationUtils
 import kitty.cat.utils.LocationManager
 import kitty.cat.render.world.RenderLayers
+import kitty.cat.utils.ClickUtils
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.PictureInPictureMode
 import kitty.cat.utils.RotationUtils
@@ -231,6 +232,7 @@ object KittycatClient : ClientModInitializer {
 		BackboneAlert.register()
 		AutoGFS.register()
 		Fireball.register()
+		ClickUtils.register()
 
 		BackboneHud
 		BuildHud
