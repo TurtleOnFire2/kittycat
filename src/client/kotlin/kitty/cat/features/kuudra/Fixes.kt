@@ -20,7 +20,6 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val fixSkillIssue = booleanSetting("Cancel teleporting into lava. (Disable for stun").cheat()
     val noSkyblockMenu = booleanSetting("Cancel open skyblock menu", false)
     val clickThroughGiants = booleanSetting("Click through giants", false).cheat()
-    val clickThroughEther = booleanSetting("Click through ether", false).cheat()
 
     fun cancelClick(): Boolean {
         if (!enabled || !supplies()) return false
@@ -72,11 +71,6 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
         if (uuid != "HOLLOW_WAND") return false
 
         return (enabled && hollowFix.value)
-    }
-
-    fun clickThroughEther(): Boolean {
-        //Force enable while using fireball
-        return Fireball.enabled && build() || (enabled && clickThroughEther.value && mc.player?.mainHandItem?.isEtherwarpItem() == true && kuudra())
     }
 
     fun ignoreGiant(): Boolean {
