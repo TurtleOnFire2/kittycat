@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
+import kotlin.math.exp
 
 object Fireball : Feature("Fireball", "", Category.KUUDRA) {
 
@@ -39,9 +40,6 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
         "Dps threshold", min = 0.0, max = 100.0, defaultValue = 80.0,
         unit = "%", step = 1.0,
     )
-    val warpDelay = numberSetting("Warp delay (Make this like similar to your ping/50)...", 1.0, 10.0, 1.0)
-
-
 
     val looks = listOf(
         Pair(90f, 8.2f), // Tri -> X
@@ -53,7 +51,7 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
     )
 
     val positions = listOf(
-        Vec3(-97.5, 79.05, -113.5),
+        Vec3(-97.5, 79.05, -113.5), //Tri
         Vec3(-106.5, 79.05, -113.5),
         Vec3(-110.5, 79.05, -106.5),
         Vec3(-106.5, 79.05, -98.5),
@@ -61,13 +59,9 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
         Vec3(-93.5, 79.05, -105.5),
     )
 
-    var firstTp = true
-
     var ticks = 0
-
     var cd = 0
-
-    var lastTp = 0
+    var expectedLastTp: Vec3? = null
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
@@ -81,32 +75,14 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (!enabled || !kuudra() || !build()) {
                 ticks = 0
+                expectedLastTp = null
                 return@register
             }
 
             if (mc.player?.isCrouching != true) return@register
 
-            if (assumeStun.value) {
-                if (lastTp > warpDelay.value && Build.buildProgress > stunThreshold.value) {
-                    val look = Vec3(-71.5, 79.0, -102.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return@register)
-
-                    mc.options.keyUse.clickCount++
-                    RotationUtils.applyGcd(look.first, look.second)
-                    lastTp = 0
-                    return@register
-                }
-                return@register
-            } else if (Build.buildProgress >= dpsThreshold.value) {
-                if (lastTp > warpDelay.value) {
-                    val look = Vec3(-85.5, 79.0, -77.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return@register)
-
-                    mc.options.keyUse.clickCount++
-                    RotationUtils.applyGcd(look.first, look.second)
-                    lastTp = 0
-                    return@register
-                }
-                return@register
-            }
+            val threshold = if (assumeStun.value) stunThreshold.value else dpsThreshold.value
+            if (Build.buildProgress > threshold) return@register
 
             val dP = Vec3(mc.player?.x ?: return@register, 79.05, mc.player?.z ?: return@register)
             if (dP !in positions) return@register
@@ -122,21 +98,33 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
             mc.options.keyAttack.clickCount++
             mc.options.keyUse.clickCount++
 
+            expectedLastTp = positions[(ticks + offset + 1) % 6]
+
             RotationUtils.applyGcd(look.first, look.second)
         }
-        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, level ->
-            firstTp = true
-        }
-    }
-
-    fun serverTick() {
-        lastTp++
     }
 
     fun handlePosition(packet: ClientboundPlayerPositionPacket) {
         if (!enabled || !kuudra() || !build()) return
 
-        if (packet.change.position in positions) lastTp = 0
+        if (packet.change.position != expectedLastTp) return
+
+        Chat.send("Last expected")
+
+        val threshold = if (assumeStun.value) stunThreshold.value else dpsThreshold.value
+        if (Build.buildProgress > threshold) return
+
+        if (assumeStun.value) {
+            val look = Vec3(-71.5, 79.0, -102.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return)
+
+            mc.options.keyUse.clickCount++
+            RotationUtils.applyGcd(look.first, look.second)
+        } else {
+            val look = Vec3(-85.5, 79.0, -77.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return)
+
+            mc.options.keyUse.clickCount++
+            RotationUtils.applyGcd(look.first, look.second)
+        }
     }
 
     fun getOffset(): Int {

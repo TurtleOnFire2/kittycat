@@ -4,7 +4,9 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.features.settings.cheat
 import kitty.cat.gui.categories.Categories
+import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.kuudra
+import kitty.cat.utils.KuudraUtils.supplies
 import kitty.cat.utils.isEtherwarpItem
 import kitty.cat.utils.uuid
 import net.minecraft.tags.FluidTags
@@ -21,9 +23,11 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val clickThroughEther = booleanSetting("Click through ether", false).cheat()
 
     fun cancelClick(): Boolean {
-        if (!enabled) return false
+        if (!enabled || !supplies()) return false
 
         val player = mc.player ?: return false
+
+        if (player.y < 79) return false
 
         if (noSkyblockMenu.value) {
             if (player.inventory.selectedSlot == 8) return true
@@ -71,7 +75,8 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     }
 
     fun clickThroughEther(): Boolean {
-        return (enabled && clickThroughEther.value && mc.player?.mainHandItem?.isEtherwarpItem() == true && kuudra())
+        //Force enable while using fireball
+        return Fireball.enabled && build() || (enabled && clickThroughEther.value && mc.player?.mainHandItem?.isEtherwarpItem() == true && kuudra())
     }
 
     fun ignoreGiant(): Boolean {

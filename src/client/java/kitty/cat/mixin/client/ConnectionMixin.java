@@ -29,7 +29,6 @@ public class ConnectionMixin {
             SupplyHud.INSTANCE.serverTick();
             BackboneAlert.INSTANCE.serverTick();
             Build.INSTANCE.serverTick();
-            Fireball.INSTANCE.serverTick();
         }
     }
 
