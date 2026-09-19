@@ -84,12 +84,15 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
             if (mc.player?.isCrouching != true) return@register
 
             if (assumeStun.value) {
-                if (lastTp > warpDelay.value && Build.buildProgress > stunThreshold.value) {
-                    val look = Vec3(-71.5, 79.0, -102.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return@register)
+                if (Build.buildProgress > stunThreshold.value) {
+                    if (lastTp > warpDelay.value) {
+                        val look = Vec3(-71.5, 79.0, -102.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return@register)
 
-                    mc.options.keyUse.clickCount++
-                    RotationUtils.applyGcd(look.first, look.second)
-                    lastTp = 0
+                        mc.options.keyUse.clickCount++
+                        RotationUtils.applyGcd(look.first, look.second)
+                        lastTp = 0
+                        return@register
+                    }
                     return@register
                 }
             } else if (Build.buildProgress >= dpsThreshold.value) {
