@@ -1,6 +1,9 @@
 package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.minecraft.client.telemetry.events.WorldUnloadEvent
 import net.minecraft.network.protocol.game.ServerboundInteractPacket
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket
 import net.minecraft.world.InteractionHand
@@ -13,6 +16,25 @@ import kotlin.inc
 import kotlin.io.use
 
 object ClickUtils {
+
+    val queuedClicks = mutableListOf<Vec3>()
+
+    fun register() {
+        ClientTickEvents.START_CLIENT_TICK.register { client ->
+            if (client.player == null) return@register
+
+            val target = queuedClicks.removeFirstOrNull() ?: return@register
+
+            val look = target.getLook(mc.player!!.eyePosition)
+
+            useItem(look.first, look.second)
+        }
+
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
+            queuedClicks.clear()
+        }
+    }
+
     fun rightClickEntity(entity: Entity) {
         val player = mc.player ?: return
 
@@ -38,6 +60,10 @@ object ClickUtils {
         gameMode.startPrediction(mc.level!!) { i ->
             ServerboundInteractPacket(entity.id, InteractionHand.MAIN_HAND, vec3, player.isShiftKeyDown)
         }
+    }
+
+    fun queueClick(target: Vec3) {
+        queuedClicks.add(target)
     }
 
     fun useItem(yaw: Float, pitch: Float) {

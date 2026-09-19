@@ -7,6 +7,8 @@ import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderString
 import kitty.cat.utils.AimAssist
+import kitty.cat.utils.Chat
+import kitty.cat.utils.ClickUtils
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.Supply
 import kitty.cat.utils.KuudraUtils.kuudra
@@ -14,6 +16,7 @@ import kitty.cat.utils.KuudraUtils.supplies
 import kitty.cat.utils.TrajectorySolver
 import kitty.cat.utils.TrajectorySolver.toAimPoint
 import kitty.cat.utils.aabb
+import kitty.cat.utils.getLook
 import kitty.cat.utils.lookinAt
 import kitty.cat.utils.renderPos
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -29,14 +32,11 @@ import java.util.regex.Pattern
 
 object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA) {
     val offset = numberSetting("Offset", 0.0, 1000.0, 0.0, "ms")
-    val doubleOffset = numberSetting("Double pearl offset", 0.0, 1000.0, 0.0, "ms")
     val triggerbot = booleanSetting("Triggerbot", false).cheat()
+    val noLook = booleanSetting("Shoot pearl serverside", false).cheat()
     val singleAimAssist = booleanSetting("Single pearl aim assist", false).cheat()
     val singleAimAssistFov = numberSetting("Single pearl aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0).cheat()
     val singleAimAssistStrength = numberSetting("Single pearl aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
-    val doubleAimAssist = booleanSetting("Double pearl aim assist", false).cheat()
-    val doubleAimAssistFov = numberSetting("Double pearl aim assist FOV", 5.0, 180.0, 20.0, "°", 1.0).cheat()
-    val doubleAimAssistStrength = numberSetting("Double pearl aim assist strength", 0.01, 1.0, 0.5, "", 0.005).cheat()
 
     private var lastPos: Vec3? = null
     private var solutions: MutableList<AimPoint> = mutableListOf()
@@ -48,39 +48,55 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     private val aimAssistTimeouts = mutableMapOf<Pair<String, Boolean>, Long>()
 
     fun register() {
-        ClientTickEvents.END_CLIENT_TICK.register { client ->
+        ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (!enabled || !kuudra() || !supplies()) return@register
 
             val pos = mc.player?.position()?.add(0.0, mc.player!!.eyeHeight.toDouble(), 0.0) ?: return@register
-            if (lastPos?.distanceToSqr(pos)?.let { it < 0.0005 } == true) return@register
 
-            lastPos = pos
-            solutions.clear()
+            if (lastPos?.distanceToSqr(pos)?.let { it >= 0.0005 } != false) run rebuild@{
+                lastPos = pos
+                solutions.clear()
 
-            val supply = KuudraUtils.getSupply()
-            val square = KuudraUtils.square
+                val supply = KuudraUtils.getSupply()
+                val square = KuudraUtils.square
 
-            if (supply == Supply.Square && square == Supply.None) {
-                KuudraUtils.activeDropOffs.forEach {
-                    val sol = TrajectorySolver.solve(false, pos, it.second) ?: return@forEach
-                    solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime - offset.value.toInt(), it.third, sol.yaw, sol.pitch, false, it.second, false))
+                if (supply == Supply.Square && square == Supply.None) {
+                    KuudraUtils.activeDropOffs.forEach {
+                        val sol = TrajectorySolver.solve(false, pos, it.second) ?: return@forEach
+                        solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime - offset.value.toInt(), it.third, sol.yaw, sol.pitch, false, it.second, false))
+                    }
+                } else {
+                    val pearl = KuudraUtils.dropOffs.firstOrNull { it.first == supply.name || (supply == Supply.Square && it.first == square.name) } ?: return@rebuild
+                    val sol = TrajectorySolver.solve(false, pos, pearl.second) ?: return@rebuild
+                    solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime - offset.value.toInt(), pearl.third, sol.yaw, sol.pitch, false, pearl.second, false))
                 }
-            } else {
-                val pearl = KuudraUtils.dropOffs.firstOrNull { it.first == supply.name || (supply == Supply.Square && it.first == square.name) } ?: return@register
-                val sol = TrajectorySolver.solve(false, pos, pearl.second) ?: return@register
-                solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime - offset.value.toInt(), pearl.third, sol.yaw, sol.pitch, false, pearl.second, false))
             }
 
-            KuudraUtils.doublePearls.forEach {
-                val sol = TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
+            val iterator = solutions.iterator()
+            while (iterator.hasNext()) {
+                val cached = iterator.next()
+                val delay = 4250 - cached.time
+                val remaining = delay - timeSincePickUp
 
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true, it.second, true))
-            }
+                if (
+                    triggerbot.value &&
+                    System.currentTimeMillis() >= triggerbotCooldownUntil &&
+                    remaining <= 0 &&
+                    mc.player?.mainHandItem?.item == Items.ENDER_PEARL
+                ) {
+                    if (noLook.value) {
+                        val look = cached.pos.getLook(mc.player?.eyePosition ?: return@register)
+                        ClickUtils.useItem(look.first, look.second)
+                    } else if (cached.pos.lookinAt(0.2, 35.0)) {
+                        mc.options.keyUse.clickCount++
+                    } else {
+                        return@register
+                    }
 
-            KuudraUtils.lowDoublePearls.forEach {
-                val sol = TrajectorySolver.solve(false, pos, it.second) ?: TrajectorySolver.solve(true, pos, it.second) ?: return@forEach
-
-                solutions.add(AimPoint(sol.toAimPoint(30.0), it.first, sol.flightTime - doubleOffset.value.toInt(), it.third, sol.yaw, sol.pitch, true, it.second, false, true))
+                    triggerbotCooldownUntil = System.currentTimeMillis() + TRIGGERBOT_COOLDOWN_MS
+                    iterator.remove()
+                    break
+                }
             }
         }
         LevelRenderEvents.END_MAIN.register render@{ ctx ->
@@ -113,18 +129,6 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
                     "${remaining}ms"
                 }
 
-                if (
-                    triggerbot.value &&
-                    System.currentTimeMillis() >= triggerbotCooldownUntil &&
-                    remaining <= 0 &&
-                    cached.pos.lookinAt(0.2, 35.0)
-                ) {
-                    mc.options.keyUse.clickCount++
-                    triggerbotCooldownUntil = System.currentTimeMillis() + TRIGGERBOT_COOLDOWN_MS
-                    iterator.remove()
-                    break
-                }
-
                 ctx.renderString(
                     "${solution.name}: $time",
                     solution.pos.add(0.0, -0.2, 0.0),
@@ -136,18 +140,17 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
     fun onTurn(accumulatedDX: Double, accumulatedDY: Double): DoubleArray? {
         val player = mc.player ?: return null
-        if (!enabled || !kuudra() || !supplies() || !tracking || solutions.isEmpty()) return null
+        if (!enabled || !kuudra() || !supplies() || !tracking || solutions.isEmpty() || noLook.value) return null
         if (player.mainHandItem.item != Items.ENDER_PEARL) return null
 
         val hasMultipleSingleWaypoints = solutions.count { !it.isDouble } > 1
         val candidate = solutions.asSequence().mapNotNull { solution ->
             if (!solution.isDouble && hasMultipleSingleWaypoints) return@mapNotNull null
-            val enabledForType = if (solution.isDouble) doubleAimAssist.value else singleAimAssist.value
-            if (!enabledForType) return@mapNotNull null
+            if (!singleAimAssist.value) return@mapNotNull null
             if ((aimAssistTimeouts[solution.timeoutKey] ?: 0L) > System.currentTimeMillis()) return@mapNotNull null
 
-            val fov = if (solution.isDouble) doubleAimAssistFov.value else singleAimAssistFov.value
-            val strength = if (solution.isDouble) doubleAimAssistStrength.value else singleAimAssistStrength.value
+            val fov = singleAimAssistFov.value
+            val strength = singleAimAssistStrength.value
             AimAssist.candidate(solution.yaw, solution.pitch, fov, strength)
         }.minByOrNull { it.distance } ?: return null
 
@@ -168,10 +171,9 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
         val hasMultipleSingleWaypoints = solutions.count { !it.isDouble } > 1
         val target = solutions.asSequence().filter { solution ->
             if (!solution.isDouble && hasMultipleSingleWaypoints) return@filter false
-            val enabledForType = if (solution.isDouble) doubleAimAssist.value else singleAimAssist.value
-            if (!enabledForType || (aimAssistTimeouts[solution.timeoutKey] ?: 0L) > now) return@filter false
+            if (!singleAimAssist.value || (aimAssistTimeouts[solution.timeoutKey] ?: 0L) > now) return@filter false
 
-            val fov = if (solution.isDouble) doubleAimAssistFov.value else singleAimAssistFov.value
+            val fov = singleAimAssistFov.value
             AimAssist.withinFov(solution.yaw, solution.pitch, player.yRot, player.xRot, fov)
         }.minByOrNull { solution ->
             val yaw = AimAssist.angleDifference(solution.yaw, player.yRot)
