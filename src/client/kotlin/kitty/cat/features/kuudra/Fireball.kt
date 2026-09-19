@@ -92,7 +92,6 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
                     lastTp = 0
                     return@register
                 }
-                return@register
             } else if (Build.buildProgress >= dpsThreshold.value) {
                 if (lastTp > warpDelay.value) {
                     val look = Vec3(-85.5, 79.0, -77.5).getLook(mc.player?.getEyePosition(framePartialTick()) ?: return@register)
