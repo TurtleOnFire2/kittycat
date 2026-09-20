@@ -18,7 +18,6 @@ object KuudraDisplay: Feature("Kuudra Display", "", Categories.Category.KUUDRA) 
     var kuudra: Entity? = null
     var hpString = ""
 
-
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register

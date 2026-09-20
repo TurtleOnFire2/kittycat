@@ -40,9 +40,4 @@ public class MouseHandlerMixin {
             this.accumulatedDY = adjusted[1];
         }
     }
-
-    @Inject(method = "onButton", at = @At("HEAD"))
-    void onButton(long handle, MouseButtonInfo rawButtonInfo, int action, CallbackInfo ci) {
-        Drone.INSTANCE.handleMouseButton(rawButtonInfo.button());
-    }
 }

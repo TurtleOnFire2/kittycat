@@ -19,7 +19,6 @@ public class MinecraftMixin {
 
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceGameTime(J)I"))
     int advanceTime(DeltaTracker.Timer instance, long currentMs, boolean advanceGameTime) {
-        if (Drone.INSTANCE.getFreeze()) return  0;
         return instance.advanceGameTime(currentMs);
     }
 }
