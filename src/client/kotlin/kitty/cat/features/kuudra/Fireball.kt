@@ -4,6 +4,7 @@ import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories.Category
 import kitty.cat.render.world.Render3D.renderBoxBounds
+import kitty.cat.utils.ClickUtils
 import kitty.cat.utils.KuudraUtils.build
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.RotationUtils
@@ -35,6 +36,8 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
         "Dps threshold", min = 0.0, max = 100.0, defaultValue = 80.0,
         unit = "%", step = 1.0,
     )
+
+    val noRotation = booleanSetting("No rotation", false)
 
     val looks = listOf(
         Pair(90f, 8.2f), // Tri -> X
@@ -91,8 +94,12 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
                 val target = if (assumeStun.value) Vec3(-71.5, 79.0, -102.5) else Vec3(-85.5, 79.0, -77.5)
                 val look = target.getLook(expectedLastTp?.add(0.0, 1.27, 0.0) ?: return@register)
 
-                mc.options.keyUse.clickCount++
-                RotationUtils.applyGcd(look.first, look.second)
+                if (noRotation.value) {
+                    ClickUtils.useItem(look.first, look.second)
+                } else {
+                    mc.options.keyUse.clickCount++
+                    RotationUtils.applyGcd(look.first, look.second)
+                }
 
                 if (assumeStun.value) {
                     val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return@register
@@ -119,7 +126,12 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
 
             expectedLastTp = positions[(ticks + offset) % 6]
 
-            RotationUtils.applyGcd(look.first, look.second)
+            if (noRotation.value) {
+                ClickUtils.useItem(look.first, look.second)
+            } else {
+                mc.options.keyUse.clickCount++
+                RotationUtils.applyGcd(look.first, look.second)
+            }
         }
     }
 

@@ -3,7 +3,6 @@ package kitty.cat.mixin.client;
 import com.mojang.blaze3d.platform.Window;
 import kitty.cat.features.kuudra.Fixes;
 import kitty.cat.gui.ImGuiHandler;
-import kitty.cat.features.kuudra.Drone;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.main.GameConfig;
@@ -38,7 +37,6 @@ public class MinecraftMixin {
 
     @Redirect(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceGameTime(J)I"))
     int advanceTime(DeltaTracker.Timer instance, long currentMs, boolean advanceGameTime) {
-        if (Drone.INSTANCE.getFreeze()) return  0;
         return instance.advanceGameTime(currentMs);
     }
 }
