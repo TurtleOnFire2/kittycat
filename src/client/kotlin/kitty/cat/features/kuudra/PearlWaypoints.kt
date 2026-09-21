@@ -41,7 +41,7 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
     private var lastPos: Vec3? = null
     private var solutions: MutableList<AimPoint> = mutableListOf()
     private var timeSincePickUp: Long = 0
-    private var timeSinceLastTitle = 0
+    var timeSinceLastTitle = 0
     private var tracking = false
     private var preparedPearlThrow = false
     private var triggerbotCooldownUntil = 0L

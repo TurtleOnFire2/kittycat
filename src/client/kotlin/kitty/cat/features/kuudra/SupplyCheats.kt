@@ -3,11 +3,15 @@ package kitty.cat.features.kuudra
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
 import kitty.cat.gui.categories.Categories
+import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.utils.ClickUtils
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.supplies
+import kitty.cat.utils.aabb
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.Items
 import net.minecraft.world.phys.Vec3
@@ -19,15 +23,21 @@ object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
     }
 
     val reach = booleanSetting("Reach", false)
-    val range = numberSetting("Range", 3.0, 5.5, 3.0, "", 0.1)
+    val range = numberSetting("Range", 3.0, 6.0, 3.0, "", 0.1)
 
     val aura = booleanSetting("Aura", false)
     val auraRange = numberSetting("Aura range", 3.0, 8.0, 6.0, "", 0.1)
     val checks = selectorSetting("Checks", listOf("On ground", "Fov check", "On RMB only", "Rod only"), allowMultiple = true)
     val fov = numberSetting("Fov", 10.0, 360.0, 90.0, "°")
-    val delay = numberSetting("Delay", 2.0, 30.0, 20.0, "t")
+    val delay = numberSetting("Delay", 1.0, 30.0, 20.0, "t")
+
+    val showClickPos = booleanSetting("Show aura click position", false)
+    val clickPosColor = colorSetting("Click position color")
 
     var ticks = 0
+
+    private var lastClickPos: Vec3? = null
+    private var lastClickTime = 0L
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
@@ -45,10 +55,25 @@ object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
                 checks.selected.any { it == "Rod only" } -> { if (mc.player?.mainHandItem?.item != Items.FISHING_ROD) return@register }
             }
 
+            if (PearlWaypoints.timeSinceLastTitle < 750) return@register
+
             if (isInRange(closest, auraRange.value)) {
-                ClickUtils.rightClickEntity(closest)
+                lastClickPos = ClickUtils.rightClickEntity(closest)
+                lastClickTime = System.currentTimeMillis()
                 ticks = 0
             }
+        }
+
+        LevelRenderEvents.END_MAIN.register { ctx ->
+            if (!enabled || !showClickPos.value) return@register
+            val pos = lastClickPos ?: return@register
+            if (System.currentTimeMillis() - lastClickTime > 1000) return@register
+
+            ctx.renderBoxBounds(pos.aabb(0.15), clickPosColor.color)
+        }
+
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
+            lastClickPos = null
         }
     }
 

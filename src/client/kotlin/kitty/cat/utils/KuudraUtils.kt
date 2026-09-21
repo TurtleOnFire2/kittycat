@@ -131,9 +131,9 @@ object KuudraUtils {
         Triple("XC DP", Vec3(-130.5, 79.0, -114.5), Color.ORANGE),
     )
 
-    fun getSupply(): Supply {
-        val x = mc.player?.position()!!.x
-        val z = mc.player?.position()!!.z
+    fun getSupply(pos: Vec3 = mc.player!!.position()): Supply {
+        val x = pos.x
+        val z = pos.z
         if (x in -75.0..-62.0 && z in -125.0..-115.0) return Supply.Triangle
         if (x in -94.0..-65.0 && z in -145.0..-126.0) return Supply.Shop
         if (x in -84.0..-59.0 && z in -111.0..-79.0) return Supply.Equals

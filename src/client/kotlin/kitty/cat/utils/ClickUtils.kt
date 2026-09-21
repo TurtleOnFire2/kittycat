@@ -35,8 +35,8 @@ object ClickUtils {
         }
     }
 
-    fun rightClickEntity(entity: Entity) {
-        val player = mc.player ?: return
+    fun rightClickEntity(entity: Entity): Vec3? {
+        val player = mc.player ?: return null
 
         val aabb = entity.boundingBox
         val eyePos = player.eyePosition
@@ -49,17 +49,15 @@ object ClickUtils {
         val hitResult = EntityHitResult(entity, hitPos)
 
         interact(entity, hitResult)
+        return hitPos
     }
 
     fun interact(entity: Entity, entityHitResult: EntityHitResult) {
         val player = mc.player ?: return
         val gameMode = mc.gameMode ?: return
         if (gameMode.playerMode == GameType.SPECTATOR) return
-        val vec3: Vec3 = entityHitResult.location.subtract(entity.position())
 
-        gameMode.startPrediction(mc.level!!) { i ->
-            ServerboundInteractPacket(entity.id, InteractionHand.MAIN_HAND, vec3, player.isShiftKeyDown)
-        }
+        gameMode.interact(player, entity, entityHitResult, InteractionHand.MAIN_HAND)
     }
 
     fun queueClick(target: Vec3) {

@@ -1,17 +1,12 @@
 package kitty.cat.mixin.client;
 
-import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.BestiaryHud;
 import kitty.cat.features.huds.SupplyHud;
 import kitty.cat.features.kuudra.*;
-import kitty.cat.features.misc.ChatMacros;
 import kitty.cat.features.misc.FarmHelper;
 import kitty.cat.features.debug.PearlLandingDebug;
-import kitty.cat.utils.KuudraUtils;
-import kitty.cat.utils.LocationUtils;
 import kitty.cat.utils.LocationManager;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.*;
@@ -41,29 +36,6 @@ public class ClientPlayNetworkHandleMixin {
     @Inject(method = "handleSetPlayerTeamPacket", at = @At("TAIL"))
     void handleSetPlayerTeam(ClientboundSetPlayerTeamPacket packet, CallbackInfo ci) {
         LocationManager.INSTANCE.handlePlayerTeam(packet);
-    }
-
-    @Inject(method = "handleSystemChat(Lnet/minecraft/network/protocol/game/ClientboundSystemChatPacket;)V", at = @At("HEAD"))
-    void handleSystemChat(ClientboundSystemChatPacket packet, CallbackInfo ci) {
-        if (!Minecraft.getInstance().packetProcessor().isSameThread()) return;
-
-        var component = packet.content();
-        var message = component.getString();
-        var unformatted = ChatFormatting.stripFormatting(message);
-
-        ChatMacros.INSTANCE.handleChat(unformatted);
-        Storm.INSTANCE.handleChat(unformatted);
-        Relics.INSTANCE.handleChat(unformatted);
-        LocationUtils.INSTANCE.handleChat(unformatted);
-        KuudraUtils.INSTANCE.handleChat(unformatted);
-        Build.INSTANCE.handleChat(unformatted);
-        AutoGFS.INSTANCE.handleChat(unformatted);
-        Stun.INSTANCE.handleChat(unformatted);
-        FarmHelper.INSTANCE.handleChat(unformatted);
-        CratePriority.INSTANCE.handleChat(unformatted);
-        Supplies.INSTANCE.handleChat(unformatted);
-        EtherwarpWaypoints.INSTANCE.handleChat(unformatted);
-        EtherwarpWaypoints.INSTANCE.handleChat(unformatted);
     }
 
     @Inject(method = "handleOpenScreen(Lnet/minecraft/network/protocol/game/ClientboundOpenScreenPacket;)V", at = @At("HEAD"), cancellable = true)

@@ -29,6 +29,7 @@ import kitty.cat.features.huds.SupplyHud
 import kitty.cat.features.huds.SupplyAlertHud
 import kitty.cat.features.huds.GiantAlertHud
 import kitty.cat.features.kuudra.AutoGFS
+import kitty.cat.features.kuudra.AutoWarp
 import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.KuudraDisplay
 import kitty.cat.features.kuudra.EtherwarpWaypoints
@@ -227,6 +228,7 @@ object KittycatClient : ClientModInitializer {
 		RendDamage.register()
 		SupplyCheats.register()
 		SafeSpots.register()
+		AutoWarp.register()
 		FarmHelper.register()
 		KuudraDisplay.register()
 		BackboneAlert.register()

@@ -59,7 +59,7 @@ object SafeSpots : Feature("Safe Spots", "", Categories.Category.KUUDRA) {
         }
 
         ClientTickEvents.END_CLIENT_TICK.register {
-            if (!enabled || !kuudra() || !supplies()) return@register
+            if (!kuudra() || !supplies()) return@register
 
             val level = mc.level ?: return@register
             tickCubes = level.entitiesForRendering().filterIsInstance<MagmaCube>()
