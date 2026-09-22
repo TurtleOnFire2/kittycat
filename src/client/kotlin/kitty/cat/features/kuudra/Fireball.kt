@@ -122,7 +122,6 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
             val look = looks[(ticks++ + offset) % 6]
 
             mc.options.keyAttack.clickCount++
-            mc.options.keyUse.clickCount++
 
             expectedLastTp = positions[(ticks + offset) % 6]
 
