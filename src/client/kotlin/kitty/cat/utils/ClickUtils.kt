@@ -1,6 +1,7 @@
 package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
+import kotlinx.serialization.descriptors.PrimitiveKind
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.client.telemetry.events.WorldUnloadEvent
@@ -18,16 +19,16 @@ import kotlin.io.use
 object ClickUtils {
 
     val queuedClicks = mutableListOf<Vec3>()
+    val queuedLooks = mutableListOf<Pair<Float, Float>>()
 
     fun register() {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (client.player == null) return@register
 
-            val target = queuedClicks.removeFirstOrNull() ?: return@register
-
-            val look = target.getLook(mc.player!!.eyePosition)
+            val look = queuedClicks.removeFirstOrNull()?.getLook(mc.player!!.eyePosition) ?: queuedLooks.removeFirstOrNull() ?: return@register
 
             useItem(look.first, look.second)
+            Chat.send("Fired with $look")
         }
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
@@ -58,6 +59,10 @@ object ClickUtils {
         if (gameMode.playerMode == GameType.SPECTATOR) return
 
         gameMode.interact(player, entity, entityHitResult, InteractionHand.MAIN_HAND)
+    }
+
+    fun queueLook(look: Pair<Float, Float>) {
+        queuedLooks.add(look)
     }
 
     fun queueClick(target: Vec3) {

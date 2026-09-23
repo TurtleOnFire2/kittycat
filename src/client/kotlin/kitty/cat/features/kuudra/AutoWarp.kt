@@ -1,31 +1,53 @@
 package kitty.cat.features.kuudra
 
+import com.jcraft.jorbis.Block
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.Feature
+import kitty.cat.features.misc.EtherPath
 import kitty.cat.gui.categories.Categories
 import kitty.cat.render.world.Render3D.BoxRender
 import kitty.cat.render.world.Render3D.renderBeaconBeam
+import kitty.cat.render.world.Render3D.renderBoxBounds
 import kitty.cat.render.world.Render3D.renderBoxesBounds
+import kitty.cat.render.world.Render3D.renderString
+import kitty.cat.utils.Chat
+import kitty.cat.utils.ClickUtils
 import kitty.cat.utils.KuudraUtils
 import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.supplies
+import kitty.cat.utils.Schedule.schedule
 import kitty.cat.utils.aabb
 import kitty.cat.utils.center
+import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
+import net.minecraft.ChatFormatting
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.monster.zombie.Zombie
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
+import kotlin.collections.contains
 import kotlin.math.ceil
 
 object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
+    init {
+        cheat()
+    }
+
     val highlightRange = booleanSetting("Highlight aura range blocks", false)
     val debug = booleanSetting("Debug (ignore missing crate)", false)
-    val beaconColor = colorSetting("Beacon color")
+    val debugMessages = booleanSetting("Debug messages", false)
+    val debugAreas = booleanSetting("Debug crate areas", false)
+    val safeSpotAlert = booleanSetting("Safe spot alert", true)
 
     private const val VERTICAL_RADIUS = 6
     private const val RESCAN_TICKS = 5
@@ -36,26 +58,101 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     private var ticks = 0
     private var cachedBoxes: List<BoxRender> = emptyList()
     private var lastZombiePos: Vec3? = null
-    private var beaconTarget: BlockPos? = null
+    private var target: BlockPos? = null
+    private var pendingWarpScan = false
+    private var safeSpotAlertStartedAt = 0L
 
     private enum class Tier { GREEN, ORANGE, RED }
     private data class ScannedBlock(val pos: BlockPos, val tier: Tier)
+    private data class SupplyArea(
+        val name: String,
+        val minX: Double,
+        val maxX: Double,
+        val minZ: Double,
+        val maxZ: Double,
+        val color: Color,
+    )
+
+    private val supplyAreas = listOf(
+        SupplyArea("Triangle", -75.0, -62.0, -125.0, -115.0, Color(0x55D6BE)),
+        SupplyArea("Shop", -94.0, -65.0, -165.0, -126.0, Color(0xFFD166)),
+        SupplyArea("Equals", -84.0, -59.0, -111.0, -79.0, Color(0x06D6A0)),
+        SupplyArea("Slash", -122.0, -96.0, -89.0, -36.0, Color(0x118AB2)),
+        SupplyArea("Square", -169.0, -129.0, -97.0, -60.0, Color(0xEF476F)),
+        SupplyArea("xCannon", -162.0, -124.0, -131.0, -103.0, Color(0xF78C6B)),
+        SupplyArea("X", -153.0, -120.0, -175.0, -131.0, Color(0x9B5DE5)),
+    )
 
     fun handleChat(unformatted: String) {
-        if (!enabled || debug.value) return
-        val player = mc.player ?: return
-
         val name = recoveredRegex.find(unformatted)?.destructured?.component1() ?: return
+        if (!enabled) return
+
+        val player = mc.player ?: run {
+            debug("Supply placement detected, but the local player was unavailable.")
+            return
+        }
         if (!name.contains(player.name.string)) return
 
-        val level = mc.level ?: return
-        val zombie = zombieForMissingCrate() ?: return
+        debug("Supply placement detected for $name.")
 
-        beaconTarget = pickBeaconTarget(zombie, level)
+        if (debug.value) {
+            debug("Skipped: Debug (ignore missing crate) mode disables automatic warping.")
+            return
+        }
+        if (EtherwarpWaypoints.enabled) {
+            debug("Skipped: Etherwarp Waypoints is enabled and takes priority.")
+            return
+        }
+
+        var slot: Int? = null
+
+        for (i in 0..8) {
+            val uuid = player.inventory.getItem(i).uuid()
+
+            if (uuid in listOf("ETHERWARP_CONDUIT", "ASPECT_OF_THE_VOID")) {
+                slot = i
+            }
+        }
+
+        slot ?: run {
+            debug("Skipped: no Etherwarp Conduit or Aspect of the Void was found in the hotbar.")
+            return
+        }
+
+        if (player.inventory.selectedSlot != slot) player.inventory.selectedSlot = slot
+
+        pendingWarpScan = true
+        debug(
+            if (player.onGround()) "Queued warp from hotbar slot ${slot + 1}; scanning on this ground tick."
+            else "Queued warp from hotbar slot ${slot + 1}; waiting until you are on the ground before scanning."
+        )
     }
 
     fun register() {
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("kittycat", "auto_warp_safe_spot_alert")) { context, _ ->
+            if (!enabled || !safeSpotAlert.value || safeSpotAlertStartedAt == 0L) return@addLast
+
+            val elapsed = (System.nanoTime() - safeSpotAlertStartedAt) / 1_000_000L
+            if (elapsed >= 2_000L) {
+                safeSpotAlertStartedAt = 0L
+                return@addLast
+            }
+
+            val text = Component.literal("SAFE SPOT").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
+            val pose = context.pose()
+            pose.pushMatrix()
+            pose.translate(context.guiWidth() / 2f, context.guiHeight() / 2f - 45f)
+            pose.scale(4f)
+            context.text(mc.font, text, -mc.font.width(text) / 2, -mc.font.lineHeight / 2, 0xFF55FF55.toInt())
+            pose.popMatrix()
+        }
+
         ClientTickEvents.END_CLIENT_TICK.register {
+            if (enabled && pendingWarpScan && mc.player?.onGround() == true) {
+                pendingWarpScan = false
+                scanAndExecuteWarp()
+            }
+
             if (!enabled || !highlightRange.value || !kuudra() || !supplies()) {
                 if (cachedBoxes.isNotEmpty()) cachedBoxes = emptyList()
                 lastZombiePos = null
@@ -88,14 +185,86 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
                 ctx.renderBoxesBounds(cachedBoxes)
             }
 
-            beaconTarget?.let { ctx.renderBeaconBeam(it.center(), beaconColor.color) }
+            if (debugAreas.value) {
+                supplyAreas.forEach { area ->
+                    ctx.renderBoxBounds(
+                        area.minX, 60.0, area.minZ,
+                        area.maxX, 78.0, area.maxZ,
+                        area.color,
+                        Color(area.color.red, area.color.green, area.color.blue, 24),
+                    )
+                    ctx.renderString(
+                        area.name,
+                        Vec3((area.minX + area.maxX) / 2.0, 79.5, (area.minZ + area.maxZ) / 2.0),
+                        area.color,
+                        2f,
+                    )
+                }
+
+                KuudraUtils.getSupplyZombies().forEach { zombie ->
+                    val area = KuudraUtils.getSupply(zombie.position()).name
+                    ctx.renderBoxBounds(zombie.boundingBox, Color.WHITE, fill = false)
+                    ctx.renderString(area, zombie.position().add(0.0, zombie.bbHeight + 0.5, 0.0), Color.WHITE, 1.5f)
+                }
+            }
         }
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             cachedBoxes = emptyList()
             lastZombiePos = null
-            beaconTarget = null
+            pendingWarpScan = false
+            safeSpotAlertStartedAt = 0L
         }
+    }
+
+    private fun scanAndExecuteWarp() {
+        debug("On ground; scanning for the missing-crate zombie.")
+
+        val level = mc.level ?: run {
+            debug("Skipped: the client level was unavailable.")
+            return
+        }
+        val zombies = KuudraUtils.getSupplyZombies()
+        val zombie = zombies.firstOrNull { KuudraUtils.getSupply(it.position()).name == CratePriority.missing.name }
+            ?: run {
+                val detected = zombies.joinToString { KuudraUtils.getSupply(it.position()).name }
+                    .ifEmpty { "none" }
+                debug("Skipped: no zombie matched missing crate ${CratePriority.missing.name}; detected crates: $detected.")
+                return
+            }
+
+        target = pickWarp(zombie, level)
+        val destination = target ?: run {
+            debug("Skipped: no standable warp destination was found near ${KuudraUtils.getSupply(zombie.position()).name}.")
+            return
+        }
+
+        if (safeSpotAlert.value && SafeSpots.safeSpots.any { it.safe && it.loc == destination }) {
+            safeSpotAlertStartedAt = System.nanoTime()
+        }
+
+        debug("Selected ${destination.x}, ${destination.y}, ${destination.z} near ${KuudraUtils.getSupply(zombie.position()).name}; finding route.")
+        executeWarp(destination)
+    }
+
+    private fun executeWarp(destination: BlockPos) {
+        EtherPath.findRoute(destination).whenComplete { route, error ->
+            if (error != null) {
+                debug("Route failed: ${error.message ?: error.javaClass.simpleName}.")
+                Chat.send(error.message ?: "Etherwarp route failed.")
+                return@whenComplete
+            }
+            debug("Route found with ${route.rotations.size} click(s); executing in 2 ticks.")
+            // The route was requested from a stable landing, so its first rotation
+            // remains valid when clicks begin on the following client tick.
+            schedule(2) {
+                route.rotations.forEach { aim -> ClickUtils.queueLook(aim.yaw to aim.pitch) }
+            }
+        }
+    }
+
+    private fun debug(message: String) {
+        if (enabled && debugMessages.value) Chat.send("[Auto Warp Debug] $message")
     }
 
     private fun colorFor(tier: Tier): Color = when (tier) {
@@ -104,21 +273,20 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         Tier.RED -> Color.RED
     }
 
-    private fun pickBeaconTarget(zombie: Zombie, level: ClientLevel): BlockPos? {
-        val player = mc.player ?: return null
-        val playerPos = player.position()
+    private fun pickWarp(zombie: Zombie, level: ClientLevel): BlockPos? {
+        val zombiePos = zombie.position()
         val scanned = scanBlocks(zombie, level)
 
         for (tier in Tier.entries) {
             val tierBlocks = scanned.filter { it.tier == tier }
             if (tierBlocks.isEmpty()) continue
 
-            val safeSpotMatch = tierBlocks.firstOrNull { block ->
+            val safeSpotMatch = tierBlocks.filter { block ->
                 SafeSpots.safeSpots.any { it.safe && it.loc == block.pos }
-            }
+            }.minByOrNull { it.pos.center().distanceToSqr(zombiePos) }
             if (safeSpotMatch != null) return safeSpotMatch.pos
 
-            return tierBlocks.minByOrNull { it.pos.center().distanceToSqr(playerPos) }?.pos
+            return tierBlocks.minByOrNull { it.pos.center().distanceToSqr(zombiePos) }?.pos
         }
 
         // Green/orange/red all came up empty (e.g. the zombie is stuck somewhere with no standable ground nearby) - just grab the nearest standable block, range be damned.
@@ -134,7 +302,10 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             for (dz in -FALLBACK_RADIUS..FALLBACK_RADIUS) {
                 for (dy in -VERTICAL_RADIUS..VERTICAL_RADIUS) {
                     val pos = originBlock.offset(dx, dy, dz)
+                    if (!isWithinWarpArea(pos)) continue
+                    if (pos in blacklist) continue
                     val state = level.getBlockState(pos)
+                    if (state.`is`(Blocks.BARRIER)) continue
                     if (state.isAir || state.getCollisionShape(level, pos).isEmpty) continue
                     if (!level.getBlockState(pos.above()).isAir) continue
 
@@ -159,7 +330,10 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         return zombies.firstOrNull { KuudraUtils.getSupply(it.position()).name == CratePriority.missing.name }
     }
 
-    private fun scanBlocks(zombie: Zombie, level: ClientLevel): List<ScannedBlock> {
+    private fun scanBlocks(
+        zombie: Zombie,
+        level: ClientLevel,
+    ): List<ScannedBlock> {
         val player = mc.player ?: return emptyList()
         val eyeHeight = player.eyeHeight.toDouble()
         val box = zombie.boundingBox
@@ -178,7 +352,10 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
                 for (dy in -VERTICAL_RADIUS..VERTICAL_RADIUS) {
                     val pos = originBlock.offset(dx, dy, dz)
+                    if (!isWithinWarpArea(pos)) continue
+                    if (pos in blacklist) continue
                     val state = level.getBlockState(pos)
+                    if (state.`is`(Blocks.BARRIER)) continue
                     if (state.isAir || state.getCollisionShape(level, pos).isEmpty) continue
                     if (!level.getBlockState(pos.above()).isAir) continue
 
@@ -205,4 +382,28 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
         return results
     }
+
+    private fun isWithinWarpArea(pos: BlockPos): Boolean =
+        pos.x in -143..-68 && pos.z in -139..-82
+
+    val blacklist = listOf(
+        BlockPos(-138, 74, -137),
+        BlockPos(-138, 76, -136),
+        BlockPos(-138, 74, -133),
+        BlockPos(-137, 74, -131),
+        BlockPos(-137, 74, -125),
+        BlockPos(-130, 75, -120),
+        BlockPos(-132, 76, -114),
+        BlockPos(-133, 75, -113),
+        BlockPos(-133, 77, -112),
+        BlockPos(-133, 76, -111),
+        BlockPos(-73, 74, -139),
+        BlockPos(-78, 74, -137),
+        BlockPos(-82, 74, -134),
+        BlockPos(-82, 75, -133),
+        BlockPos(-83, 75, -132),
+        BlockPos(-83, 76, -131),
+        BlockPos(-84, 74, -133),
+        BlockPos(-86, 74, -130),
+     )
 }

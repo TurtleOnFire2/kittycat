@@ -33,6 +33,7 @@ import kitty.cat.features.kuudra.SupplyCheats
 import kitty.cat.features.kuudra.TinyMobs
 import kitty.cat.features.misc.BestiaryHud
 import kitty.cat.features.misc.ChatMacros
+import kitty.cat.features.misc.EtherPath
 import kitty.cat.features.misc.FarmHelper
 import kitty.cat.features.misc.Pests
 import kitty.cat.features.settings.ActionSetting
@@ -261,7 +262,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         Storm, Relics, LeverTriggerbot, Terminals,
         Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, AutoWarp, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
-        ExampleFeature, PearlLandingDebug, Debug
+        EtherPath, ExampleFeature, PearlLandingDebug, Debug
     ).visible()
 
     var activeFeatures: List<Feature> = emptyList()
