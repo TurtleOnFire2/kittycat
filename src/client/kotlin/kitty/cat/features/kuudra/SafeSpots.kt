@@ -38,6 +38,9 @@ object SafeSpots : Feature("Safe Spots", "", Categories.Category.KUUDRA) {
         SafeSpot(BlockPos(-141, 77, -91), false) {
             true
         },
+        SafeSpot(BlockPos(-141, 76, -90), false) {
+            true
+        },
         SafeSpot(BlockPos(-142, 76, -88), false) {
             isSafe(-158.0, -96.0, -137.0, -68.0)
         },

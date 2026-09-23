@@ -66,6 +66,7 @@ fabricApi {
 }
 
 dependencies {
+    testImplementation(kotlin("test-junit"))
     val skijaVersion = "0.143.17"
     implementation("io.github.humbleui:types:0.2.0")
     include("io.github.humbleui:types:0.2.0")

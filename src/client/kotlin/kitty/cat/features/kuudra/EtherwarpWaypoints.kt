@@ -47,7 +47,7 @@ object EtherwarpWaypoints : Feature(
     private val warpedCrates = mutableSetOf<Crate>()
 
     fun handleChat(unformatted: String) {
-        if (!enabled || !autoWarpOnSupply.value) return
+        if (!enabled || !autoWarpOnSupply.value || AutoWarp.enabled) return
         val player = mc.player ?: return
 
         placedRegex.find(unformatted)?.destructured?.let { (name) ->

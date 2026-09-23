@@ -121,15 +121,15 @@ object KuudraUtils {
         Triple("XC DP", Vec3(-130.5, 79.0, -114.5), Color.ORANGE),
     )
 
-    fun getSupply(): Supply {
-        val x = mc.player?.position()!!.x
-        val z = mc.player?.position()!!.z
+    fun getSupply(pos: Vec3 = mc.player!!.position()): Supply {
+        val x = pos.x
+        val z = pos.z
         if (x in -75.0..-62.0 && z in -125.0..-115.0) return Supply.Triangle
-        if (x in -94.0..-65.0 && z in -145.0..-126.0) return Supply.Shop
+        if (x in -94.0..-65.0 && z in -165.0..-126.0) return Supply.Shop
         if (x in -84.0..-59.0 && z in -111.0..-79.0) return Supply.Equals
         if (x in -122.0..-96.0 && z in -89.0..-36.0) return Supply.Slash
-        if (x in -149.0..-129.0 && z in -97.0..-80.0) return Supply.Square
-        if (x in -142.0..-124.0 && z in -131.0..-103.0) return Supply.xCannon
+        if (x in -169.0..-129.0 && z in -97.0..-60.0) return Supply.Square
+        if (x in -162.0..-124.0 && z in -131.0..-103.0) return Supply.xCannon
         if (x in -153.0..-120.0 && z in -175.0..-131.0) return Supply.X
         return Supply.None
     }
