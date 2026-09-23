@@ -32,7 +32,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
-import net.minecraft.world.entity.monster.zombie.Zombie
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
@@ -63,10 +63,14 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     private var ticks = 0
     private var cachedBoxes: List<BoxRender> = emptyList()
     private var lastZombiePos: Vec3? = null
+    // Store geometry, not entities: unloaded zombies must remain usable without retaining the world.
+    private data class SupplyZombie(val position: Vec3, val boundingBox: AABB)
+    private val supplyZombieCache = mutableMapOf<KuudraUtils.Supply, SupplyZombie>()
     private var target: BlockPos? = null
     private var pendingWarpScan = false
     private var pendingOwnPreWarp = false
     private var ownPreWarpHandled = false
+    private var pathfindingStartedThisWorld = false
     private var warpGeneration = 0L
     private var safeSpotAlertStartedAt = 0L
 
@@ -93,7 +97,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
     fun handleChat(unformatted: String) {
         val name = recoveredRegex.find(unformatted)?.destructured?.component1() ?: return
-        if (!enabled) return
+        if (!enabled || pathfindingStartedThisWorld) return
 
         val player = mc.player ?: run {
             debug("Supply placement detected, but the local player was unavailable.")
@@ -121,7 +125,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
     /** Receives the actual missing crate before CratePriority maps it to a secondary. */
     fun onMissingPre(missing: Crate) {
-        if (!enabled || debug.value || EtherwarpWaypoints.enabled || ownPreWarpHandled) return
+        if (!enabled || pathfindingStartedThisWorld || debug.value || EtherwarpWaypoints.enabled || ownPreWarpHandled) return
         if (missing == Crate.NONE || missing != CratePriority.currentPre) return
         val slot = selectFirstEtherwarp() ?: return
         ownPreWarpHandled = true
@@ -149,6 +153,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     }
 
     override fun onDisable() {
+        supplyZombieCache.clear()
         pendingWarpScan = false
         pendingOwnPreWarp = false
         ownPreWarpHandled = false
@@ -175,6 +180,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         }
 
         ClientTickEvents.END_CLIENT_TICK.register {
+            updateSupplyZombieCache()
             if (enabled && pendingOwnPreWarp && mc.player != null) {
                 pendingOwnPreWarp = false
                 if (selectFirstEtherwarp() != null) {
@@ -203,7 +209,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
                 return@register
             }
 
-            val pos = zombie.position()
+            val pos = zombie.position
             // Zombies don't move, don't redo the scan while it's still standing in the same spot.
             if (lastZombiePos == pos) return@register
 
@@ -243,11 +249,13 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         }
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
+            supplyZombieCache.clear()
             cachedBoxes = emptyList()
             lastZombiePos = null
             pendingWarpScan = false
             pendingOwnPreWarp = false
             ownPreWarpHandled = false
+            pathfindingStartedThisWorld = false
             warpGeneration++
             safeSpotAlertStartedAt = 0L
         }
@@ -260,10 +268,9 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             debug("Skipped: the client level was unavailable.")
             return
         }
-        val zombies = KuudraUtils.getSupplyZombies()
-        val zombie = zombies.firstOrNull { KuudraUtils.getSupply(it.position()).name == CratePriority.missing.name }
+        val zombie = supplyZombieCache.entries.firstOrNull { it.key.name == CratePriority.missing.name }?.value
             ?: run {
-                val detected = zombies.joinToString { KuudraUtils.getSupply(it.position()).name }
+                val detected = supplyZombieCache.keys.joinToString { it.name }
                     .ifEmpty { "none" }
                 debug("Skipped: no zombie matched missing crate ${CratePriority.missing.name}; detected crates: $detected.")
                 return
@@ -271,7 +278,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
         target = pickWarp(zombie, level)
         val destination = target ?: run {
-            debug("Skipped: no standable warp destination was found near ${KuudraUtils.getSupply(zombie.position()).name}.")
+            debug("Skipped: no standable warp destination was found near ${KuudraUtils.getSupply(zombie.position).name}.")
             return
         }
 
@@ -279,14 +286,20 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             safeSpotAlertStartedAt = System.nanoTime()
         }
 
-        debug("Selected ${destination.x}, ${destination.y}, ${destination.z} near ${KuudraUtils.getSupply(zombie.position()).name}; finding route.")
+        debug("Selected ${destination.x}, ${destination.y}, ${destination.z} near ${KuudraUtils.getSupply(zombie.position).name}; finding route.")
         executeWarp(destination)
     }
 
     private fun executeWarp(destination: BlockPos) {
+        if (pathfindingStartedThisWorld) return
         val level = mc.level ?: return
         val player = mc.player ?: return
         if (!isEtherwarp(player.mainHandItem)) return
+        // Consume the attempt before starting async work, even if routing fails or is cancelled.
+        // Only a world change resets this; toggling the feature must not allow another attempt.
+        pathfindingStartedThisWorld = true
+        pendingWarpScan = false
+        pendingOwnPreWarp = false
         val itemId = player.mainHandItem.uuid()
         val generation = ++warpGeneration
         fun canExecute() = enabled && mc.level === level && generation == warpGeneration &&
@@ -334,8 +347,8 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         Tier.RED -> Color.RED
     }
 
-    private fun pickWarp(zombie: Zombie, level: ClientLevel): BlockPos? {
-        val zombiePos = zombie.position()
+    private fun pickWarp(zombie: SupplyZombie, level: ClientLevel): BlockPos? {
+        val zombiePos = zombie.position
         val scanned = scanBlocks(zombie, level)
 
         for (tier in Tier.entries) {
@@ -351,7 +364,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         }
 
         // Green/orange/red all came up empty (e.g. the zombie is stuck somewhere with no standable ground nearby) - just grab the nearest standable block, range be damned.
-        return nearestStandableBlock(zombie.position(), level)
+        return nearestStandableBlock(zombie.position, level)
     }
 
     private fun nearestStandableBlock(origin: Vec3, level: ClientLevel): BlockPos? {
@@ -382,17 +395,30 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         return best
     }
 
-    private fun zombieForMissingCrate(): Zombie? {
-        // Already sorted by distance to the player.
-        val zombies = KuudraUtils.getSupplyZombies()
+    private fun updateSupplyZombieCache() {
+        if (!enabled || !kuudra() || !supplies() || mc.level == null) {
+            supplyZombieCache.clear()
+            return
+        }
+        // Nearest matching zombie wins if multiple loaded zombies occupy the same supply area.
+        val seen = mutableSetOf<KuudraUtils.Supply>()
+        for (zombie in KuudraUtils.getSupplyZombies()) {
+            val supply = KuudraUtils.getSupply(zombie.position())
+            if (supply == KuudraUtils.Supply.None || !seen.add(supply)) continue
+            supplyZombieCache[supply] = SupplyZombie(zombie.position(), zombie.boundingBox)
+        }
+    }
 
-        if (debug.value) return zombies.firstOrNull()
-
-        return zombies.firstOrNull { KuudraUtils.getSupply(it.position()).name == CratePriority.missing.name }
+    private fun zombieForMissingCrate(): SupplyZombie? {
+        if (debug.value) {
+            val player = mc.player ?: return null
+            return supplyZombieCache.values.minByOrNull { it.position.distanceToSqr(player.position()) }
+        }
+        return supplyZombieCache.entries.firstOrNull { it.key.name == CratePriority.missing.name }?.value
     }
 
     private fun scanBlocks(
-        zombie: Zombie,
+        zombie: SupplyZombie,
         level: ClientLevel,
     ): List<ScannedBlock> {
         val player = mc.player ?: return emptyList()
@@ -403,7 +429,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         val red = green + 4.0
 
         val horizontalRadius = ceil(red).toInt()
-        val originBlock = BlockPos.containing(zombie.position())
+        val originBlock = BlockPos.containing(zombie.position)
         val results = ArrayList<ScannedBlock>()
 
         for (dx in -horizontalRadius..horizontalRadius) {
