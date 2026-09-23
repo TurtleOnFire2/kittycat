@@ -19,13 +19,47 @@ import kotlin.io.use
 object ClickUtils {
 
     val queuedClicks = mutableListOf<Vec3>()
-    val queuedLooks = mutableListOf<Pair<Float, Float>>()
+    private data class QueuedLook(val look: Pair<Float, Float>, val sneak: Boolean?, val canExecute: () -> Boolean,
+                                  val resolveLook: (() -> Pair<Float, Float>?)?)
+    private val queuedLooks = mutableListOf<QueuedLook>()
+    private var savedSneak: Boolean? = null
+    private var forcedSneak: Boolean? = null
+    private var sneakWait = 0
+
+    private fun restoreSneak() {
+        savedSneak?.let { mc.options.keyShift.isDown = it }
+        savedSneak = null
+        forcedSneak = null
+        sneakWait = 0
+    }
 
     fun register() {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
-            if (client.player == null) return@register
+            if (client.player == null) { restoreSneak(); return@register }
+            if (queuedClicks.isNotEmpty()) restoreSneak()
 
-            val look = queuedClicks.removeFirstOrNull()?.getLook(mc.player!!.eyePosition) ?: queuedLooks.removeFirstOrNull() ?: return@register
+            val look = queuedClicks.removeFirstOrNull()?.getLook(mc.player!!.eyePosition) ?: run {
+                val queued = queuedLooks.firstOrNull() ?: run { restoreSneak(); return@register }
+                if (!queued.canExecute()) {
+                    queuedLooks.removeFirst()
+                    restoreSneak()
+                    return@register
+                }
+                val sneak = queued.sneak
+                if (sneak != null) {
+                    if (savedSneak == null) savedSneak = client.options.keyShift.isDown
+                    if (forcedSneak != sneak) {
+                        forcedSneak = sneak
+                        sneakWait = if (client.player!!.isShiftKeyDown == sneak && client.player!!.isCrouching == sneak) 0 else 2
+                    }
+                    client.options.keyShift.isDown = sneak
+                    // Let normal player ticks update pose and send sneak input before use-item.
+                    if (sneakWait > 0) { sneakWait--; return@register }
+                } else restoreSneak()
+                queuedLooks.removeFirst()
+                if (queued.resolveLook != null) queued.resolveLook.invoke() ?: run { restoreSneak(); return@register }
+                else queued.look
+            }
 
             useItem(look.first, look.second)
             Chat.send("Fired with $look")
@@ -33,6 +67,8 @@ object ClickUtils {
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
             queuedClicks.clear()
+            queuedLooks.clear()
+            restoreSneak()
         }
     }
 
@@ -63,8 +99,9 @@ object ClickUtils {
         }
     }
 
-    fun queueLook(look: Pair<Float, Float>) {
-        queuedLooks.add(look)
+    fun queueLook(look: Pair<Float, Float>, sneak: Boolean? = null,
+                  resolveLook: (() -> Pair<Float, Float>?)? = null, canExecute: () -> Boolean = { true }) {
+        queuedLooks.add(QueuedLook(look, sneak, canExecute, resolveLook))
     }
 
     fun queueClick(target: Vec3) {

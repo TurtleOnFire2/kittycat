@@ -61,6 +61,7 @@ public class ClientPlayNetworkHandleMixin {
         Stun.INSTANCE.handleChat(unformatted);
         FarmHelper.INSTANCE.handleChat(unformatted);
         CratePriority.INSTANCE.handleChat(unformatted);
+        AutoWarp.INSTANCE.handleChat(unformatted);
         Supplies.INSTANCE.handleChat(unformatted);
         EtherwarpWaypoints.INSTANCE.handleChat(unformatted);
     }

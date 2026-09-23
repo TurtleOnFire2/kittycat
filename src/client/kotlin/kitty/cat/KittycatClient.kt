@@ -29,6 +29,7 @@ import kitty.cat.features.huds.SupplyHud
 import kitty.cat.features.huds.SupplyAlertHud
 import kitty.cat.features.huds.GiantAlertHud
 import kitty.cat.features.kuudra.AutoGFS
+import kitty.cat.features.kuudra.AutoWarp
 import kitty.cat.features.kuudra.BackboneAlert
 import kitty.cat.features.kuudra.CratePriority
 import kitty.cat.features.kuudra.KuudraDisplay
@@ -227,6 +228,7 @@ object KittycatClient : ClientModInitializer {
 		KuudraDisplay.register()
 		BackboneAlert.register()
 		AutoGFS.register()
+		AutoWarp.register()
 		Fireball.register()
 		ClickUtils.register()
 

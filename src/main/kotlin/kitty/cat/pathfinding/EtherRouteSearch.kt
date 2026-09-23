@@ -67,28 +67,39 @@ object EtherGeometry {
 
     /** Try the center, then inset points on the surface facing the eye. Every float aim is traced again. */
     fun connection(terrain: Terrain, origin: Point, target: Cell, range: Double, detailed: Boolean = true): Aim? {
-        if (!terrain.landing(target) || origin.distance(target.center()) > range + sqrt(0.75)) return null
+        val dx = target.x + 0.5 - origin.x
+        val dy = target.y + 0.5 - origin.y
+        val dz = target.z + 0.5 - origin.z
+        val radius = range + sqrt(0.75)
+        if (dx * dx + dy * dy + dz * dz > radius * radius || !terrain.landing(target)) return null
         fun test(point: Point): Aim? = rotation(origin, point).takeIf { hit(terrain, origin, it, range) == target }
         test(target.center())?.let { return it }
-        val relative = doubleArrayOf(origin.x - target.x, origin.y - target.y, origin.z - target.z)
-        val base = doubleArrayOf(target.x.toDouble(), target.y.toDouble(), target.z.toDouble())
         for (axis in 0..2) {
+            val relative = when (axis) {
+                0 -> origin.x - target.x
+                1 -> origin.y - target.y
+                else -> origin.z - target.z
+            }
             val side = when {
-                relative[axis] < 0 -> 0.02
-                relative[axis] > 1 -> 0.98
+                relative < 0 -> 0.02
+                relative > 1 -> 0.98
                 else -> continue
             }
-            val samples = if (detailed) doubleArrayOf(0.2, 0.5, 0.8) else doubleArrayOf(0.5)
+            val samples = if (detailed) FACE_SAMPLES else CENTER_SAMPLE
             for (u in samples) for (v in samples) {
-                val coordinates = base.copyOf()
-                coordinates[axis] += side
-                coordinates[(axis + 1) % 3] += u
-                coordinates[(axis + 2) % 3] += v
-                test(Point(coordinates[0], coordinates[1], coordinates[2]))?.let { return it }
+                val point = when (axis) {
+                    0 -> Point(target.x + side, target.y + u, target.z + v)
+                    1 -> Point(target.x + v, target.y + side, target.z + u)
+                    else -> Point(target.x + u, target.y + v, target.z + side)
+                }
+                test(point)?.let { return it }
             }
         }
         return null
     }
+
+    private val FACE_SAMPLES = doubleArrayOf(0.2, 0.5, 0.8)
+    private val CENTER_SAMPLE = doubleArrayOf(0.5)
 }
 
 /**
@@ -121,6 +132,8 @@ class EtherRouteSearch(
     private var active: Entry? = null
     private var neighbour = -1
     private var nearby = emptyList<Int>()
+    private var nearbyReady = false
+    private var activeEye = start
     var expanded = 0
         private set
     var status = Status.SEARCHING
@@ -144,20 +157,22 @@ class EtherRouteSearch(
                 if (next.index == goalIndex) { finish(); return }
                 if (++expanded > expansionLimit) { status = Status.LIMIT; return }
                 active = next
-                val eye = if (next.index < 0) start else candidates[next.index].eye(eyeHeight)
-                nearby = neighbours(eye)
+                activeEye = if (next.index < 0) start else candidates[next.index].eye(eyeHeight)
+                nearbyReady = false
                 neighbour = -1 // Test the goal first, then the remaining candidate cells.
             }
             val current = active!!
-            if (neighbour >= nearby.size) { active = null; return@repeat }
+            if (neighbour >= 0) {
+                prepareNeighbours()
+                if (neighbour >= nearby.size) { active = null; return@repeat }
+            }
             val targetIndex = if (neighbour == -1) goalIndex else nearby[neighbour]
             neighbour++
             if (targetIndex == current.index || (targetIndex == goalIndex && neighbour != 0)) return@repeat
             val newCost = current.cost + 1
             if (costs[targetIndex] <= newCost) return@repeat
-            val eye = if (current.index < 0) start else candidates[current.index].eye(eyeHeight)
             val target = candidates[targetIndex]
-            val aim = EtherGeometry.connection(terrain, eye, target, range, detailed) ?: return@repeat
+            val aim = EtherGeometry.connection(terrain, activeEye, target, range, detailed) ?: return@repeat
             accept(current, targetIndex, aim)
         }
     }
@@ -183,8 +198,9 @@ class EtherRouteSearch(
             if (cancelled() || Thread.currentThread().isInterrupted) throw CancellationException()
             if (active == null || neighbour == -1) { advance(1); continue }
             val current = active!!
+            prepareNeighbours()
             if (neighbour >= nearby.size) { active = null; continue }
-            val eye = if (current.index < 0) start else candidates[current.index].eye(eyeHeight)
+            val eye = activeEye
             val end = min(nearby.size, neighbour + 256 * threads)
             val indices = nearby.subList(neighbour, end).filter { it != goalIndex && it != current.index && costs[it] > current.cost + 1 }
             neighbour = end
@@ -208,7 +224,14 @@ class EtherRouteSearch(
 
     private fun bucket(cell: EtherGeometry.Cell) = EtherGeometry.Cell(cell.x shr 4, cell.y shr 4, cell.z shr 4)
 
-    private fun neighbours(eye: EtherGeometry.Point): List<Int> {
+    private fun prepareNeighbours() {
+        if (!nearbyReady) {
+            nearby = neighbours(activeEye, active!!.cost + 1)
+            nearbyReady = true
+        }
+    }
+
+    private fun neighbours(eye: EtherGeometry.Point, newCost: Int): List<Int> {
         val radius = range + sqrt(0.75)
         val squared = radius * radius
         val result = ArrayList<Int>()
@@ -216,6 +239,7 @@ class EtherRouteSearch(
             for (y in (floor(eye.y - radius).toInt() shr 4)..(floor(eye.y + radius).toInt() shr 4))
                 for (z in (floor(eye.z - radius).toInt() shr 4)..(floor(eye.z + radius).toInt() shr 4)) {
                     for (index in buckets[EtherGeometry.Cell(x, y, z)] ?: continue) {
+                        if (costs[index] <= newCost) continue
                         val cell = candidates[index]
                         val dx = cell.x + 0.5 - eye.x; val dy = cell.y + 0.5 - eye.y; val dz = cell.z + 0.5 - eye.z
                         if (dx * dx + dy * dy + dz * dz <= squared) result.add(index)

@@ -382,6 +382,21 @@
             player.xRot = (player.xRot + pitchStep).coerceIn(-90f, 90f)
         }
 
+        fun convertToGcd(look: Pair<Float, Float>): Pair<Float, Float>? {
+            return convertToGcd(look.first, look.second)
+        }
+
+        fun convertToGcd(yaw: Float, pitch: Float): Pair<Float, Float>? {
+            val player = mc.player ?: return null
+            val sensitivity = mc.options.sensitivity().get().toFloat()
+            val multiplier = sensitivity * 0.6f + 0.2f
+            val gcd = multiplier * multiplier * multiplier * 1.2f
+            val yawStep = round(Mth.wrapDegrees(yaw - player.yRot) / gcd) * gcd
+            val pitchStep = round((pitch - player.xRot) / gcd) * gcd
+
+            return player.yRot + yawStep to (player.xRot + pitchStep).coerceIn(-90f, 90f)
+        }
+
         private fun smootherStep(p: Float) = p * p * p * (p * (p * 6f - 15f) + 10f)
         private fun lerp(a: Float, b: Float, p: Float) = a + (b - a) * p
         fun framePartialTick() = mc.deltaTracker.getGameTimeDeltaPartialTick(true)
