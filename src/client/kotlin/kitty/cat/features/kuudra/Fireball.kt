@@ -37,8 +37,6 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
         unit = "%", step = 1.0,
     )
 
-    val noRotation = booleanSetting("No rotation", false)
-
     val looks = listOf(
         Pair(90f, 8.2f), // Tri -> X
         Pair(30f, 9.3f), // X -> X+Slash
@@ -94,18 +92,16 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
                 val target = if (assumeStun.value) Vec3(-71.5, 79.0, -102.5) else Vec3(-85.5, 79.0, -77.5)
                 val look = target.getLook(expectedLastTp?.add(0.0, 1.27, 0.0) ?: return@register)
 
-                if (noRotation.value) {
-                    ClickUtils.useItem(look.first, look.second)
-                } else {
-                    mc.options.keyUse.clickCount++
-                    RotationUtils.applyGcd(look.first, look.second)
-                }
+                mc.options.keyUse.clickCount++
+                RotationUtils.applyGcd(look.first, look.second)
 
                 if (assumeStun.value) {
                     val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return@register
-                    mc.player!!.inventory.selectedSlot = slot
-                    schedule(1) {
-                        mc.options.keyUse.clickCount++
+                    schedule(0) {
+                        mc.player!!.inventory.selectedSlot = slot
+                        schedule(1) {
+                            mc.options.keyUse.clickCount++
+                        }
                     }
                 }
                 return@register
@@ -122,15 +118,11 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
             val look = looks[(ticks++ + offset) % 6]
 
             mc.options.keyAttack.clickCount++
+            mc.options.keyUse.clickCount++
 
             expectedLastTp = positions[(ticks + offset) % 6]
 
-            if (noRotation.value) {
-                ClickUtils.useItem(look.first, look.second)
-            } else {
-                mc.options.keyUse.clickCount++
-                RotationUtils.applyGcd(look.first, look.second)
-            }
+            RotationUtils.applyGcd(look.first, look.second)
         }
     }
 
