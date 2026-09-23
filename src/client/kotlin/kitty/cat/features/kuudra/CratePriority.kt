@@ -117,6 +117,7 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
                 it.name.equals(crateName, ignoreCase = true)
             } ?: Crate.NONE
 
+            AutoWarp.onMissingPre(missing)
             missing = getSecond(missing)
             titleText = missing.name
             titleStartedAt = System.nanoTime()

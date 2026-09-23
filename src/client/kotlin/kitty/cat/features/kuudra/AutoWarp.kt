@@ -26,6 +26,10 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 import net.minecraft.ChatFormatting
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.core.component.DataComponents
+import net.minecraft.world.entity.Pose
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.component.CustomData
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.monster.zombie.Zombie
@@ -44,7 +48,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     }
 
     val highlightRange = booleanSetting("Highlight aura range blocks", false)
-    val debug = booleanSetting("Debug (ignore missing crate)", false)
+    val debug = booleanSetting("Debug (ignore missing crate)", false, "Visual debugging only: disables automatic warping.")
     val debugMessages = booleanSetting("Debug messages", false)
     val debugAreas = booleanSetting("Debug crate areas", false)
     val safeSpotAlert = booleanSetting("Safe spot alert", true)
@@ -52,6 +56,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     private const val VERTICAL_RADIUS = 6
     private const val RESCAN_TICKS = 5
     private const val FALLBACK_RADIUS = 20
+    private val ownPreDestination = BlockPos(-77, 76, -138)
 
     private val recoveredRegex = Regex("(.+) recovered one of Elle's supplies!")
 
@@ -60,6 +65,9 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     private var lastZombiePos: Vec3? = null
     private var target: BlockPos? = null
     private var pendingWarpScan = false
+    private var pendingOwnPreWarp = false
+    private var ownPreWarpHandled = false
+    private var warpGeneration = 0L
     private var safeSpotAlertStartedAt = 0L
 
     private enum class Tier { GREEN, ORANGE, RED }
@@ -104,28 +112,47 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             return
         }
 
-        var slot: Int? = null
-
-        for (i in 0..8) {
-            val uuid = player.inventory.getItem(i).uuid()
-
-            if (uuid in listOf("ETHERWARP_CONDUIT", "ASPECT_OF_THE_VOID")) {
-                slot = i
-            }
-        }
-
-        slot ?: run {
-            debug("Skipped: no Etherwarp Conduit or Aspect of the Void was found in the hotbar.")
-            return
-        }
-
-        if (player.inventory.selectedSlot != slot) player.inventory.selectedSlot = slot
+        if (pendingOwnPreWarp) return
+        val slot = selectFirstEtherwarp() ?: return
 
         pendingWarpScan = true
-        debug(
-            if (player.onGround()) "Queued warp from hotbar slot ${slot + 1}; scanning on this ground tick."
-            else "Queued warp from hotbar slot ${slot + 1}; waiting until you are on the ground before scanning."
-        )
+        debug("Queued warp from hotbar slot ${slot + 1}; scanning on the next client tick.")
+    }
+
+    /** Receives the actual missing crate before CratePriority maps it to a secondary. */
+    fun onMissingPre(missing: Crate) {
+        if (!enabled || debug.value || EtherwarpWaypoints.enabled || ownPreWarpHandled) return
+        if (missing == Crate.NONE || missing != CratePriority.currentPre) return
+        val slot = selectFirstEtherwarp() ?: return
+        ownPreWarpHandled = true
+        pendingWarpScan = false
+        pendingOwnPreWarp = true
+        debug("Own pre ${missing.name} is missing; selected slot ${slot + 1}, routing to $ownPreDestination on the next client tick.")
+    }
+
+    private fun isEtherwarp(item: ItemStack): Boolean {
+        val id = item.uuid()
+        return id == "ETHERWARP_CONDUIT" ||
+            ((id == "ASPECT_OF_THE_VOID" || id == "ASPECT_OF_THE_END") &&
+                item.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getInt("ethermerge").orElse(0) == 1)
+    }
+
+    private fun selectFirstEtherwarp(): Int? {
+        val player = mc.player ?: return null
+        val slot = (0..8).firstOrNull { isEtherwarp(player.inventory.getItem(it)) }
+        if (slot == null) {
+            debug("Skipped: no Etherwarp Conduit or Etherwarp-upgraded AOTE/AOTV in the hotbar.")
+            return null
+        }
+        player.inventory.selectedSlot = slot
+        return slot
+    }
+
+    override fun onDisable() {
+        pendingWarpScan = false
+        pendingOwnPreWarp = false
+        ownPreWarpHandled = false
+        warpGeneration++
     }
 
     fun register() {
@@ -148,7 +175,13 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         }
 
         ClientTickEvents.END_CLIENT_TICK.register {
-            if (enabled && pendingWarpScan && mc.player?.onGround() == true) {
+            if (enabled && pendingOwnPreWarp && mc.player != null) {
+                pendingOwnPreWarp = false
+                if (selectFirstEtherwarp() != null) {
+                    target = ownPreDestination
+                    executeWarp(ownPreDestination)
+                }
+            } else if (enabled && pendingWarpScan && mc.player != null) {
                 pendingWarpScan = false
                 scanAndExecuteWarp()
             }
@@ -213,12 +246,15 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             cachedBoxes = emptyList()
             lastZombiePos = null
             pendingWarpScan = false
+            pendingOwnPreWarp = false
+            ownPreWarpHandled = false
+            warpGeneration++
             safeSpotAlertStartedAt = 0L
         }
     }
 
     private fun scanAndExecuteWarp() {
-        debug("On ground; scanning for the missing-crate zombie.")
+        debug("Scanning for the missing-crate zombie.")
 
         val level = mc.level ?: run {
             debug("Skipped: the client level was unavailable.")
@@ -248,18 +284,43 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     }
 
     private fun executeWarp(destination: BlockPos) {
+        val level = mc.level ?: return
+        val player = mc.player ?: return
+        if (!isEtherwarp(player.mainHandItem)) return
+        val itemId = player.mainHandItem.uuid()
+        val generation = ++warpGeneration
+        fun canExecute() = enabled && mc.level === level && generation == warpGeneration &&
+            mc.player?.mainHandItem?.let { it.uuid() == itemId && isEtherwarp(it) } == true
         EtherPath.findRoute(destination).whenComplete { route, error ->
+            if (!canExecute()) return@whenComplete
             if (error != null) {
                 debug("Route failed: ${error.message ?: error.javaClass.simpleName}.")
                 Chat.send(error.message ?: "Etherwarp route failed.")
                 return@whenComplete
             }
-            debug("Route found with ${route.rotations.size} click(s); executing in 2 ticks.")
-            // The route was requested from a stable landing, so its first rotation
-            // remains valid when clicks begin on the following client tick.
-            schedule(2) {
-                route.rotations.forEach { aim -> ClickUtils.queueLook(aim.yaw to aim.pitch) }
+            debug("Route found with ${route.rotations.size} click(s).")
+            val queue = queue@{
+                if (!canExecute()) return@queue
+                val sneak = route.eyeHeight == mc.player?.getEyeHeight(Pose.CROUCHING)?.toDouble()
+                var cancelled = false
+                route.hops.forEachIndexed { index, hop ->
+                    ClickUtils.queueLook(hop.aim.yaw to hop.aim.pitch, sneak = sneak, resolveLook = if (index == 0) {
+                        {
+                            val aim = EtherPath.aimFromPlayer(hop.block, route.range)
+                            if (aim == null) {
+                                cancelled = true
+                                Chat.send("Etherwarp cancelled: the first hop is no longer reachable.")
+                            }
+                            aim?.let { it.yaw to it.pitch }
+                        }
+                    } else null) {
+                        if (!canExecute()) cancelled = true
+                        !cancelled
+                    }
+                }
             }
+            if (itemId == "ASPECT_OF_THE_VOID" && mc.player?.isShiftKeyDown == true && mc.player?.isCrouching == true) queue()
+            else schedule(2) { queue() }
         }
     }
 

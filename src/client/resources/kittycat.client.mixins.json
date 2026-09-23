@@ -25,6 +25,7 @@
     "BakedSheetGlyphMixin",
     "BowItemMixin",
     "ClientLevelMixin",
+    "EtherTerrainChunkMixin",
     "ConnectionMixin",
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
