@@ -77,12 +77,19 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     val pullDelay = numberSetting("Pull delay", 1.0, 20.0, 1.0, "t", 1.0)
 
     val debug = booleanSetting("Debug", false)
+    val overrideYCheck = keybindSetting("Override Y check")
 
     private var clickLoadout = false
 
     private var edging = false
     private var throwRod = false
 
+    private var override = false
+
+    override fun onKeybindPressed(setting: KeybindSetting) {
+        override = !override
+        Chat.send("Overwriting: $override")
+    }
 
     fun register() {
         LevelRenderEvents.END_MAIN.register { ctx ->
@@ -107,6 +114,7 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
 
             edging = false
             throwRod = false
+            override = false
         }
     }
 
@@ -205,7 +213,9 @@ object RendMacro : Feature("Rend Macro", "", Categories.Category.KUUDRA) {
     fun useItem(player: Player, interactionHand: InteractionHand, result: InteractionResult) {
         if (!enabled) return
 
-        if (!kuudra() || player.y > 20) return
+        if (!kuudra() || (player.y > 20 && !override)) return
+
+        override = false
 
         if (result !is InteractionResult.Pass && result !is InteractionResult.Success) return
 
