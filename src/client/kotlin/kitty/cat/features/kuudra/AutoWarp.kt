@@ -111,11 +111,6 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             debug("Skipped: Debug (ignore missing crate) mode disables automatic warping.")
             return
         }
-        if (EtherwarpWaypoints.enabled) {
-            debug("Skipped: Etherwarp Waypoints is enabled and takes priority.")
-            return
-        }
-
         if (pendingOwnPreWarp) return
         val slot = selectFirstEtherwarp() ?: return
 
@@ -125,7 +120,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
 
     /** Receives the actual missing crate before CratePriority maps it to a secondary. */
     fun onMissingPre(missing: Crate) {
-        if (!enabled || pathfindingStartedThisWorld || debug.value || EtherwarpWaypoints.enabled || ownPreWarpHandled) return
+        if (!enabled || pathfindingStartedThisWorld || debug.value || ownPreWarpHandled) return
         if (missing == Crate.NONE || missing != CratePriority.currentPre) return
         val slot = selectFirstEtherwarp() ?: return
         ownPreWarpHandled = true
@@ -269,16 +264,21 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             return
         }
         val zombie = supplyZombieCache.entries.firstOrNull { it.key.name == CratePriority.missing.name }?.value
-            ?: run {
-                val detected = supplyZombieCache.keys.joinToString { it.name }
-                    .ifEmpty { "none" }
-                debug("Skipped: no zombie matched missing crate ${CratePriority.missing.name}; detected crates: $detected.")
+        if (zombie == null) {
+            val waypoint = EtherwarpWaypoints.waypointFor(CratePriority.missing)?.let(::blockPos)
+            if (waypoint != null) {
+                debug("No matching supply target found; using the ${CratePriority.missing.name} Etherwarp waypoint.")
+                executeWarp(waypoint, fallbackAttempt = true)
                 return
             }
+            val detected = supplyZombieCache.keys.joinToString { it.name }.ifEmpty { "none" }
+            debug("Skipped: no zombie matched missing crate ${CratePriority.missing.name}; detected crates: $detected, and no matching Etherwarp waypoint exists.")
+            return
+        }
 
         target = pickWarp(zombie, level)
-        val destination = target ?: run {
-            debug("Skipped: no standable warp destination was found near ${KuudraUtils.getSupply(zombie.position).name}.")
+        val destination = target ?: EtherwarpWaypoints.waypointFor(CratePriority.missing)?.let(::blockPos) ?: run {
+            debug("Skipped: no standable warp destination or matching Etherwarp waypoint was found near ${KuudraUtils.getSupply(zombie.position).name}.")
             return
         }
 
@@ -290,8 +290,10 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         executeWarp(destination)
     }
 
-    private fun executeWarp(destination: BlockPos) {
-        if (pathfindingStartedThisWorld) return
+    private fun blockPos(point: Vec3) = BlockPos.containing(point.x, point.y - 1.0, point.z)
+
+    private fun executeWarp(destination: BlockPos, fallbackAttempt: Boolean = false) {
+        if (pathfindingStartedThisWorld && !fallbackAttempt) return
         val level = mc.level ?: return
         val player = mc.player ?: return
         if (!isEtherwarp(player.mainHandItem)) return
@@ -307,6 +309,13 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         EtherPath.findRoute(destination).whenComplete { route, error ->
             if (!canExecute()) return@whenComplete
             if (error != null) {
+                val fallback = if (!fallbackAttempt) EtherwarpWaypoints.waypointFor(CratePriority.missing)?.let(::blockPos) else null
+                if (fallback != null && fallback != destination) {
+                    debug("Route to selected target failed (${error.message ?: error.javaClass.simpleName}); retrying the matching Etherwarp waypoint.")
+                    pathfindingStartedThisWorld = false
+                    executeWarp(fallback, fallbackAttempt = true)
+                    return@whenComplete
+                }
                 debug("Route failed: ${error.message ?: error.javaClass.simpleName}.")
                 Chat.send(error.message ?: "Etherwarp route failed.")
                 return@whenComplete
@@ -322,7 +331,14 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
                             val aim = EtherPath.aimFromPlayer(hop.block, route.range)
                             if (aim == null) {
                                 cancelled = true
-                                Chat.send("Etherwarp cancelled: the first hop is no longer reachable.")
+                                val fallback = if (!fallbackAttempt) EtherwarpWaypoints.waypointFor(CratePriority.missing)?.let(::blockPos) else null
+                                if (fallback != null && fallback != destination) {
+                                    debug("First hop became unreachable; retrying the matching Etherwarp waypoint.")
+                                    pathfindingStartedThisWorld = false
+                                    executeWarp(fallback, fallbackAttempt = true)
+                                } else {
+                                    Chat.send("Etherwarp cancelled: the first hop is no longer reachable.")
+                                }
                             }
                             aim?.let { it.yaw to it.pitch }
                         }

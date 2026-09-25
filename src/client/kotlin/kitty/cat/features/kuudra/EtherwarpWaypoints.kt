@@ -104,6 +104,8 @@ object EtherwarpWaypoints : Feature(
     private fun matchingWaypoints() = waypoints.asSequence()
         .filter { it.third == CratePriority.missing }
 
+    fun waypointFor(crate: Crate): Vec3? = waypoints.firstOrNull { it.third == crate }?.second
+
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register {
             pearlLanding = if (enabled) PearlLandingDebug.currentPredictedLanding() else null

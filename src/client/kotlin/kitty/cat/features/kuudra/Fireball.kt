@@ -99,8 +99,8 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
                     val slot = hotbarSlotFromID("KUUDRA_SHOP_ITEM") ?: return@register
                     schedule(0) {
                         mc.player!!.inventory.selectedSlot = slot
-                        schedule(1) {
-                            mc.options.keyUse.clickCount++
+                        schedule(0) {
+                            ClickUtils.useItem(0f, -90f)
                         }
                     }
                 }

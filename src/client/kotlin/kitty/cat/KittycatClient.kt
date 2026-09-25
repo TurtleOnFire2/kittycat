@@ -160,6 +160,29 @@ object KittycatClient : ClientModInitializer {
 			dispatcher.register(
 				literal("kc")
 					.then(
+						literal("config")
+							.then(literal("list").executes {
+								val names = ConfigManager.profileNames()
+								Chat.send(if (names.isEmpty()) "No saved configs. Use /kc config save <name>." else "Configs: ${names.joinToString(", ")}")
+								1
+							})
+							.then(literal("save").then(argument("name", StringArgumentType.word()).executes { ctx ->
+								val name = StringArgumentType.getString(ctx, "name")
+								Chat.send(if (ConfigManager.saveProfile(name)) "Saved config '$name'." else "Couldn't save config. Names may use letters, numbers, _ and - (max 32 characters).")
+								1
+							}))
+							.then(literal("load").then(argument("name", StringArgumentType.word()).executes { ctx ->
+								val name = StringArgumentType.getString(ctx, "name")
+								Chat.send(if (ConfigManager.loadProfile(name)) "Loaded config '$name'." else "Config '$name' wasn't found or couldn't be loaded.")
+								1
+							}))
+							.then(literal("delete").then(argument("name", StringArgumentType.word()).executes { ctx ->
+								val name = StringArgumentType.getString(ctx, "name")
+								Chat.send(if (ConfigManager.deleteProfile(name)) "Deleted config '$name'." else "Config '$name' wasn't found.")
+								1
+							}))
+					)
+					.then(
 						literal("be").executes {
 							BestiaryESP.openGui = true
 							1

@@ -17,8 +17,11 @@ object ConfigManager {
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val configPath: Path = FabricLoader.getInstance().configDir.resolve("kittycat.json")
+    private val profilesPath: Path = FabricLoader.getInstance().configDir.resolve("kittycat").resolve("profiles")
 
     private var features: List<Feature> = emptyList()
+    var activeProfile: String? = null
+        private set
     @Volatile private var dirty = false
     private val writerExecutor = Executors.newSingleThreadExecutor { task ->
         Thread(task, "kittycat-config-writer").apply { isDaemon = true }
@@ -29,6 +32,7 @@ object ConfigManager {
 
     fun initialize(features: List<Feature>) {
         this.features = features
+        activeProfile = null
         withDirtyTrackingSuppressed {
             load()
         }
@@ -150,6 +154,55 @@ object ConfigManager {
         }
     }
 
+    fun profileNames(): List<String> = try {
+        if (!Files.isDirectory(profilesPath)) emptyList()
+        else Files.list(profilesPath).use { paths ->
+            paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".json") }
+                .map { it.fileName.toString().removeSuffix(".json") }.sorted().toList()
+        }
+    } catch (_: Exception) { emptyList() }
+
+    fun createProfile(name: String): Boolean {
+        val path = profilePath(name) ?: return false
+        saveNow()
+        return try {
+            Files.createDirectories(profilesPath)
+            Files.copy(configPath, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            activeProfile = name.trim()
+            true
+        } catch (_: Exception) { false }
+    }
+
+    fun saveProfile(name: String): Boolean = createProfile(name)
+
+    fun loadProfile(name: String): Boolean {
+        val path = profilePath(name) ?: return false
+        if (!Files.isRegularFile(path)) return false
+        val root = try {
+            Files.newBufferedReader(path, StandardCharsets.UTF_8).use { gson.fromJson(it, JsonObject::class.java) }
+        } catch (_: Exception) { null } ?: return false
+        withDirtyTrackingSuppressed { apply(root) }
+        activeProfile = name.trim()
+        dirty = true
+        saveNow()
+        return true
+    }
+
+    fun deleteProfile(name: String): Boolean {
+        val path = profilePath(name) ?: return false
+        return try {
+            val deleted = Files.deleteIfExists(path)
+            if (deleted && activeProfile == name.trim()) activeProfile = null
+            deleted
+        } catch (_: Exception) { false }
+    }
+
+    private fun profilePath(name: String): Path? {
+        val safe = name.trim()
+        if (safe.isBlank() || safe.length > 32 || safe.any { !it.isLetterOrDigit() && it != '_' && it != '-' }) return null
+        return profilesPath.resolve("$safe.json")
+    }
+
     private fun load() {
         if (!Files.exists(configPath)) return
 
@@ -161,6 +214,10 @@ object ConfigManager {
             null
         } ?: return
 
+        apply(root)
+    }
+
+    private fun apply(root: JsonObject) {
         val featuresObject = root.objectOrNull("features") ?: return
 
         features.forEach { feature ->
