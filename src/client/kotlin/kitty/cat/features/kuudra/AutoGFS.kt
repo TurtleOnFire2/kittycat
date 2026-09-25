@@ -30,7 +30,7 @@ object AutoGFS : Feature("Auto GFS", "", Categories.Category.KUUDRA) {
 
             val count = inv.find { it.item == Items.ENDER_PEARL }?.count ?: return@register
 
-            if (count > 15) return@register
+            if (count >= 15) return@register
 
             ticks = 0
 
