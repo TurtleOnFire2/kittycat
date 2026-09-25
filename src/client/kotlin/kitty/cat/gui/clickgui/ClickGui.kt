@@ -18,6 +18,7 @@ import kitty.cat.features.kuudra.Fixes
 import kitty.cat.features.kuudra.EtherwarpWaypoints
 import kitty.cat.features.kuudra.HideTags
 import kitty.cat.features.debug.KuudraDev
+import kitty.cat.features.kuudra.Alerts
 import kitty.cat.features.kuudra.PearlWaypoints
 import kitty.cat.features.kuudra.RendDamage
 import kitty.cat.features.kuudra.RendMacro
@@ -260,7 +261,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     val featureList: List<Feature> = listOf(
         CatEars, ClickGuiFeature,
         Storm, Relics, LeverTriggerbot, Terminals,
-        Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, AutoWarp, RendDamage, SupplyCheats, SafeSpots,
+        Alerts, Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, AutoWarp, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
         EtherPath, ExampleFeature, PearlLandingDebug, Debug
     ).visible()

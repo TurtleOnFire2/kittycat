@@ -34,6 +34,7 @@ public class ConnectionMixin {
             SupplyHud.INSTANCE.serverTick();
             BackboneAlert.INSTANCE.serverTick();
             Build.INSTANCE.serverTick();
+            Alerts.INSTANCE.serverTick();
         }
 
         if (packet instanceof ClientboundSystemChatPacket systemChat) {
@@ -54,6 +55,7 @@ public class ConnectionMixin {
                 Supplies.INSTANCE.handleChat(unformatted);
                 EtherwarpWaypoints.INSTANCE.handleChat(unformatted);
                 AutoWarp.INSTANCE.handleChat(unformatted);
+                Alerts.INSTANCE.handleChat(unformatted);
             });
         }
     }
