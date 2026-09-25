@@ -16,6 +16,7 @@ import kitty.cat.features.settings.RegistrySetting
 import kitty.cat.features.settings.Setting
 import kitty.cat.features.settings.StringSetting
 import kitty.cat.features.visible
+import kitty.cat.config.ConfigManager
 import kitty.cat.render.skija.SkijaDraw
 import kitty.cat.render.skija.SkijaRenderer
 import kitty.cat.render.skija.SkijaShapes as GuiUtils
@@ -172,6 +173,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var offsetY = 0
     private var searchQuery = ""
     private var searchFocused = false
+    private var configTabSelected = false
+    private var configNameInput = ""
+    private var configInputFocused = false
+    private var configStatus = ""
     private fun focusedFeature(): Feature? = expandedFeatures.firstOrNull()
     private fun displayedFeatures(): List<Feature> {
         focusedFeature()?.let { return listOf(it) }
@@ -384,6 +389,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
         graphics.disableScissor()
 
+        if (configTabSelected) renderConfigProfiles(graphics, panelX, panelY)
+
         // Update hover tracking for feature headers and settings
         val mouseXD = mouseX.toDouble()
         val mouseYD = mouseY.toDouble()
@@ -496,7 +503,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val sidebar = sidebarRect(panelX, panelY)
         val innerX = sidebar.x + 2
         val innerWidth = (sidebar.width - 4).coerceAtLeast(40)
-        val categoryCount = categoryList.size
+        val categoryCount = categoryList.size + 1
         val totalGap = CATEGORY_TAB_GAP * (categoryCount - 1).coerceAtLeast(0)
         val availableForTabs = (sidebar.height - 100 - totalGap).coerceAtLeast(0)
         val tabHeight = (availableForTabs / categoryCount).coerceIn(16, CATEGORY_TAB_HEIGHT)
@@ -525,6 +532,51 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         }
 
         return layouts
+    }
+
+    private fun configTabRect(): Rect {
+        val sidebar = sidebarRect(panelOriginX(), panelOriginY())
+        val tabHeight = ((sidebar.height - 100 - CATEGORY_TAB_GAP * categoryList.size).coerceAtLeast(0) / (categoryList.size + 1)).coerceIn(16, CATEGORY_TAB_HEIGHT)
+        val y = sidebar.y + 4 + categoryList.size * (tabHeight + CATEGORY_TAB_GAP)
+        return Rect(sidebar.x + 2, y, sidebar.width - 4, tabHeight)
+    }
+
+    private fun configInputRect(area: Rect) = Rect(area.x, area.y, (area.width * 0.62f).toInt().coerceAtLeast(100), 26)
+    private fun configSaveRect(area: Rect) = Rect(configInputRect(area).x + configInputRect(area).width + 8, area.y, 72, 26)
+
+    private fun renderConfigProfiles(g: SkijaDraw, panelX: Int, panelY: Int) {
+        val area = featureAreaRect(panelX, panelY)
+        GuiUtils.renderRoundedRectangle(g, area.x - 3, area.y - 48, area.width + 6, area.height + 54, 8, panelBottomLayerColor())
+        g.text("Configs", area.x, area.y - 43, textPrimaryColor(), 21f)
+        g.text("Save and switch complete mod setups", area.x, area.y - 18, textMutedColor(), 9f)
+        val input = configInputRect(area)
+        val save = configSaveRect(area)
+        GuiUtils.renderRoundedRectangle(g, input.x, input.y, input.width, input.height, 6, fieldFillColor())
+        GuiUtils.renderRoundedOutline(g, input.x, input.y, input.width, input.height, 6, 1, panelBorderColor(if (configInputFocused) 150 else 48))
+        g.text(if (configNameInput.isEmpty() && !configInputFocused) "Config name" else configNameInput + if (configInputFocused) "|" else "", input.x + 8, input.y + 8, textMutedColor(), 9f)
+        GuiUtils.renderRoundedRectangle(g, save.x, save.y, save.width, save.height, 6, toggleOnColor())
+        g.centeredText("Save", save.x + save.width / 2, save.y + 8, textPrimaryColor(), 9f)
+        if (configStatus.isNotBlank()) g.text(SkijaDraw.truncate(configStatus, area.width, 9f), area.x, area.y + 36, textMutedColor(), 9f)
+
+        val listY = area.y + 60
+        val rowHeight = 36
+        val maxRows = ((area.height - 60) / rowHeight).coerceAtLeast(0)
+        val names = ConfigManager.profileNames()
+        names.take(maxRows).forEachIndexed { index, name ->
+            val y = listY + index * rowHeight
+            val active = ConfigManager.activeProfile == name
+            GuiUtils.renderRoundedRectangle(g, area.x, y, area.width, 30, 6, if (active) sidebarSelectedColor() else surfaceColor(0.08f))
+            if (active) GuiUtils.renderRoundedOutline(g, area.x, y, area.width, 30, 6, 1, toggleOnColor())
+            g.text(SkijaDraw.truncate(if (active) "$name  (Loaded)" else name, area.width - 150, 10f), area.x + 9, y + 10, if (active) textPrimaryColor() else textMutedColor(), 10f)
+            val load = Rect(area.x + area.width - 132, y + 5, 58, 20)
+            val delete = Rect(area.x + area.width - 66, y + 5, 58, 20)
+            GuiUtils.renderRoundedRectangle(g, load.x, load.y, load.width, load.height, 4, toggleOnColor())
+            GuiUtils.renderRoundedRectangle(g, delete.x, delete.y, delete.width, delete.height, 4, surfaceColor(0.2f))
+            g.centeredText("Load", load.x + load.width / 2, load.y + 6, textPrimaryColor(), 8f)
+            g.centeredText("Delete", delete.x + delete.width / 2, delete.y + 6, textPrimaryColor(), 8f)
+        }
+        if (names.isEmpty()) g.text("No saved configs yet.", area.x, listY + 8, textMutedColor(), 10f)
+        else if (names.size > maxRows) g.text("Scroll the list to see more configs.", area.x, area.y + area.height - 12, textMutedColor(), 8f)
     }
 
     private fun featureClipRect(panelX: Int, panelY: Int): Rect {
@@ -1110,6 +1162,47 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 selectCategory(clickedCategory.index, playSound = true)
                 return true
             }
+            if (configTabRect().contains(mouseX, mouseY)) {
+                configTabSelected = true
+                configInputFocused = false
+                expandedFeatures.clear()
+                searchFocused = false
+                closeAllSelectorDropdowns()
+                playClickSound(0.95f)
+                return true
+            }
+            if (configTabSelected) {
+                val area = featureAreaRect(panelX, panelY)
+                if (configInputRect(area).contains(mouseX, mouseY)) {
+                    configInputFocused = true
+                    return true
+                }
+                configInputFocused = false
+                if (configSaveRect(area).contains(mouseX, mouseY)) {
+                    val name = configNameInput.trim()
+                    configStatus = when {
+                        name.isEmpty() -> "Enter a config name first."
+                        ConfigManager.saveProfile(name) -> "Saved '$name'."
+                        else -> "Invalid name. Use letters, numbers, _ or - (max 32)."
+                    }
+                    return true
+                }
+                val rowHeight = 36
+                val listY = area.y + 60
+                val maxRows = ((area.height - 60) / rowHeight).coerceAtLeast(0)
+                ConfigManager.profileNames().take(maxRows).forEachIndexed { index, name ->
+                    val y = listY + index * rowHeight
+                    if (Rect(area.x + area.width - 132, y + 5, 58, 20).contains(mouseX, mouseY)) {
+                        configStatus = if (ConfigManager.loadProfile(name)) "Loaded '$name'." else "Couldn't load '$name'."
+                        return true
+                    }
+                    if (Rect(area.x + area.width - 66, y + 5, 58, 20).contains(mouseX, mouseY)) {
+                        configStatus = if (ConfigManager.deleteProfile(name)) "Deleted '$name'." else "Couldn't delete '$name'."
+                        return true
+                    }
+                }
+                if (area.contains(mouseX, mouseY)) return true
+            }
         }
 
         val titleBarRect = Rect(panelX, panelY, panelWidth(), DRAG_BAR_HEIGHT)
@@ -1435,6 +1528,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun keyPressed(keyEvent: KeyEvent): Boolean {
+        if (configInputFocused) {
+            when (keyEvent.key()) {
+                GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> configInputFocused = false
+                GLFW.GLFW_KEY_BACKSPACE -> if (configNameInput.isNotEmpty()) configNameInput = configNameInput.dropLast(1)
+            }
+            return true
+        }
         if (searchFocused) {
             when (keyEvent.key()) {
                 GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER -> searchFocused = false
@@ -1517,6 +1617,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun charTyped(characterEvent: CharacterEvent): Boolean {
+        if (configInputFocused) {
+            val codepoint = characterEvent.codepoint()
+            if (codepoint in 32..126 && configNameInput.length < 32) {
+                val char = codepoint.toChar()
+                if (char.isLetterOrDigit() || char == '_' || char == '-') configNameInput += char
+            }
+            return true
+        }
         if (searchFocused) {
             val codepoint = characterEvent.codepoint()
             if (codepoint >= 32 && searchQuery.length < 64) {
@@ -2193,6 +2301,13 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             graphics.text(label, r.x + 12, layout.textY.toInt(), if (layout.selected) textPrimaryColor() else textMutedColor())
             if (layout.selected) graphics.chevron(r.x + r.width - 12f, r.y + r.height / 2f, toggleOnColor(), size = 3f)
         }
+        val configTab = configTabRect()
+        if (configTabSelected || configTab.contains(pointerX.toDouble(), pointerY.toDouble())) {
+            GuiUtils.renderRoundedRectangle(graphics, configTab.x, configTab.y, configTab.width, configTab.height, 5, sidebarSelectedColor(240))
+        }
+        if (configTabSelected) GuiUtils.renderRoundedRectangle(graphics, configTab.x + 2, configTab.y + 6, 3, configTab.height - 12, 1, toggleOnColor())
+        graphics.text("Configs", configTab.x + 12, (configTab.y + configTab.height / 2f - 5f).toInt(), if (configTabSelected) textPrimaryColor() else textMutedColor())
+        if (configTabSelected) graphics.chevron(configTab.x + configTab.width - 12f, configTab.y + configTab.height / 2f, toggleOnColor(), size = 3f)
         graphics.text("PALETTE / ${ClickGuiFeature.theme.selectedSingle}", sidebar.x + 6, sidebar.y + sidebar.height - 48, textMutedColor())
         ClickGuiFeature.themes.forEachIndexed { index, theme ->
             val r = themeRect(index)
@@ -2237,6 +2352,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         val changed = clamped != selectedIndex
 
         selectedIndex = clamped
+        configTabSelected = false
+        configInputFocused = false
         persistedSelectedCategory = categoryList[selectedIndex]
         activeFeatures = featureList.filter { it.category == categoryList[selectedIndex] }
         expandedFeatures.clear()
