@@ -79,6 +79,8 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
 
     var buildProgress = 0
     var pileProgress = 0
+    private var buildProgressStandId: Int? = null
+    private var buildProgressComplete = false
     private var stunAlertPlayed = false
     private var nextStunSoundTicks = 0
     private var remainingStunSounds = 0
@@ -91,7 +93,10 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("kittycat", "flowstate")) { context, _ ->
             renderFlowstate(context)
         }
-        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ -> freshTimeLeft = 0 }
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
+            freshTimeLeft = 0
+            resetBuildProgressTracking()
+        }
         LevelRenderEvents.COLLECT_SUBMITS.register { context ->
             if (!enabled || !build() || !highlightPile.value) return@register
             val stands = mc.level?.entitiesForRendering()?.filterIsInstance<ArmorStand>() ?: return@register
@@ -192,16 +197,21 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
     }
 
     private fun updateProgress() {
-        buildProgress = 0
+        buildProgress = if (buildProgressComplete) 100 else 0
         pileProgress = 0
-        if (!enabled) return
+        if (!enabled || !build()) {
+            resetBuildProgressTracking()
+            return
+        }
 
-        if ((progressHud.value || stunAlert.value) && build()) {
+        if (progressHud.value || stunAlert.value) {
             val armorStands = mc.level?.entitiesForRendering()?.filterIsInstance<ArmorStand>() ?: return
 
             for (armorStand in armorStands) {
                 buildRegex.find(armorStand.name.string)?.let {
                     buildProgress = it.groupValues[1].toIntOrNull() ?: 0
+                    buildProgressStandId = armorStand.id
+                    buildProgressComplete = false
                     continue
                 }
             }
@@ -215,6 +225,20 @@ object Build : Feature("Build", "", Categories.Category.KUUDRA) {
                 pileProgress = if (it.value == "PROGRESS: COMPLETE") 100 else it.groupValues[1].toIntOrNull() ?: 0
             }
         }
+    }
+
+    fun handleEntityRemoved(id: Int) {
+        if (!enabled || !build() || id != buildProgressStandId) return
+        buildProgressStandId = null
+        buildProgressComplete = true
+        buildProgress = 100
+    }
+
+    private fun resetBuildProgressTracking() {
+        buildProgress = 0
+        pileProgress = 0
+        buildProgressStandId = null
+        buildProgressComplete = false
     }
 
     fun shouldShowStunAlert(): Boolean =
