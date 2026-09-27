@@ -35,5 +35,6 @@ public class MultiPlayerGameModeMixin {
     @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
     void onUseItem(LocalPlayer player, InteractionHand hand, BlockHitResult blockHit, CallbackInfoReturnable<InteractionResult> cir) {
         if (Fixes.INSTANCE.cancelPlacement(player)) cir.cancel();
+        if (Fixes.INSTANCE.cancelInteract(player)) cir.setReturnValue(InteractionResult.PASS);
     }
 }
