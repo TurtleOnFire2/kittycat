@@ -52,6 +52,11 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
     val debugMessages = booleanSetting("Debug messages", false)
     val debugAreas = booleanSetting("Debug crate areas", false)
     val safeSpotAlert = booleanSetting("Safe spot alert", true)
+    val onlyWhenPreMissing = booleanSetting(
+        "Only when pre is missing",
+        false,
+        "Only auto warp when your own pre crate is missing."
+    )
 
     private const val VERTICAL_RADIUS = 6
     private const val RESCAN_TICKS = 5
@@ -106,6 +111,11 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
         if (!name.contains(player.name.string)) return
 
         debug("Supply placement detected for $name.")
+
+        if (onlyWhenPreMissing.value) {
+            debug("Skipped: Only when pre is missing is enabled.")
+            return
+        }
 
         if (debug.value) {
             debug("Skipped: Debug (ignore missing crate) mode disables automatic warping.")

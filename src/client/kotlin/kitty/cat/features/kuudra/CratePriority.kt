@@ -98,7 +98,12 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
                 }
             }
 
-            if (!pre) mc.connection?.sendCommand("pc No ${currentPre.name}!")
+            if (currentPre == Crate.NONE) return
+
+            if (!pre) {
+                AutoWarp.onMissingPre(currentPre)
+                mc.connection?.sendCommand("pc No ${currentPre.name}!")
+            }
             if (!second) {
                 val msg = when (currentPre) {
                     Crate.Triangle -> { "pc No Shop!" }
