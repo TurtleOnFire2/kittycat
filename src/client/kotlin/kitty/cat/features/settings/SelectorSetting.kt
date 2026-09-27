@@ -7,6 +7,7 @@ class SelectorSetting(
     options: List<String>,
     defaultSelected: List<String> = emptyList(),
     val allowMultiple: Boolean = false,
+    val searchable: Boolean = false,
     override val description: String = ""
 ) : Setting {
     val options: List<String> = options.distinct()

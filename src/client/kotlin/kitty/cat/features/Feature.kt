@@ -165,6 +165,7 @@ abstract class Feature {
         options: List<String>,
         defaultSelected: List<String> = emptyList(),
         allowMultiple: Boolean = false,
+        searchable: Boolean = false,
         description: String = ""
     ): SelectorSetting {
         val setting = SelectorSetting(
@@ -172,6 +173,7 @@ abstract class Feature {
             options = options,
             defaultSelected = defaultSelected,
             allowMultiple = allowMultiple,
+            searchable = searchable,
             description = description
         )
         _selectorSettings += setting

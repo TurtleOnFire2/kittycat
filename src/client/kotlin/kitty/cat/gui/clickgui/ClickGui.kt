@@ -254,6 +254,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private var textInputSession: TextInputSession? = null
     private var registryHighlight = -1
+    private var selectorSearchSetting: SelectorSetting? = null
+    private var selectorSearchQuery = ""
     private var openColorPickerFor: ColorSetting? = null
     private var keybindCaptureSetting: KeybindSetting? = null
 
@@ -679,8 +681,15 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
     private fun selectorBaseRect(layout: SettingLayout): Rect = controlRect(layout)
 
-    private fun selectorOptionRect(layout: SettingLayout, optionIndex: Int) =
-        geometry(layout).option(optionIndex)
+    private fun selectorSearchRect(layout: SettingLayout) = geometry(layout).option(0)
+
+    private fun selectorOptionRect(layout: SettingLayout, setting: SelectorSetting, optionIndex: Int) =
+        geometry(layout).option(optionIndex + if (setting.searchable) 1 else 0)
+
+    private fun visibleSelectorOptions(setting: SelectorSetting): List<String> {
+        if (!setting.searchable || selectorSearchSetting !== setting || selectorSearchQuery.isBlank()) return setting.options
+        return setting.options.filter { it.contains(selectorSearchQuery.trim(), ignoreCase = true) }
+    }
 
     private fun orderOptionRect(layout: SettingLayout, index: Int) = Rect(
         layout.x,
@@ -1252,8 +1261,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 layout.settingLayouts.asReversed().forEach { settingLayout ->
                     val setting = settingLayout.setting as? SelectorSetting ?: return@forEach
                     if (!setting.dropdownOpen) return@forEach
-                    setting.options.forEachIndexed { optionIndex, option ->
-                        if (!selectorOptionRect(settingLayout, optionIndex).contains(mouseX, mouseY)) return@forEachIndexed
+                    visibleSelectorOptions(setting).forEachIndexed { optionIndex, option ->
+                        if (!selectorOptionRect(settingLayout, setting, optionIndex).contains(mouseX, mouseY)) return@forEachIndexed
                         setting.toggle(option)
                         if (!setting.allowMultiple) setting.dropdownOpen = false
                         playClickSound(1.0f)
@@ -1295,14 +1304,23 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                                 val opening = !setting.dropdownOpen
                                 closeAllSelectorDropdowns()
                                 setting.dropdownOpen = opening
+                                if (opening && setting.searchable) {
+                                    selectorSearchSetting = setting
+                                    selectorSearchQuery = ""
+                                }
                                 updateFeatureScrollBounds()
                                 interactedWithSelector = true
                                 return true
                             }
 
                             if (setting.dropdownOpen) {
-                                setting.options.forEachIndexed { optionIndex, option ->
-                                    val optionRect = selectorOptionRect(settingLayout, optionIndex)
+                                if (setting.searchable && selectorSearchRect(settingLayout).contains(mouseX, mouseY)) {
+                                    selectorSearchSetting = setting
+                                    interactedWithSelector = true
+                                    return true
+                                }
+                                visibleSelectorOptions(setting).forEachIndexed { optionIndex, option ->
+                                    val optionRect = selectorOptionRect(settingLayout, setting, optionIndex)
                                     if (!optionRect.contains(mouseX, mouseY)) return@forEachIndexed
                                     setting.toggle(option)
                                     if (!setting.allowMultiple) {
@@ -1557,6 +1575,25 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun keyPressed(keyEvent: KeyEvent): Boolean {
+        selectorSearchSetting?.let { setting ->
+            if (setting.dropdownOpen) {
+                when (keyEvent.key()) {
+                    GLFW.GLFW_KEY_ESCAPE -> {
+                        closeAllSelectorDropdowns()
+                        updateFeatureScrollBounds()
+                    }
+                    GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> Unit
+                    GLFW.GLFW_KEY_BACKSPACE -> {
+                        if (selectorSearchQuery.isNotEmpty()) {
+                            selectorSearchQuery = selectorSearchQuery.dropLast(1)
+                            updateFeatureScrollBounds()
+                        }
+                    }
+                }
+                return true
+            }
+            selectorSearchSetting = null
+        }
         if (configInputFocused) {
             when (keyEvent.key()) {
                 GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> configInputFocused = false
@@ -1646,6 +1683,17 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     override fun charTyped(characterEvent: CharacterEvent): Boolean {
+        selectorSearchSetting?.let { setting ->
+            if (setting.dropdownOpen) {
+                val codepoint = characterEvent.codepoint()
+                if (codepoint >= 32 && selectorSearchQuery.length < 80) {
+                    selectorSearchQuery += String(Character.toChars(codepoint))
+                    updateFeatureScrollBounds()
+                }
+                return true
+            }
+            selectorSearchSetting = null
+        }
         if (configInputFocused) {
             val codepoint = characterEvent.codepoint()
             if (codepoint in 32..126 && configNameInput.length < 32) {
@@ -1974,30 +2022,45 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         settingLayout: SettingLayout,
         setting: SelectorSetting
     ) {
-        val firstOptionRect = selectorOptionRect(settingLayout, 0)
-        val overlayHeight = setting.options.size * FEATURE_SETTING_ROW_HEIGHT
+        val options = visibleSelectorOptions(setting)
+        val firstDropdownRect = if (setting.searchable) selectorSearchRect(settingLayout)
+            else selectorOptionRect(settingLayout, setting, 0)
+        val rowCount = options.size.coerceAtLeast(1) + if (setting.searchable) 1 else 0
+        val overlayHeight = rowCount * FEATURE_SETTING_ROW_HEIGHT
         GuiUtils.renderRoundedRectangle(
             graphics,
-            firstOptionRect.x,
-            firstOptionRect.y,
-            firstOptionRect.width,
+            firstDropdownRect.x,
+            firstDropdownRect.y,
+            firstDropdownRect.width,
             overlayHeight,
             2,
             fieldFillColor(214)
         )
         GuiUtils.renderRoundedOutline(
             graphics,
-            firstOptionRect.x,
-            firstOptionRect.y,
-            firstOptionRect.width,
+            firstDropdownRect.x,
+            firstDropdownRect.y,
+            firstDropdownRect.width,
             overlayHeight,
             2,
             1,
             accentDimColor()
         )
 
-        setting.options.forEachIndexed { optionIndex, option ->
-            val optionRect = selectorOptionRect(settingLayout, optionIndex)
+        if (setting.searchable) {
+            val searchRect = selectorSearchRect(settingLayout)
+            GuiUtils.renderRoundedRectangle(graphics, searchRect.x, searchRect.y, searchRect.width, searchRect.height, 2, fieldFillColor(230))
+            GuiUtils.renderRoundedOutline(graphics, searchRect.x, searchRect.y, searchRect.width, searchRect.height, 2, 1, accentBrightBorderColor())
+            val searchText = if (selectorSearchQuery.isEmpty()) "Search packets..." else selectorSearchQuery + if (selectorSearchSetting === setting) "|" else ""
+            graphics.fieldText(fieldText(searchText, searchRect.width - 14), searchRect.x, searchRect.y, searchRect.width, searchRect.height, textMutedColor(), centered = true)
+        }
+
+        if (options.isEmpty()) {
+            val emptyRect = selectorOptionRect(settingLayout, setting, 0)
+            graphics.fieldText("No matches", emptyRect.x, emptyRect.y, emptyRect.width, emptyRect.height, textMutedColor(), centered = true)
+        }
+        options.forEachIndexed { optionIndex, option ->
+            val optionRect = selectorOptionRect(settingLayout, setting, optionIndex)
             val selected = setting.isSelected(option)
             val backgroundColor = if (selected) sidebarSelectedColor(214) else fieldFillColor(188)
             GuiUtils.renderRoundedRectangle(graphics, optionRect.x, optionRect.y, optionRect.width, optionRect.height, 2, backgroundColor)
@@ -2196,7 +2259,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         is RegistrySetting -> SettingGeometry(0, 0, width).fieldHeight + if (isTextInputActive(setting))
             visibleRegistrySuggestions(setting).size.coerceAtLeast(1) * FEATURE_SETTING_ROW_HEIGHT else 0
         is NumberSetting, is RangeSetting -> SettingGeometry(0, 0, width).sliderHeight
-        is SelectorSetting -> SettingGeometry(0, 0, width).selectorHeight(setting.options.size, setting.dropdownOpen)
+        is SelectorSetting -> {
+            val optionRows = visibleSelectorOptions(setting).size.coerceAtLeast(if (setting.searchable) 1 else 0)
+            SettingGeometry(0, 0, width).selectorHeight(optionRows + if (setting.searchable) 1 else 0, setting.dropdownOpen)
+        }
         is KeybindSetting, is StringSetting -> SettingGeometry(0, 0, width).fieldHeight
         is OrderSetting -> FEATURE_SETTING_ROW_HEIGHT * (setting.options.size + 1)
         else -> FEATURE_SETTING_ROW_HEIGHT
@@ -2408,6 +2474,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         featureList.forEach { feature ->
             feature.selectorSettings.forEach { it.dropdownOpen = false }
         }
+        selectorSearchSetting = null
+        selectorSearchQuery = ""
     }
 
     private fun clickedInsideActiveTextField(mouseX: Double, mouseY: Double): Boolean {

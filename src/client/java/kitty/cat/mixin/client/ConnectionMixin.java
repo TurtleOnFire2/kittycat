@@ -1,6 +1,9 @@
 package kitty.cat.mixin.client;
 
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelFutureListener;
+import kitty.cat.features.debug.Debug;
+import kitty.cat.features.debug.PacketLogWindow;
 import kitty.cat.features.dungeons.Relics;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.SupplyHud;
@@ -62,6 +65,12 @@ public class ConnectionMixin {
 
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V", at = @At("HEAD"))
     private void channelRead0(ChannelHandlerContext channelHandlerContext, Packet<?> packet, CallbackInfo ci) {
+        Debug.logPacket(packet, PacketLogWindow.Direction.INBOUND);
         handlePacket(packet);
+    }
+
+    @Inject(method = "sendPacket", at = @At("HEAD"))
+    private void logOutboundPacket(Packet<?> packet, ChannelFutureListener listener, boolean flush, CallbackInfo ci) {
+        Debug.logPacket(packet, PacketLogWindow.Direction.OUTBOUND);
     }
 }

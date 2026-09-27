@@ -12,5 +12,4 @@ object Drone: Feature("Drone", "", Categories.Category.KUUDRA) {
     init {
         cheat()
     }
-
 }

@@ -2,6 +2,7 @@ package kitty.cat.mixin.client;
 
 import kitty.cat.features.misc.FarmHelper;
 import kitty.cat.features.misc.Pests;
+import kitty.cat.features.kuudra.Build;
 import kitty.cat.utils.BoneUtils;
 import kitty.cat.utils.KuudraUtils;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -21,6 +22,7 @@ public class ClientLevelMixin {
 
     @Inject(method = "removeEntity", at = @At("HEAD"))
     private void onRemoveEntity(int id, Entity.RemovalReason reason, CallbackInfo ci) {
+        Build.INSTANCE.handleEntityRemoved(id);
         FarmHelper.INSTANCE.handleEntityRemoved(id);
     }
 }
