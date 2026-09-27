@@ -36,6 +36,7 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
         "Dps threshold", min = 0.0, max = 100.0, defaultValue = 80.0,
         unit = "%", step = 1.0,
     )
+    val cycles = numberSetting("Cycles (0 to disable)", 0.0,  200.0, 0.0, "", 1.0)
 
     val looks = listOf(
         Pair(90f, 8.2f), // Tri -> X
@@ -77,6 +78,8 @@ object Fireball : Feature("Fireball", "", Category.KUUDRA) {
                 expectedLastTp = null
                 return@register
             }
+
+            if (ticks >= cycles.value.toInt() && cycles.value > 0.0) return@register
 
             if (mc.player?.isCrouching != true) return@register
 

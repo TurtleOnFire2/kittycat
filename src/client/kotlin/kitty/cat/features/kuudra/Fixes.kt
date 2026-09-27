@@ -10,7 +10,9 @@ import kitty.cat.utils.KuudraUtils.supplies
 import kitty.cat.utils.isEtherwarpItem
 import kitty.cat.utils.uuid
 import net.minecraft.tags.FluidTags
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Items
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.HitResult
 
@@ -20,6 +22,7 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
     val fixSkillIssue = booleanSetting("Cancel teleporting into lava. (Disable for stun").cheat()
     val noSkyblockMenu = booleanSetting("Cancel open skyblock menu", false)
     val clickThroughGiants = booleanSetting("Click through giants", false).cheat()
+    val cancelInteract = booleanSetting("Cancel interact for pearls", false)
 
     fun cancelClick(): Boolean {
         if (!enabled || !supplies()) return false
@@ -75,5 +78,9 @@ object Fixes : Feature("Fixes", "", Categories.Category.KUUDRA){
 
     fun ignoreGiant(): Boolean {
         return enabled && clickThroughGiants.value
+    }
+
+    fun cancelInteract(player: Player): Boolean {
+        return player.mainHandItem.item == Items.ENDER_PEARL && cancelInteract.value
     }
 }
