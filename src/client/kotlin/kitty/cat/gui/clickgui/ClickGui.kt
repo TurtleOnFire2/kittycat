@@ -1595,6 +1595,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             selectorSearchSetting = null
         }
         if (configInputFocused) {
+            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_V) {
+                val pasted = readClipboardText().filter { it.isLetterOrDigit() || it == '_' || it == '-' }.take((32 - configNameInput.length).coerceAtLeast(0))
+                configNameInput += pasted
+                return true
+            }
+            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_BACKSPACE) { configNameInput = ""; return true }
             when (keyEvent.key()) {
                 GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> configInputFocused = false
                 GLFW.GLFW_KEY_BACKSPACE -> if (configNameInput.isNotEmpty()) configNameInput = configNameInput.dropLast(1)
@@ -1602,6 +1608,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             return true
         }
         if (searchFocused) {
+            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_V) {
+                searchQuery = (searchQuery + readClipboardText()).take(64)
+                featureScrollOffset = 0
+                return true
+            }
+            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_BACKSPACE) { searchQuery = ""; featureScrollOffset = 0; return true }
             when (keyEvent.key()) {
                 GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER -> searchFocused = false
                 GLFW.GLFW_KEY_BACKSPACE -> {
@@ -1631,6 +1643,15 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val activeInput = textInputSession
         if (activeInput != null) {
+            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_V) {
+                readClipboardText().forEach(::appendToTextInput)
+                return true
+            }
+            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_BACKSPACE) {
+                activeInput.buffer = ""
+                registryHighlight = -1
+                return true
+            }
             val registry = activeInput.setting as? RegistrySetting
             if (registry != null) {
                 val suggestions = registry.filteredSuggestions(activeInput.buffer)
@@ -1715,6 +1736,17 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         if (codepoint !in 32..126) return true
         appendToTextInput(codepoint.toChar())
         return true
+    }
+
+    private fun readClipboardText(): String = runCatching {
+        GLFW.glfwGetClipboardString(minecraft.window.handle())?.replace('\r', ' ')?.replace('\n', ' ')
+            ?.filter { it.code in 32..126 }.orEmpty()
+    }.getOrDefault("")
+
+    private fun isControlKeyDown(): Boolean {
+        val window = minecraft.window.handle()
+        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
+            GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS
     }
 
     override fun keyReleased(keyEvent: KeyEvent): Boolean = super.keyReleased(keyEvent)

@@ -26,6 +26,7 @@ public class ClientPlayNetworkHandleMixin {
     void handleInfoUpdate(ClientboundPlayerInfoUpdatePacket packet, CallbackInfo ci) {
         BestiaryHud.INSTANCE.handleTabChange(packet);
         LocationManager.INSTANCE.handlePlayerInfo(packet);
+        FarmHelper.INSTANCE.handleTablist(packet);
     }
 
     @Inject(method = "handleAddObjective", at = @At("TAIL"))

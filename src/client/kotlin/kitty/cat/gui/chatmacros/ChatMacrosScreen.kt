@@ -249,14 +249,14 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
             when (key) {
                 GLFW.GLFW_KEY_BACKSPACE -> {
-                    val (nextText, nextCaret) = backspaceAtCaret(current, deleteWord = isControlKeyDown())
+                    val (nextText, nextCaret) = if (isControlKeyDown()) "" to 0 else backspaceAtCaret(current, deleteWord = false)
                     updateFocusedField(activeField, nextText)
                     caretIndex = nextCaret
                     selectionAnchorIndex = null
                     return true
                 }
                 GLFW.GLFW_KEY_DELETE -> {
-                    val (nextText, nextCaret) = deleteAtCaret(current)
+                    val (nextText, nextCaret) = if (isControlKeyDown()) "" to 0 else deleteAtCaret(current)
                     updateFocusedField(activeField, nextText)
                     caretIndex = nextCaret
                     selectionAnchorIndex = null
