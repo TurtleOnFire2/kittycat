@@ -23,6 +23,5 @@ public class ClientLevelMixin {
     @Inject(method = "removeEntity", at = @At("HEAD"))
     private void onRemoveEntity(int id, Entity.RemovalReason reason, CallbackInfo ci) {
         Build.INSTANCE.handleEntityRemoved(id);
-        FarmHelper.INSTANCE.handleEntityRemoved(id);
     }
 }

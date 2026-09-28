@@ -194,6 +194,20 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
     override fun keyPressed(event: KeyEvent): Boolean {
         val key = event.key()
         if (searchFocused) {
+            val controlDown = GLFW.glfwGetKey(minecraft.window.handle(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
+                GLFW.glfwGetKey(minecraft.window.handle(), GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS
+            if (controlDown && key == GLFW.GLFW_KEY_V) {
+                val pasted = runCatching { GLFW.glfwGetClipboardString(minecraft.window.handle()).orEmpty() }.getOrDefault("")
+                    .replace('\r', ' ').replace('\n', ' ').filter { it.code in 32..126 }
+                searchQuery = (searchQuery.substring(0, caretPos) + pasted + searchQuery.substring(caretPos)).take(128)
+                caretPos = (caretPos + pasted.length).coerceAtMost(searchQuery.length)
+                scrollRows = 0
+                return true
+            }
+            if (controlDown && (key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE)) {
+                searchQuery = ""; caretPos = 0; scrollRows = 0
+                return true
+            }
             when (key) {
                 GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> { searchFocused = false; return true }
                 GLFW.GLFW_KEY_BACKSPACE -> { if (caretPos > 0) { searchQuery = searchQuery.removeRange(caretPos - 1, caretPos); caretPos--; scrollRows = 0 }; return true }
