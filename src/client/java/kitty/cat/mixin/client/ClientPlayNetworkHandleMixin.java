@@ -17,6 +17,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPacketListener.class)
 public class ClientPlayNetworkHandleMixin {
+    @Inject(method = "sendCommand", at = @At("HEAD"))
+    void onSendCommand(String command, CallbackInfo ci) {
+        FarmHelper.INSTANCE.handleOutgoingCommand(command);
+    }
+
     @Inject(method = "handleAddEntity", at = @At("TAIL"))
     void handleAddEntity(ClientboundAddEntityPacket clientboundAddEntityPacket, CallbackInfo ci) {
         PearlLandingDebug.INSTANCE.handleAddEntity(clientboundAddEntityPacket);
@@ -59,6 +64,7 @@ public class ClientPlayNetworkHandleMixin {
 
     @Inject(method = "handleMovePlayer(Lnet/minecraft/network/protocol/game/ClientboundPlayerPositionPacket;)V", at = @At("TAIL"))
     void handleMovePlayer(ClientboundPlayerPositionPacket packet, CallbackInfo ci) {
+        FarmHelper.INSTANCE.handlePositionChange();
         RendMacro.INSTANCE.onPositionChange(packet);
         Stun.INSTANCE.onPositionChange(packet);
         PearlLandingDebug.INSTANCE.onPositionChange();

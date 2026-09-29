@@ -44,6 +44,7 @@ import kitty.cat.features.kuudra.Supplies
 import kitty.cat.features.kuudra.SupplyCheats
 import kitty.cat.features.misc.EtherPath
 import kitty.cat.features.misc.FarmHelper
+import kitty.cat.features.misc.KeyWaypoints
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGPIPRenderer
 import kitty.cat.utils.Chat
@@ -257,6 +258,7 @@ object KittycatClient : ClientModInitializer {
 		SafeSpots.register()
 		AutoWarp.register()
 		FarmHelper.register()
+		KeyWaypoints.register()
 		KuudraDisplay.register()
 		BackboneAlert.register()
 		AutoGFS.register()

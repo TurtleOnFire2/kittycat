@@ -51,6 +51,7 @@ import kitty.cat.features.settings.StringSetting
 import kitty.cat.features.visible
 import kitty.cat.features.visual.CatEars
 import kitty.cat.config.ConfigManager
+import kitty.cat.features.misc.KeyWaypoints
 import kitty.cat.render.skija.SkijaDraw
 import kitty.cat.render.skija.SkijaRenderer
 import kitty.cat.render.skija.SkijaShapes as GuiUtils
@@ -269,7 +270,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         CatEars, ClickGuiFeature,
         Storm, Relics, LeverTriggerbot, Terminals,
         Alerts, Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, AutoWarp, RendDamage, SupplyCheats, SafeSpots,
-        BestiaryHud, Pests, ChatMacros, FarmHelper, Build,
+        BestiaryHud, Pests, ChatMacros, FarmHelper, Build, KeyWaypoints,
         EtherPath, ExampleFeature, PearlLandingDebug, Debug
     ).visible()
 
