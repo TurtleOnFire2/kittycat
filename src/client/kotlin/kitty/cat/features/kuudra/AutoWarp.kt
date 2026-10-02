@@ -292,7 +292,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             return
         }
 
-        if (safeSpotAlert.value && SafeSpots.safeSpots.any { it.safe && it.loc == destination }) {
+        if (safeSpotAlert.value && SafeSpots.safeSpots.any { it.safe && it.loc == destination.center() }) {
             safeSpotAlertStartedAt = System.nanoTime()
         }
 
@@ -382,7 +382,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             if (tierBlocks.isEmpty()) continue
 
             val safeSpotMatch = tierBlocks.filter { block ->
-                SafeSpots.safeSpots.any { it.safe && it.loc == block.pos }
+                SafeSpots.safeSpots.any { it.safe && it.loc == block.pos.center() }
             }.minByOrNull { it.pos.center().distanceToSqr(zombiePos) }
             if (safeSpotMatch != null) return safeSpotMatch.pos
 
