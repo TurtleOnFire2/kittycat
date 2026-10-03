@@ -226,13 +226,16 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         closeAllSelectorDropdowns()
         openColorPickerFor = null
         keybindCaptureSetting = null
-        featureScrollOffset = 0
+        featureScrollOffset = categoryScrollOffsetBeforeInspector
+        updateFeatureScrollBounds()
     }
 
     private fun inspectFeature(feature: Feature) {
+        categoryScrollOffsetBeforeInspector = featureScrollOffset
         closeInspector()
         expandedFeatures += feature
         searchFocused = false
+        featureScrollOffset = 0
         updateFeatureScrollBounds()
     }
 
@@ -264,6 +267,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     private var selectedIndex = 0
     private var cooldown = 0
     private var featureScrollOffset = 0
+    private var categoryScrollOffsetBeforeInspector = 0
     private var maxFeatureScroll = 0
 
     val featureList: List<Feature> = listOf(
@@ -2488,6 +2492,7 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         searchQuery = ""
         searchFocused = false
         featureScrollOffset = 0
+        categoryScrollOffsetBeforeInspector = 0
         updateFeatureScrollBounds()
         closeAllSelectorDropdowns()
         cancelTextInput()
