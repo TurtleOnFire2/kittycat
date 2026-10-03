@@ -6,6 +6,7 @@ import kitty.cat.features.debug.Debug;
 import kitty.cat.features.debug.PacketLogWindow;
 import kitty.cat.features.dungeons.Storm;
 import kitty.cat.features.huds.SupplyHud;
+import kitty.cat.features.kuudra.AutoGFS;
 import kitty.cat.features.kuudra.BackboneAlert;
 import kitty.cat.features.kuudra.Build;
 import kitty.cat.features.kuudra.Alerts;
