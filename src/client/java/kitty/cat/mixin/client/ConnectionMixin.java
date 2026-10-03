@@ -34,6 +34,7 @@ public class ConnectionMixin {
             BackboneAlert.INSTANCE.serverTick();
             Build.INSTANCE.serverTick();
             Alerts.INSTANCE.serverTick();
+            AutoGFS.INSTANCE.serverTick();
         }
     }
 

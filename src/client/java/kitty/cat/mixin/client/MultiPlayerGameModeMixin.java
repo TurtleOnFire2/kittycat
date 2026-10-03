@@ -20,6 +20,7 @@ public class MultiPlayerGameModeMixin {
     @Inject(method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;", at = @At("HEAD"))
     void beforeUseItem(Player player, InteractionHand interactionHand, CallbackInfoReturnable<InteractionResult> cir) {
         PearlWaypoints.INSTANCE.prepareUseItem(player, interactionHand);
+        AutoGFS.INSTANCE.prepareUseItem(player, interactionHand);
         PearlLandingDebug.INSTANCE.prepareUseItem(player, interactionHand);
     }
 

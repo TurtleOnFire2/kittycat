@@ -30,7 +30,7 @@ class KeybindSetting(
     }
 
     private fun normalize(raw: Int): Int {
-        return if (raw < 0) UNBOUND else raw
+        return if (raw < GLFW.GLFW_KEY_SPACE || raw > GLFW.GLFW_KEY_LAST) UNBOUND else raw
     }
 
     private fun keyName(keyCode: Int): String {
