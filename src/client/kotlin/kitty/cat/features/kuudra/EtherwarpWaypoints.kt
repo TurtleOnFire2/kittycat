@@ -47,7 +47,7 @@ object EtherwarpWaypoints : Feature(
     private val warpedCrates = mutableSetOf<Crate>()
 
     fun handleChat(unformatted: String) {
-        if (!enabled || !autoWarpOnSupply.value || AutoWarp.enabled) return
+        if (!enabled || !autoWarpOnSupply.value || AutoWarp.enabled || CratePriority.ownPreMissing) return
         val player = mc.player ?: return
 
         placedRegex.find(unformatted)?.destructured?.let { (name) ->
@@ -69,6 +69,7 @@ object EtherwarpWaypoints : Feature(
         if (mc.player?.inventory?.selectedSlot != slot) mc.player?.inventory?.selectedSlot = slot
 
         schedule(delay.value) {
+            if (CratePriority.ownPreMissing) return@schedule
             val waypoint = waypoints.find { it.third == CratePriority.missing } ?: return@schedule
             if (waypoint.third in warpedCrates) return@schedule
 

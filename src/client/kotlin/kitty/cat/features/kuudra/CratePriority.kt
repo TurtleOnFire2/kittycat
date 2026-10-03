@@ -18,6 +18,8 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
 
     var currentPre = Crate.NONE
     var missing = Crate.NONE
+    var ownPreMissing = false
+        private set
 
     private var titleText: String? = null
     private var titleStartedAt = 0L
@@ -45,7 +47,10 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
             context.text(mc.font, text, -mc.font.width(text) / 2, -mc.font.lineHeight / 2, (alpha shl 24) or 0xFFFFFF)
             pose.popMatrix()
         }
-        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ -> titleText = null }
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
+            titleText = null
+            ownPreMissing = false
+        }
     }
 
     override fun onDisable() {
@@ -58,6 +63,7 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
 
         if (unformatted.contains("[NPC] Elle: Head over to the main platform, I will join you when I get a bite!")) {
             val pos = mc.player?.position() ?: return
+            ownPreMissing = false
 
             currentPre = when {
                 Crate.Triangle.pos.distToCenterSqr(pos) < 15.0 * 15.0 -> Crate.Triangle
@@ -101,6 +107,7 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
             if (currentPre == Crate.NONE) return
 
             if (!pre) {
+                ownPreMissing = true
                 AutoWarp.onMissingPre(currentPre)
                 mc.connection?.sendCommand("pc No ${currentPre.name}!")
             }
@@ -122,6 +129,7 @@ object CratePriority: Feature("Crate Priority", "", Categories.Category.KUUDRA) 
                 it.name.equals(crateName, ignoreCase = true)
             } ?: Crate.NONE
 
+            if (missing != Crate.NONE && missing == currentPre) ownPreMissing = true
             AutoWarp.onMissingPre(missing)
             missing = getSecond(missing)
             titleText = missing.name
