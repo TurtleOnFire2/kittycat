@@ -18,15 +18,15 @@ import kitty.cat.utils.lore
 import kitty.cat.utils.renderPos
 import kitty.cat.utils.uuid
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.Vec3
@@ -54,15 +54,17 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
 
     val autoStun = booleanSetting("Auto stun", false, "Etherwarps and uses pickobulus for you").cheat()
     val etherDelay = numberSetting("Ether delay", 0.0, 5.0, 0.0, "t", 1.0)
-    val pickobulusDelay = numberSetting("Picko delay", 0.0, 5.0, 0.0, "t", 1.0)
+    val useServerTicks = booleanSetting("Use server ticks", false)
 
     var purchased = false
+    var wasBlind = false
     private var podDestroyed = false
 
     fun register() {
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
             purchased = false
             podDestroyed = false
+            wasBlind = false
         }
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (mc.level == null || mc.player == null || !enabled) return@register
@@ -89,6 +91,42 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
                 val pos = mc.player!!.renderPos.add(getOffset())
                 ctx.renderBoxBounds(pos.aabb(1.0), Color.CYAN, depthTest = false)
             }
+        }
+        ClientTickEvents.START_CLIENT_TICK.register { client ->
+            if (!enabled || !autoStun.value) {
+                wasBlind = false
+                return@register
+            }
+
+            // NoBlind overrides hasEffect, but the actual effect remains in the player's effect map.
+            val blind = client.player?.getEffect(MobEffects.BLINDNESS) != null
+
+            if (!wasBlind && blind) {
+                schedule(9 + etherDelay.value, useServerTicks.value) {
+                    if (client.player?.mainHandItem?.isEtherwarpItem() != true) return@schedule
+                    ClickUtils.useItem(-10.5f,36.5f)
+
+                    var slot: Int? = null
+
+                    for (i in 0..7) {
+                        val lore = mc.player!!.inventory.getItem(i).lore
+                        lore.forEach {
+                            if (it.string.contains("Ability: Pickobulus")) {
+                                slot = i
+                            }
+                        }
+                    }
+
+                    slot ?: return@schedule
+
+                    mc.player?.inventory?.selectedSlot = slot
+                    schedule(1) {
+                        ClickUtils.queueLook(-10.5f to 36.5f)
+                    }
+                }
+            }
+
+            wasBlind = blind
         }
     }
 
@@ -237,36 +275,6 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         val windowY = guiY * window.screenHeight / window.guiScaledHeight
 
         GLFW.glfwSetCursorPos(window.handle(), windowX, windowY)
-    }
-
-    fun handleSubtitle(packet: ClientboundSetSubtitleTextPacket) {
-        if (packet.text.string == "§a1") {
-            schedule(55 + etherDelay.value, true) {
-
-                var slot: Int? = null
-
-                for (i in 0..7) {
-                    val lore = mc.player!!.inventory.getItem(i).lore
-                    lore.forEach {
-                        if (it.string.contains("Ability: Pickobulus")) {
-                            slot = i
-                        }
-                    }
-                }
-
-                slot ?: return@schedule
-
-                if (mc.player?.mainHandItem?.isEtherwarpItem() == true) {
-                    ClickUtils.queueLook(-10.5f to 36.5f) {
-
-                        mc.player?.inventory?.selectedSlot = slot
-                        schedule(1 + pickobulusDelay.value) {
-                            ClickUtils.queueLook(-10.5f to 36.5f)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     private val SHOP_WAYPOINT = Vec3(-71.5, 79.0, -102.5)

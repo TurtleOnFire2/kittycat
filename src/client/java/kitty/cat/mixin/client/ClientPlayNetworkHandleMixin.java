@@ -79,11 +79,6 @@ public class ClientPlayNetworkHandleMixin {
         };
     }
 
-    @Inject(method = "setSubtitleText", at = @At("HEAD"), cancellable = true)
-    void handleSubtitleText(ClientboundSetSubtitleTextPacket packet, CallbackInfo ci) {
-        Stun.INSTANCE.handleSubtitle(packet);
-    }
-
     @Inject(method = "handleSetEntityData", at = @At("HEAD"))
     void handleSetEntityData(ClientboundSetEntityDataPacket packet, CallbackInfo ci) {
         RendDamage.INSTANCE.handleSetEntityData(packet);
