@@ -20,7 +20,7 @@ object ClickUtils {
 
     val queuedClicks = mutableListOf<Vec3>()
     private data class QueuedLook(val look: Pair<Float, Float>, val sneak: Boolean?, val canExecute: () -> Boolean,
-                                  val resolveLook: (() -> Pair<Float, Float>?)?)
+                                  val resolveLook: (() -> Pair<Float, Float>?)?, val afterSend: (() -> Unit)?)
     private val queuedLooks = mutableListOf<QueuedLook>()
     private var savedSneak: Boolean? = null
     private var forcedSneak: Boolean? = null
@@ -37,6 +37,8 @@ object ClickUtils {
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (client.player == null) { restoreSneak(); return@register }
             if (queuedClicks.isNotEmpty()) restoreSneak()
+
+            var afterSend: (() -> Unit)? = null
 
             val look = queuedClicks.removeFirstOrNull()?.getLook(mc.player!!.eyePosition) ?: run {
                 val queued = queuedLooks.firstOrNull() ?: run { restoreSneak(); return@register }
@@ -57,12 +59,12 @@ object ClickUtils {
                     if (sneakWait > 0) { sneakWait--; return@register }
                 } else restoreSneak()
                 queuedLooks.removeFirst()
-                if (queued.resolveLook != null) queued.resolveLook.invoke() ?: run { restoreSneak(); return@register }
-                else queued.look
+                afterSend = queued.afterSend
+                if (queued.resolveLook != null) queued.resolveLook.invoke() ?: run { restoreSneak(); return@register } else queued.look
             }
 
             useItem(look.first, look.second)
-            Chat.send("Fired with $look")
+            afterSend?.invoke()
         }
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
@@ -97,9 +99,14 @@ object ClickUtils {
         gameMode.interact(player, entity, entityHitResult, InteractionHand.MAIN_HAND)
     }
 
-    fun queueLook(look: Pair<Float, Float>, sneak: Boolean? = null,
-                  resolveLook: (() -> Pair<Float, Float>?)? = null, canExecute: () -> Boolean = { true }) {
-        queuedLooks.add(QueuedLook(look, sneak, canExecute, resolveLook))
+    fun queueLook(
+        look: Pair<Float, Float>,
+        sneak: Boolean? = null,
+        resolveLook: (() -> Pair<Float, Float>?)? = null,
+        canExecute: () -> Boolean = { true },
+        afterSend: (() -> Unit)? = null
+    ) {
+        queuedLooks.add(QueuedLook(look, sneak, canExecute, resolveLook, afterSend))
     }
 
     fun queueClick(target: Vec3) {

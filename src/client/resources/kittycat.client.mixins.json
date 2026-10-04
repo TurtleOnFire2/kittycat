@@ -29,10 +29,14 @@
     "ConnectionMixin",
     "EntityRenderDispatcherMixin",
     "EntityRendererMixin",
+    "EquipmentLayerRendererMixin",
     "FontMixin",
     "LivingEntityMixin",
+    "LivingEntityRendererMixin",
     "LocalPlayerMixin",
     "MinecraftMixin",
-    "PlayerMixin"
+    "PlayerMixin",
+    "SkullBlockRendererMixin",
+    "StuckInBodyLayerMixin"
   ]
 }
