@@ -79,13 +79,13 @@ object SafeSpots : Feature("Safe Spots", "", Categories.Category.KUUDRA) {
             true
         },
         SafeSpot(Vec3(-140.5, 76.5, -85.5), false) {
-            square1.isClear()
+            square1.isClear() && square2.isClear()
         },
         SafeSpot(Vec3(-141.5, 76.5, -86.5), false) {
             square2.isClear()
         },
         SafeSpot(Vec3(-141.5, 76.5, -87.5), false) {
-            square3.isClear()
+            square3.isClear() && square2.isClear()
         }
     )
 
