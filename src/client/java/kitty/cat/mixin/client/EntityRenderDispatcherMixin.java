@@ -3,6 +3,7 @@ package kitty.cat.mixin.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import kitty.cat.features.kuudra.Build;
 import kitty.cat.features.kuudra.TinyMobs;
+import kitty.cat.features.misc.ClickThrough;
 import kitty.cat.utils.KuudraUtils;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -11,6 +12,7 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,6 +35,9 @@ public class EntityRenderDispatcherMixin {
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     void onShouldRender(Entity entity, Frustum culler, double camX, double camY, double camZ, CallbackInfoReturnable<Boolean> cir) {
-        if (Build.INSTANCE.hideEntity(entity)) cir.setReturnValue(false);
+        if (Build.INSTANCE.hideEntity(entity)
+                || entity instanceof Player && ClickThrough.INSTANCE.adjustAlpha(entity) <= 0.0) {
+            cir.setReturnValue(false);
+        }
     }
 }

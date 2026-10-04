@@ -30,7 +30,7 @@ object SupplyCheats : Feature("Supply Cheats", "", Categories.Category.KUUDRA) {
     var ticks = 0
 
     fun register() {
-        ClientTickEvents.END_CLIENT_TICK.register { client ->
+        ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (ticks++ < delay.value) return@register
 
             if (!kuudra() || !supplies() || !aura.value || !enabled) return@register

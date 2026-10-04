@@ -3,6 +3,7 @@ package kitty.cat.mixin.client;
 import kitty.cat.features.kuudra.Fireball;
 import kitty.cat.features.kuudra.Fixes;
 import kitty.cat.features.kuudra.Stun;
+import kitty.cat.features.misc.ClickThrough;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.Giant;
@@ -23,6 +24,8 @@ public class LocalPlayerMixin {
             Predicate<Entity> original = args.get(2);
             args.set(2, original.and(entity -> !(entity instanceof Giant)));
         }
+        Predicate<Entity> original = args.get(2);
+        args.set(2, ClickThrough.INSTANCE.modifyPicker(original));
     }
 
     @ModifyArgs(method = "pick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/projectile/ProjectileUtil;getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;"))
@@ -33,5 +36,7 @@ public class LocalPlayerMixin {
             Predicate<Entity> original = args.get(4);
             args.set(4, original.and(entity -> !(entity instanceof Giant)));
         }
+        Predicate<Entity> original = args.get(4);
+        args.set(4, ClickThrough.INSTANCE.modifyPicker(original));
     }
 }
