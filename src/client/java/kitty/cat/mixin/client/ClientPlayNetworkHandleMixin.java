@@ -49,6 +49,7 @@ public class ClientPlayNetworkHandleMixin {
         Storm.INSTANCE.handleScreen(clientboundOpenScreenPacket);
         RendMacro.INSTANCE.openScreen(clientboundOpenScreenPacket);
         FarmHelper.INSTANCE.openScreen(clientboundOpenScreenPacket);
+        RatKeybind.INSTANCE.handleTitle(clientboundOpenScreenPacket);
 
         var connection = Minecraft.getInstance().getConnection();
         if (Stun.INSTANCE.openScreen(clientboundOpenScreenPacket)) {

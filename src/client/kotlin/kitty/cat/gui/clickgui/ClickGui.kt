@@ -51,6 +51,7 @@ import kitty.cat.features.settings.StringSetting
 import kitty.cat.features.visible
 import kitty.cat.features.visual.CatEars
 import kitty.cat.config.ConfigManager
+import kitty.cat.features.kuudra.RatKeybind
 import kitty.cat.features.misc.ClickThrough
 import kitty.cat.features.misc.KeyWaypoints
 import kitty.cat.render.skija.SkijaDraw
@@ -274,10 +275,10 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     val featureList: List<Feature> = listOf(
         CatEars, ClickGuiFeature,
         Storm, Relics, LeverTriggerbot, Terminals,
-        Alerts, Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, AutoWarp, RendDamage, SupplyCheats, SafeSpots,
+        RatKeybind, Alerts, Drone, Fireball, CratePriority, KuudraDisplay, RendMacro, Stun, BackboneAlert, KuudraDev, TinyMobs, HideTags, Fixes, PearlWaypoints, EtherwarpWaypoints, Supplies, AutoGFS, AutoWarp, RendDamage, SupplyCheats, SafeSpots,
         BestiaryHud, Pests, ChatMacros, FarmHelper, Build, KeyWaypoints, ClickThrough,
         EtherPath, ExampleFeature, PearlLandingDebug, Debug
-    ).visible()
+    ).visible().sortedBy { it.name.lowercase() }
 
     var activeFeatures: List<Feature> = emptyList()
     private val expandedFeatures = mutableSetOf<Feature>()
