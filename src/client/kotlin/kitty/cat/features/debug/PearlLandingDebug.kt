@@ -40,7 +40,7 @@ object PearlLandingDebug : Feature(
     private data class Prediction(val points: List<Vec3>, val status: String, val impact: Boolean, val ticks: Int, val blockHit: BlockHitResult? = null)
     private data class Tracked(val pearl: ThrownEnderpearl, var prediction: Prediction, var removedAt: Long? = null, var lastLogAt: Long = 0L, var loggedPrediction: Prediction = prediction, val initialPrediction: Prediction = prediction)
     private val tracked = mutableMapOf<Int, Tracked>()
-    private data class ThrowAttempt(val time: Long, val eye: Vec3, val direction: Vec3)
+    private data class ThrowAttempt(val time: Long, val feet: Vec3, val eye: Vec3, val direction: Vec3)
     private val throwAttempts = ArrayDeque<ThrowAttempt>()
     private val trackingRequired: Boolean
         get() = enabled || EtherwarpWaypoints.enabled
@@ -50,7 +50,7 @@ object PearlLandingDebug : Feature(
         val now = System.currentTimeMillis()
         throwAttempts.removeAll { now - it.time > 2000L }
         if (throwAttempts.size >= 16) throwAttempts.removeFirst()
-        throwAttempts.addLast(ThrowAttempt(now, player.eyePosition, player.lookAngle))
+        throwAttempts.addLast(ThrowAttempt(now, player.position(), player.eyePosition, player.lookAngle))
         debug("Pearl use detected; waiting up to 2s for a nearby spawn.")
     }
 
@@ -121,7 +121,10 @@ object PearlLandingDebug : Feature(
         if (!knownOwner) debug("#${pearl.id}: inferred local owner from recent throw, nearby spawn, and matching direction (Hypixel fallback).")
         val prediction = predict(pearl)
         tracked[pearl.id] = Tracked(pearl, prediction, lastLogAt = System.currentTimeMillis())
-        debug("Tracking #${pearl.id}: pos=${coordinates(pearl.position())}, velocity=${coordinates(pearl.deltaMovement)}")
+        val spawn = pearl.position()
+        debug("#${pearl.id} spawn packet: pos=${coordinates(spawn)}; relative to current player feet=${signedCoordinates(spawn.subtract(player.position()))}, eye=${signedCoordinates(spawn.subtract(player.eyePosition))}" +
+            if (attempt != null) "; relative to throw feet=${signedCoordinates(spawn.subtract(attempt.feet))}, eye=${signedCoordinates(spawn.subtract(attempt.eye))}; packet delay=${now - attempt.time}ms" else "; no matching local throw snapshot")
+        debug("Tracking #${pearl.id}: pos=${coordinates(spawn)}, velocity=${coordinates(pearl.deltaMovement)}")
         debug("#${pearl.id}: ${describe(prediction)}")
     }
 
@@ -230,6 +233,9 @@ object PearlLandingDebug : Feature(
 
     private fun coordinates(pos: Vec3): String =
         String.format(Locale.ROOT, "%.6f, %.6f, %.6f", pos.x, pos.y, pos.z)
+
+    private fun signedCoordinates(pos: Vec3): String =
+        String.format(Locale.ROOT, "%+.6f, %+.6f, %+.6f", pos.x, pos.y, pos.z)
 
     private fun snapBoundary(value: Double): Double {
         val integer = kotlin.math.round(value)

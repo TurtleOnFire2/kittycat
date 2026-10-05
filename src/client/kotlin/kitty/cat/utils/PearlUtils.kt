@@ -7,7 +7,11 @@ import kotlin.math.*
 object TrajectorySolver {
 
     private const val SPEED = 1.5
-    private const val DRAG = 0.99
+    // ThrowableProjectile applies gravity, then float air drag, before moving.
+    private val DRAG = 0.99f.toDouble()
+    // Calibrated from Hypixel pearl spawn velocities and observed impacts. Its effective
+    // vertical motion is slightly slower than the local 0.03 projectile prediction.
+    private const val GRAVITY = 0.028
 
     private const val EPS = 1.0E-12
     private const val SEARCH_RADIUS = 4
@@ -282,8 +286,8 @@ object TrajectorySolver {
             (1.0 - dragPower) /
                     (1.0 - DRAG)
 
-        return 2.969999999999997 *
-                (t - geometric)
+        return GRAVITY * DRAG / (1.0 - DRAG) *
+                (t - DRAG * geometric)
     }
 
     private fun computeTerms(t: Double): Terms {
@@ -307,17 +311,15 @@ object TrajectorySolver {
         val ap =
             DRAG * geometricDerivative
 
-        val gravityScale =
-            0.029699999999999997 *
-                    inverse
+        val gravityScale = GRAVITY * DRAG * inverse
 
         val c =
             gravityScale *
-                    (t - geometric)
+                    (t - a)
 
         val cp =
             gravityScale *
-                    (1.0 - geometricDerivative)
+                    (1.0 - ap)
 
         return Terms(
             a = a,
