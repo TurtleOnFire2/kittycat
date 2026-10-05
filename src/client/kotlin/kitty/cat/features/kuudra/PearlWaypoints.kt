@@ -51,7 +51,8 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
         ClientTickEvents.START_CLIENT_TICK.register { client ->
             if (!enabled || !kuudra() || !supplies()) return@register
 
-            val pos = mc.player?.position()?.add(0.0, mc.player!!.eyeHeight.toDouble(), 0.0) ?: return@register
+            val player = mc.player ?: return@register
+            val pos = player.eyePosition
 
             if (lastPos?.distanceToSqr(pos)?.let { it >= 0.0005 } != false) run rebuild@{
                 lastPos = pos
@@ -62,12 +63,12 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
                 if (supply == Supply.Square && square == Supply.None) {
                     KuudraUtils.activeDropOffs.forEach {
-                        val sol = TrajectorySolver.solve(false, pos, it.second) ?: return@forEach
+                        val sol = TrajectorySolver.solve(false, pearlSpawn(pos, it.second), it.second) ?: return@forEach
                         solutions.add(AimPoint(sol.toAimPoint(15.0), it.first, sol.flightTime - offset.value.toInt(), it.third, sol.yaw, sol.pitch, false, it.second, false))
                     }
                 } else {
                     val pearl = KuudraUtils.dropOffs.firstOrNull { it.first == supply.name || (supply == Supply.Square && it.first == square.name) } ?: return@rebuild
-                    val sol = TrajectorySolver.solve(false, pos, pearl.second) ?: return@rebuild
+                    val sol = TrajectorySolver.solve(false, pearlSpawn(pos, pearl.second), pearl.second) ?: return@rebuild
                     solutions.add(AimPoint(sol.toAimPoint(15.0), pearl.first, sol.flightTime - offset.value.toInt(), pearl.third, sol.yaw, sol.pitch, false, pearl.second, false))
                 }
             }
@@ -110,8 +111,9 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
                 val cached = iterator.next()
                 val player = mc.player ?: return@render
                 val eye = player.renderPos.add(0.0, player.eyeHeight.toDouble(), 0.0)
-                val trajectory = TrajectorySolver.solve(cached.sky, eye, cached.target)
-                    ?: (if (cached.fallbackToSky) TrajectorySolver.solve(true, eye, cached.target) else null)
+                val spawn = pearlSpawn(eye, cached.target)
+                val trajectory = TrajectorySolver.solve(cached.sky, spawn, cached.target)
+                    ?: (if (cached.fallbackToSky) TrajectorySolver.solve(true, spawn, cached.target) else null)
                     ?: continue
                 val solution = cached.copy(
                     pos = trajectory.toAimPoint(if (cached.isDouble) 30.0 else 15.0, eye),
@@ -240,4 +242,17 @@ object PearlWaypoints: Feature("Pearl Waypoints", "", Categories.Category.KUUDRA
 
     private const val AIM_ASSIST_THROW_TIMEOUT_MS = 2_000L
     private const val TRIGGERBOT_COOLDOWN_MS = 4_000L
+    // Hypixel spawn packets place the pearl about 0.16 blocks to the thrower's right
+    // and 0.12 blocks below the eye. Use the target bearing as the throw direction.
+    private const val PEARL_SPAWN_SIDE_OFFSET = 0.16
+    private const val PEARL_SPAWN_Y_OFFSET = 0.12
+
+    private fun pearlSpawn(eye: Vec3, target: Vec3): Vec3 {
+        val dx = target.x - eye.x
+        val dz = target.z - eye.z
+        val horizontal = kotlin.math.hypot(dx, dz)
+        if (horizontal == 0.0) return eye.add(0.0, -PEARL_SPAWN_Y_OFFSET, 0.0)
+        return eye.add(-dz / horizontal * PEARL_SPAWN_SIDE_OFFSET, -PEARL_SPAWN_Y_OFFSET,
+            dx / horizontal * PEARL_SPAWN_SIDE_OFFSET)
+    }
 }
