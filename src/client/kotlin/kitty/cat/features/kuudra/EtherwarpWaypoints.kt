@@ -11,6 +11,7 @@ import kitty.cat.utils.aabb
 import kitty.cat.utils.AimAssist
 import kitty.cat.utils.Chat
 import kitty.cat.utils.ClickUtils
+import kitty.cat.utils.KuudraUtils.kuudra
 import kitty.cat.utils.KuudraUtils.supplies
 import kitty.cat.utils.RotationUtils
 import kitty.cat.utils.Schedule.schedule
@@ -22,6 +23,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.world.phys.Vec3
 import java.awt.Color
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
 
@@ -45,6 +47,8 @@ object EtherwarpWaypoints : Feature(
     private val placedRegex = Regex("(.+) recovered one of Elle's supplies!")
 
     private val warpedCrates = mutableSetOf<Crate>()
+    private val completedCrates = mutableSetOf<Crate>()
+    private var previousPlayerPos: Vec3? = null
 
     fun handleChat(unformatted: String) {
         if (!enabled || !autoWarpOnSupply.value || AutoWarp.enabled || CratePriority.ownPreMissing) return
@@ -70,7 +74,7 @@ object EtherwarpWaypoints : Feature(
 
         schedule(delay.value) {
             if (CratePriority.ownPreMissing) return@schedule
-            val waypoint = waypoints.find { it.third == CratePriority.missing } ?: return@schedule
+            val waypoint = matchingWaypoints().firstOrNull() ?: return@schedule
             if (waypoint.third in warpedCrates) return@schedule
 
             if (noLook.value) {
@@ -95,7 +99,7 @@ object EtherwarpWaypoints : Feature(
 
     val waypoints = listOf(
         Triple("Square", Vec3(-138.5, 79.0, -87.5), Crate.Square),
-        Triple("Shop", Vec3(-77.5, 79.0, -134.5), Crate.Shop),
+        Triple("Shop", Vec3(-74.5, 79.0, -135.5), Crate.Shop),
         Triple("XC", Vec3(-129.5, 79.0, -114.5), Crate.xCannon),
     )
 
@@ -103,17 +107,35 @@ object EtherwarpWaypoints : Feature(
         private set
 
     private fun matchingWaypoints() = waypoints.asSequence()
-        .filter { it.third == CratePriority.missing }
+        .filter { it.third == CratePriority.missing && it.third !in completedCrates }
 
-    fun waypointFor(crate: Crate): Vec3? = waypoints.firstOrNull { it.third == crate }?.second
+    fun waypointFor(crate: Crate): Vec3? = waypoints.firstOrNull { it.third == crate && crate !in completedCrates }?.second
+
+    fun onPositionChange() {
+        val current = mc.player?.position() ?: return
+        val previous = previousPlayerPos ?: return
+        previousPlayerPos = current
+        if (!kuudra() || previous.distanceToSqr(current) < 16.0) return
+        waypoints.forEach { waypoint ->
+            val dx = current.x - waypoint.second.x
+            val dz = current.z - waypoint.second.z
+            if (previous.distanceToSqr(waypoint.second) > 16.0 &&
+                dx * dx + dz * dz <= 2.5 * 2.5 && abs(current.y - waypoint.second.y) <= 2.0) {
+                completedCrates.add(waypoint.third)
+            }
+        }
+    }
 
     fun register() {
         ClientTickEvents.END_CLIENT_TICK.register {
+            previousPlayerPos = mc.player?.position()
             pearlLanding = if (enabled) PearlLandingDebug.currentPredictedLanding() else null
         }
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { _, _ ->
             pearlLanding = null
             warpedCrates.clear()
+            completedCrates.clear()
+            previousPlayerPos = null
         }
         LevelRenderEvents.END_MAIN.register { ctx ->
             if (!enabled) return@register
@@ -165,4 +187,5 @@ object EtherwarpWaypoints : Feature(
 
         return AimAssist.adjustMouse(accumulatedDX, accumulatedDY, candidate)
     }
+
 }

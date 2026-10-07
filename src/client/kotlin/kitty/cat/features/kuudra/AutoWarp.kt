@@ -274,6 +274,7 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             return
         }
         val zombie = supplyZombieCache.entries.firstOrNull { it.key.name == CratePriority.missing.name }?.value
+            ?: reportedCrateTarget(CratePriority.missing)
         if (zombie == null) {
             val waypoint = EtherwarpWaypoints.waypointFor(CratePriority.missing)?.let(::blockPos)
             if (waypoint != null) {
@@ -441,6 +442,14 @@ object AutoWarp : Feature("Auto warp", "", Categories.Category.KUUDRA) {
             return supplyZombieCache.values.minByOrNull { it.position.distanceToSqr(player.position()) }
         }
         return supplyZombieCache.entries.firstOrNull { it.key.name == CratePriority.missing.name }?.value
+            ?: reportedCrateTarget(CratePriority.missing)
+    }
+
+    private fun reportedCrateTarget(crate: Crate): SupplyZombie? {
+        val pos = CratePriority.reportedPosition(crate) ?: return null
+        // The chat coordinate is a point, so approximate the supply zombie's reach box.
+        val box = AABB(pos.x - 0.3, pos.y, pos.z - 0.3, pos.x + 0.3, pos.y + 1.95, pos.z + 0.3)
+        return SupplyZombie(pos, box)
     }
 
     private fun scanBlocks(

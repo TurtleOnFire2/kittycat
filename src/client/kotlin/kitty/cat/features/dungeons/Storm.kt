@@ -120,7 +120,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
 
     fun bowReleased(item: ItemStack, entity: LivingEntity) {
         if (entity != mc.player || !enabled) return
-        if (maxor) {
+        if (maxor || storm) {
             if (!item.hoverName.string.contains("Death Bow") || !autoSwapCritItem.value) return
 
             schedule(2) { maxor = false }
@@ -221,7 +221,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         if (mc.player!!.mainHandItem.item is BowItem && mc.player!!.isUsingItem) {
             useTime++
         } else {
-            if (useTime >= 20 && autoSwapArmor.value && maxor) {
+            if (useTime >= 20 && autoSwapArmor.value && maxor || storm) {
                 mc.connection?.sendCommand("loadout")
                 swapping = true
             }
