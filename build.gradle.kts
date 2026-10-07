@@ -71,10 +71,8 @@ dependencies {
     include("io.github.humbleui:types:0.2.0")
     implementation("io.github.humbleui:skija-shared:$skijaVersion")
     include("io.github.humbleui:skija-shared:$skijaVersion")
-    listOf("windows-x64", "linux-x64", "macos-x64", "macos-arm64").forEach { platform ->
-        runtimeOnly("io.github.humbleui:skija-$platform:$skijaVersion")
-        include("io.github.humbleui:skija-$platform:$skijaVersion")
-    }
+    // Platform natives are downloaded and cached by SkijaNativeLoader at startup.
+    // Keep skijaVersion in sync with the loader.
 	// To change the versions see the gradle.properties file
 	minecraft("com.mojang:minecraft:${providers.gradleProperty("minecraft_version").get()}")
 	implementation("net.fabricmc:fabric-loader:${providers.gradleProperty("loader_version").get()}")

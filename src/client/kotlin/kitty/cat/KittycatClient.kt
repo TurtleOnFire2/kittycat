@@ -72,6 +72,11 @@ import org.lwjgl.glfw.GLFW
 import org.reflections.Reflections
 
 object KittycatClient : ClientModInitializer {
+	init {
+		// Feature singletons below can initialize Skija, so load its natives first.
+		kitty.cat.render.skija.SkijaNativeLoader.load()
+	}
+
 	private val keybindPressedState = mutableMapOf<KeybindSetting, Boolean>()
 
 	private val featureList: List<Feature> =
