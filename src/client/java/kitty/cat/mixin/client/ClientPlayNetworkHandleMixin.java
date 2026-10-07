@@ -69,6 +69,7 @@ public class ClientPlayNetworkHandleMixin {
         RendMacro.INSTANCE.onPositionChange(packet);
         Stun.INSTANCE.onPositionChange(packet);
         PearlLandingDebug.INSTANCE.onPositionChange();
+        EtherwarpWaypoints.INSTANCE.onPositionChange();
         Fireball.INSTANCE.handlePosition(packet);
     }
 

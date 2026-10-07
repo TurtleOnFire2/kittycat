@@ -33,11 +33,13 @@ object AutoGFS : Feature("Auto GFS", "", Categories.Category.KUUDRA) {
     var lastThrow = System.currentTimeMillis()
 
     fun serverTick() {
-        if (!enabled || !enderPearls.value || !kuudra()) return
+        if (!enabled || !enderPearls.value || !kuudra() || mc.isLocalServer || mc.currentServer == null) return
+        val player = mc.player ?: return
+        if (mc.connection == null) return
 
         if (cooldown > System.currentTimeMillis() - 2000) return
 
-        if (refillPearls()) cooldown = System.currentTimeMillis()
+        if (refillPearls(player)) cooldown = System.currentTimeMillis()
     }
 
     fun handleChat(unformatted: String) {
@@ -47,11 +49,11 @@ object AutoGFS : Feature("Auto GFS", "", Categories.Category.KUUDRA) {
         }
     }
 
-    private fun refillPearls(): Boolean {
+    private fun refillPearls(player: Player): Boolean {
         var count = 16
 
         for (i in 0..7) {
-            val itemStack = mc.player!!.inventory.getItem(i)
+            val itemStack = player.inventory.getItem(i)
             if (itemStack.item == Items.AIR) {
                 count = 0
                 break

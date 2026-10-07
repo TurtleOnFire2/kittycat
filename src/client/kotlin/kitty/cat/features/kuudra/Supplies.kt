@@ -21,6 +21,12 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
+    fun supplyPosition(giant: Giant): Vec3 = Vec3(
+        giant.x + 2.7 * cos((giant.yRot + 130) * (Math.PI / 180)),
+        75.5,
+        giant.z + 5.2 * sin((giant.yRot + 130) * (Math.PI / 180))
+    )
+
     val pickUpHud = booleanSetting("Hud for pickup progress", false)
     val alertHud = booleanSetting("Hud for already picking and someone already picking alert", false)
     val giantAlert = booleanSetting("Standing in giant alert")
@@ -49,12 +55,7 @@ object Supplies : Feature("Supplies", "", Categories.Category.KUUDRA) {
             mc.level?.entitiesForRendering()?.forEach { e ->
                 if (e is Giant) {
                     if (supplyBeacons.value) {
-                        val center = Vec3(
-                            e.x + (2.7 * cos((e.yRot + 130) * (Math.PI / 180))),
-                            75.5,
-                            e.z + (5.2 * sin((e.yRot + 130) * (Math.PI / 180)))
-                        )
-                        ctx.renderBeaconBeam(center, supplyBeaconColor.color)
+                        ctx.renderBeaconBeam(supplyPosition(e), supplyBeaconColor.color)
                     }
                     if (renderGiantHitboxTopPlane.value) {
                         ctx.renderBoxBounds(e.boundingBox.setMinY(e.boundingBox.maxY - 0.05), Color.RED)
