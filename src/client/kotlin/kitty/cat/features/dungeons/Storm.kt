@@ -221,7 +221,7 @@ object Storm: Feature("Storm", "Stuff for Storm Phase", Categories.Category.DUNG
         if (mc.player!!.mainHandItem.item is BowItem && mc.player!!.isUsingItem) {
             useTime++
         } else {
-            if (useTime >= 20 && autoSwapArmor.value && maxor) {
+            if (useTime >= 20 && autoSwapArmor.value && (maxor || storm)) {
                 mc.connection?.sendCommand("loadout")
                 swapping = true
             }
