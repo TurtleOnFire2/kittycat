@@ -1,28 +1,31 @@
 package kitty.cat.mixin.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import kitty.cat.features.dungeons.Storm;
-import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ItemInHandRenderer.class)
+@Mixin(FirstPersonHandsAndItemsRenderer.class)
 public class ItemInHandRendererMixin {
 
 
-    @Inject(method = "renderItem", at = @At("HEAD"))
-    private void kittycat$tintBegin(LivingEntity livingEntity, ItemStack itemStack, ItemDisplayContext itemDisplayContext, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, CallbackInfo ci) {
+    @WrapOperation(
+            method = "submitArmWithItem",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"),
+            require = 2
+    )
+    private void kittycat$tintItem(ItemStackRenderState state, PoseStack poseStack, SubmitNodeCollector collector,
+                                  int light, int overlay, int outline, Operation<Void> original) {
         Storm.INSTANCE.setTintActive(true);
-    }
-
-    @Inject(method = "renderItem", at = @At("RETURN"))
-    private void kittycat$tintEnd(CallbackInfo ci) {
-        Storm.INSTANCE.setTintActive(false);
+        try {
+            original.call(state, poseStack, collector, light, overlay, outline);
+        } finally {
+            Storm.INSTANCE.setTintActive(false);
+        }
     }
 }

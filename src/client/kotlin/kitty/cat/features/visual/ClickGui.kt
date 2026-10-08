@@ -1,5 +1,9 @@
 package kitty.cat.features.visual
 
+import kitty.cat.compat.LegacyKeyCodes
+
+import com.mojang.blaze3d.platform.InputConstants
+
 import kitty.cat.KittycatClient.mc
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.clickgui.ClickGui as ClickGuiScreen
@@ -7,7 +11,6 @@ import kitty.cat.features.Feature
 import kitty.cat.features.settings.KeybindSetting
 import kitty.cat.render.nanovg.NVGFont
 import kitty.cat.render.nanovg.NVGRenderer
-import org.lwjgl.glfw.GLFW
 
 object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
     private const val DEFAULT_BASE_RED = 20
@@ -22,11 +25,11 @@ object ClickGui : Feature("Click Gui", "", Categories.Category.VISUAL) {
 
     private val availableFontModes = NVGRenderer.availableFontModes()
 
-    val keybind = keybindSetting("Open Gui", GLFW.GLFW_KEY_RIGHT_SHIFT)
+    val keybind = keybindSetting("Open Gui", LegacyKeyCodes.fromScanCode(InputConstants.KEY_RSHIFT))
     val fontMode = selectorSetting(
         name = "Font Mode",
         options = availableFontModes,
-        defaultSelected = listOf(availableFontModes.first()),
+        defaultSelected = listOf(availableFontModes.firstOrNull { it == "Onest Regular" } ?: availableFontModes.first()),
         allowMultiple = false
     )
     val baseColor = colorSetting(

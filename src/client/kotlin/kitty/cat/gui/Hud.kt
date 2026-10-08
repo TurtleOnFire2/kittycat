@@ -1,5 +1,7 @@
 package kitty.cat.gui
 
+import com.mojang.blaze3d.platform.InputConstants
+
 import kitty.cat.KittycatClient
 import kitty.cat.KittycatClient.mc
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
@@ -166,7 +168,7 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
     override fun mouseClicked(click: MouseButtonEvent, doubled: Boolean): Boolean {
         val x = click.x()
         val y = click.y()
-        if (click.button() == 0 && x >= width / 2 - 55 && x <= width / 2 + 55 && y >= 12 && y <= 36) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT && x >= width / 2 - 55 && x <= width / 2 + 55 && y >= 12 && y <= 36) {
             onClose()
             return true
         }
@@ -191,7 +193,7 @@ object Hud : Screen(net.minecraft.network.chat.Component.literal("KittycatHud"))
         selected = clicked
         if (selected == null || selected != openedOptions) openedOptions = null
 
-        if (click.button() == 1) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             openedOptions = if (clicked == openedOptions) null else clicked
             return super.mouseClicked(click, doubled)
         }

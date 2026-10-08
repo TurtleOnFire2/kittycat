@@ -1,5 +1,9 @@
 package kitty.cat.gui.clickgui
 
+import kitty.cat.compat.LegacyKeyCodes
+
+import com.mojang.blaze3d.platform.InputConstants
+
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.gui.categories.Categories
 import kitty.cat.gui.clickgui.UiRect as Rect
@@ -64,7 +68,6 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.sounds.SoundEvents
-import org.lwjgl.glfw.GLFW
 import java.awt.Color
 
 class ClickGui : Screen(Component.literal("Kittycat Gui")) {
@@ -143,8 +146,8 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         const val SIDEBAR_WIDTH_MAX = 164
         const val SIDEBAR_CONTENT_GAP = 10
         var persistedSelectedCategory: Categories.Category? = null
-        const val LEFT_MOUSE_BUTTON = 0
-        const val RIGHT_MOUSE_BUTTON = 1
+        const val LEFT_MOUSE_BUTTON = InputConstants.MOUSE_BUTTON_LEFT
+        const val RIGHT_MOUSE_BUTTON = InputConstants.MOUSE_BUTTON_RIGHT
 
         const val CATEGORY_TAB_HEIGHT = 34
         const val CATEGORY_TAB_GAP = 6
@@ -1585,12 +1588,12 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
         selectorSearchSetting?.let { setting ->
             if (setting.dropdownOpen) {
                 when (keyEvent.key()) {
-                    GLFW.GLFW_KEY_ESCAPE -> {
+                    InputConstants.KEY_ESCAPE -> {
                         closeAllSelectorDropdowns()
                         updateFeatureScrollBounds()
                     }
-                    GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> Unit
-                    GLFW.GLFW_KEY_BACKSPACE -> {
+                    InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> Unit
+                    InputConstants.KEY_BACKSPACE -> {
                         if (selectorSearchQuery.isNotEmpty()) {
                             selectorSearchQuery = selectorSearchQuery.dropLast(1)
                             updateFeatureScrollBounds()
@@ -1602,46 +1605,46 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             selectorSearchSetting = null
         }
         if (configInputFocused) {
-            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_V) {
+            if (isControlKeyDown() && keyEvent.key() == InputConstants.KEY_V) {
                 val pasted = readClipboardText().filter { it.isLetterOrDigit() || it == '_' || it == '-' }.take((32 - configNameInput.length).coerceAtLeast(0))
                 configNameInput += pasted
                 return true
             }
-            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_BACKSPACE) { configNameInput = ""; return true }
+            if (isControlKeyDown() && keyEvent.key() == InputConstants.KEY_BACKSPACE) { configNameInput = ""; return true }
             when (keyEvent.key()) {
-                GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> configInputFocused = false
-                GLFW.GLFW_KEY_BACKSPACE -> if (configNameInput.isNotEmpty()) configNameInput = configNameInput.dropLast(1)
+                InputConstants.KEY_ESCAPE, InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> configInputFocused = false
+                InputConstants.KEY_BACKSPACE -> if (configNameInput.isNotEmpty()) configNameInput = configNameInput.dropLast(1)
             }
             return true
         }
         if (searchFocused) {
-            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_V) {
+            if (isControlKeyDown() && keyEvent.key() == InputConstants.KEY_V) {
                 searchQuery = (searchQuery + readClipboardText()).take(64)
                 featureScrollOffset = 0
                 return true
             }
-            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_BACKSPACE) { searchQuery = ""; featureScrollOffset = 0; return true }
+            if (isControlKeyDown() && keyEvent.key() == InputConstants.KEY_BACKSPACE) { searchQuery = ""; featureScrollOffset = 0; return true }
             when (keyEvent.key()) {
-                GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER -> searchFocused = false
-                GLFW.GLFW_KEY_BACKSPACE -> {
+                InputConstants.KEY_ESCAPE, InputConstants.KEY_RETURN -> searchFocused = false
+                InputConstants.KEY_BACKSPACE -> {
                     if (searchQuery.isNotEmpty()) searchQuery = searchQuery.dropLast(1)
                     featureScrollOffset = 0
                 }
             }
             return true
         }
-        if (keyEvent.key() == GLFW.GLFW_KEY_ESCAPE && focusedFeature() != null && textInputSession == null && keybindCaptureSetting == null && openColorPickerFor == null) {
+        if (keyEvent.key() == InputConstants.KEY_ESCAPE && focusedFeature() != null && textInputSession == null && keybindCaptureSetting == null && openColorPickerFor == null) {
             closeInspector()
             return true
         }
         keybindCaptureSetting?.let { setting ->
             when (keyEvent.key()) {
-                GLFW.GLFW_KEY_ESCAPE,
-                GLFW.GLFW_KEY_BACKSPACE,
-                GLFW.GLFW_KEY_DELETE -> setting.clear()
+                InputConstants.KEY_ESCAPE,
+                InputConstants.KEY_BACKSPACE,
+                InputConstants.KEY_DELETE -> setting.clear()
 
-                GLFW.GLFW_KEY_UNKNOWN -> return true
-                else -> setting.setKeyCode(keyEvent.key())
+                InputConstants.UNKNOWN.value -> return true
+                else -> setting.setKeyCode(LegacyKeyCodes.fromScanCode(keyEvent.key()))
             }
             keybindCaptureSetting = null
             playClickSound(1.0f)
@@ -1650,11 +1653,11 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
 
         val activeInput = textInputSession
         if (activeInput != null) {
-            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_V) {
+            if (isControlKeyDown() && keyEvent.key() == InputConstants.KEY_V) {
                 readClipboardText().forEach(::appendToTextInput)
                 return true
             }
-            if (isControlKeyDown() && keyEvent.key() == GLFW.GLFW_KEY_BACKSPACE) {
+            if (isControlKeyDown() && keyEvent.key() == InputConstants.KEY_BACKSPACE) {
                 activeInput.buffer = ""
                 registryHighlight = -1
                 return true
@@ -1663,22 +1666,22 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
             if (registry != null) {
                 val suggestions = registry.filteredSuggestions(activeInput.buffer)
                 when (keyEvent.key()) {
-                    GLFW.GLFW_KEY_DOWN, GLFW.GLFW_KEY_UP -> {
+                    InputConstants.KEY_DOWN, InputConstants.KEY_UP -> {
                         if (suggestions.isNotEmpty()) {
-                            registryHighlight = if (keyEvent.key() == GLFW.GLFW_KEY_DOWN)
+                            registryHighlight = if (keyEvent.key() == InputConstants.KEY_DOWN)
                                 (registryHighlight + 1).coerceAtMost(suggestions.lastIndex)
                             else (registryHighlight - 1).coerceAtLeast(0)
                         }
                         return true
                     }
-                    GLFW.GLFW_KEY_TAB -> {
+                    InputConstants.KEY_TAB -> {
                         suggestions.getOrNull(registryHighlight.coerceAtLeast(0))?.let {
                             activeInput.buffer = it
                             registryHighlight = -1
                         }
                         return true
                     }
-                    GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                    InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> {
                         suggestions.getOrNull(registryHighlight)?.let { activeInput.buffer = it }
                         commitTextInput()
                         return true
@@ -1686,22 +1689,22 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
                 }
             }
             when (keyEvent.key()) {
-                GLFW.GLFW_KEY_BACKSPACE -> {
+                InputConstants.KEY_BACKSPACE -> {
                     removeLastTextInputChar()
                     return true
                 }
-                GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> {
                     commitTextInput()
                     return true
                 }
-                GLFW.GLFW_KEY_ESCAPE -> {
+                InputConstants.KEY_ESCAPE -> {
                     cancelTextInput()
                     return true
                 }
             }
         }
 
-        if (keyEvent.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyEvent.key() == InputConstants.KEY_ESCAPE) {
             closeAllSelectorDropdowns()
             cancelTextInput()
             openColorPickerFor = null
@@ -1746,14 +1749,14 @@ class ClickGui : Screen(Component.literal("Kittycat Gui")) {
     }
 
     private fun readClipboardText(): String = runCatching {
-        GLFW.glfwGetClipboardString(minecraft.window.handle())?.replace('\r', ' ')?.replace('\n', ' ')
+        minecraft.keyboardHandler.clipboard?.replace('\r', ' ')?.replace('\n', ' ')
             ?.filter { it.code in 32..126 }.orEmpty()
     }.getOrDefault("")
 
     private fun isControlKeyDown(): Boolean {
         val window = minecraft.window.handle()
-        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
-            GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS
+        return InputConstants.isKeyDown(InputConstants.KEY_LCONTROL) ||
+            InputConstants.isKeyDown(InputConstants.KEY_RCONTROL)
     }
 
     override fun keyReleased(keyEvent: KeyEvent): Boolean = super.keyReleased(keyEvent)

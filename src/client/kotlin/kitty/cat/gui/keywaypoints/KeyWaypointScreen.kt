@@ -1,5 +1,7 @@
 package kitty.cat.gui.keywaypoints
 
+import com.mojang.blaze3d.platform.InputConstants
+
 import kitty.cat.features.misc.KeyWaypoints
 import kitty.cat.features.misc.KeyWaypoints.KeyAction
 import kitty.cat.features.misc.KeyWaypoints.Waypoint
@@ -63,7 +65,7 @@ class KeyWaypointScreen(private val waypoint: Waypoint) : Screen(Component.liter
     }
 
     override fun mouseClicked(event: MouseButtonEvent, doubled: Boolean): Boolean {
-        if (event.button() != 0) return super.mouseClicked(event, doubled)
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubled)
         repeat(4) { index ->
             if (keyRect(index).contains(event.x(), event.y())) {
                 KeyWaypoints.cycle(waypoint, index)

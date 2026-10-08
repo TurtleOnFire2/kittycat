@@ -36,7 +36,7 @@ public class EntityRenderDispatcherMixin {
     }
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
-    void onShouldRender(Entity entity, Frustum culler, double camX, double camY, double camZ, CallbackInfoReturnable<Boolean> cir) {
+    void onShouldRender(Entity entity, Frustum culler, double camX, double camY, double camZ, float partialTicks, CallbackInfoReturnable<Boolean> cir) {
         if (Build.INSTANCE.hideEntity(entity)
                 || entity instanceof Player && ClickThrough.INSTANCE.adjustAlpha(entity) <= 0.0) {
             cir.setReturnValue(false);

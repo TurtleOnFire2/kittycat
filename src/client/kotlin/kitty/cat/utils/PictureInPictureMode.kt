@@ -1,7 +1,9 @@
 package kitty.cat.utils
 
 import kitty.cat.KittycatClient.mc
-import org.lwjgl.glfw.GLFW
+import org.lwjgl.sdl.SDLVideo
+import org.lwjgl.sdl.SDL_Rect
+import org.lwjgl.system.MemoryStack
 import kotlin.math.max
 import kotlin.math.min
 
@@ -23,25 +25,25 @@ object PictureInPictureMode {
         return active
     }
 
-    private fun enable() {
+    private fun enable() = MemoryStack.stackPush().use { stack ->
         val window = mc.window
         val handle = window.handle()
-        val positionX = IntArray(1)
-        val positionY = IntArray(1)
-        val width = IntArray(1)
-        val height = IntArray(1)
+        val positionX = stack.callocInt(1)
+        val positionY = stack.callocInt(1)
+        val width = stack.callocInt(1)
+        val height = stack.callocInt(1)
 
-        GLFW.glfwGetWindowPos(handle, positionX, positionY)
-        GLFW.glfwGetWindowSize(handle, width, height)
+        SDLVideo.SDL_GetWindowPosition(handle, positionX, positionY)
+        SDLVideo.SDL_GetWindowSize(handle, width, height)
 
         savedState = WindowState(
             x = positionX[0],
             y = positionY[0],
             width = width[0],
             height = height[0],
-            fullscreen = window.isFullscreen,
-            maximized = GLFW.glfwGetWindowAttrib(handle, GLFW.GLFW_MAXIMIZED) == GLFW.GLFW_TRUE,
-            floating = GLFW.glfwGetWindowAttrib(handle, GLFW.GLFW_FLOATING) == GLFW.GLFW_TRUE,
+            fullscreen = window.fullscreen,
+            maximized = (SDLVideo.SDL_GetWindowFlags(handle) and SDLVideo.SDL_WINDOW_MAXIMIZED) != 0L,
+            floating = (SDLVideo.SDL_GetWindowFlags(handle) and SDLVideo.SDL_WINDOW_ALWAYS_ON_TOP) != 0L,
         )
 
         val workArea = findCurrentMonitorWorkArea(handle, savedState!!)
@@ -50,25 +52,25 @@ object PictureInPictureMode {
         val pipHeight = (pipWidth / ASPECT_RATIO).toInt()
             .coerceAtMost(workArea.height)
 
-        if (window.isFullscreen) {
+        if (window.fullscreen) {
             window.setWindowed(pipWidth, pipHeight)
         } else if (savedState!!.maximized) {
-            GLFW.glfwRestoreWindow(handle)
+            SDLVideo.SDL_RestoreWindow(handle)
         }
 
-        val frameLeft = IntArray(1)
-        val frameTop = IntArray(1)
-        val frameRight = IntArray(1)
-        val frameBottom = IntArray(1)
-        GLFW.glfwGetWindowFrameSize(handle, frameLeft, frameTop, frameRight, frameBottom)
+        val frameLeft = stack.callocInt(1)
+        val frameTop = stack.callocInt(1)
+        val frameRight = stack.callocInt(1)
+        val frameBottom = stack.callocInt(1)
+        SDLVideo.SDL_GetWindowBordersSize(handle, frameTop, frameLeft, frameBottom, frameRight)
 
         val pipX = workArea.x + workArea.width - pipWidth - frameRight[0] - SCREEN_MARGIN
         val pipY = workArea.y + frameTop[0] + SCREEN_MARGIN
 
-        GLFW.glfwSetWindowSize(handle, pipWidth, pipHeight)
-        GLFW.glfwSetWindowPos(handle, pipX, pipY)
-        GLFW.glfwSetWindowAttrib(handle, GLFW.GLFW_FLOATING, GLFW.GLFW_TRUE)
-        GLFW.glfwShowWindow(handle)
+        SDLVideo.SDL_SetWindowSize(handle, pipWidth, pipHeight)
+        SDLVideo.SDL_SetWindowPosition(handle, pipX, pipY)
+        SDLVideo.SDL_SetWindowAlwaysOnTop(handle, true)
+        SDLVideo.SDL_ShowWindow(handle)
     }
 
     private fun disable() {
@@ -76,29 +78,25 @@ object PictureInPictureMode {
         val window = mc.window
         val handle = window.handle()
 
-        GLFW.glfwSetWindowAttrib(
-            handle,
-            GLFW.GLFW_FLOATING,
-            if (state.floating) GLFW.GLFW_TRUE else GLFW.GLFW_FALSE,
-        )
+        SDLVideo.SDL_SetWindowAlwaysOnTop(handle, state.floating)
 
         if (state.fullscreen) {
-            if (!window.isFullscreen) {
-                window.toggleFullScreen()
+            if (!window.fullscreen) {
+                window.setFullscreen(state.fullscreen)
                 window.updateFullscreenIfChanged()
             }
         } else {
-            if (window.isFullscreen) {
-                window.toggleFullScreen()
+            if (window.fullscreen) {
+                window.setFullscreen(state.fullscreen)
                 window.updateFullscreenIfChanged()
             }
 
-            GLFW.glfwRestoreWindow(handle)
-            GLFW.glfwSetWindowSize(handle, state.width, state.height)
-            GLFW.glfwSetWindowPos(handle, state.x, state.y)
+            SDLVideo.SDL_RestoreWindow(handle)
+            SDLVideo.SDL_SetWindowSize(handle, state.width, state.height)
+            SDLVideo.SDL_SetWindowPosition(handle, state.x, state.y)
 
             if (state.maximized) {
-                GLFW.glfwMaximizeWindow(handle)
+                SDLVideo.SDL_MaximizeWindow(handle)
             }
         }
 
@@ -111,11 +109,11 @@ object PictureInPictureMode {
     }
 
     private fun findCurrentMonitorWorkArea(handle: Long, state: WindowState): WorkArea {
-        val attachedMonitor = GLFW.glfwGetWindowMonitor(handle)
-        if (attachedMonitor != 0L) return getWorkArea(attachedMonitor)
+        val attachedMonitor = if (state.fullscreen) SDLVideo.SDL_GetDisplayForWindow(handle) else 0
+        if (attachedMonitor != 0) return getWorkArea(attachedMonitor)
 
-        val monitors = GLFW.glfwGetMonitors()
-        var bestMonitor = GLFW.glfwGetPrimaryMonitor()
+        val monitors = SDLVideo.SDL_GetDisplays()
+        var bestMonitor = SDLVideo.SDL_GetPrimaryDisplay()
         var bestOverlap = -1L
 
         if (monitors != null) {
@@ -136,13 +134,10 @@ object PictureInPictureMode {
         return getWorkArea(bestMonitor)
     }
 
-    private fun getWorkArea(monitor: Long): WorkArea {
-        val x = IntArray(1)
-        val y = IntArray(1)
-        val width = IntArray(1)
-        val height = IntArray(1)
-        GLFW.glfwGetMonitorWorkarea(monitor, x, y, width, height)
-        return WorkArea(x[0], y[0], width[0], height[0])
+    private fun getWorkArea(monitor: Int): WorkArea = MemoryStack.stackPush().use { stack ->
+        val bounds = SDL_Rect.calloc(stack)
+        check(SDLVideo.SDL_GetDisplayUsableBounds(monitor, bounds)) { "Cannot query display work area" }
+        WorkArea(bounds.x(), bounds.y(), bounds.w(), bounds.h())
     }
 
     private data class WindowState(

@@ -1,16 +1,16 @@
 package kitty.cat.render.skija
 
-import com.mojang.blaze3d.GpuFormat
-import com.mojang.blaze3d.PrimitiveTopology
-import com.mojang.blaze3d.opengl.GlTexture
+import com.mojang.renderpearl.api.GpuFormat
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology
+import com.mojang.renderpearl.backend.opengl.GlTexture
 import com.mojang.blaze3d.pipeline.*
-import com.mojang.blaze3d.shaders.ShaderSource
-import com.mojang.blaze3d.shaders.ShaderType
+import com.mojang.renderpearl.api.pipeline.*
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.systems.GpuDevice
-import com.mojang.blaze3d.textures.*
-import com.mojang.blaze3d.textures.FilterMode
-import com.mojang.blaze3d.vulkan.*
+import com.mojang.renderpearl.api.device.GpuDevice
+import com.mojang.renderpearl.frontend.FrontendGpuDevice
+import com.mojang.renderpearl.api.textures.*
+import com.mojang.renderpearl.api.textures.FilterMode
+import com.mojang.renderpearl.backend.vulkan.*
 import kitty.cat.KittycatClient.mc
 import io.github.humbleui.skija.*
 import net.minecraft.client.gui.screens.Screen
@@ -30,7 +30,11 @@ import java.util.Optional
  */
 object SkijaRenderer {
     private const val OVERLAY_LABEL = "Kittycat Skija GUI"
-    private val colorSpace = ColorSpace.getSRGB()
+    private val colorSpaceDelegate = lazy {
+        SkijaNativeLoader.load()
+        ColorSpace.getSRGB()
+    }
+    private val colorSpace by colorSpaceDelegate
     private var backend: SkijaBackend? = null
     private var overlayTarget: TextureTarget? = null
     private var overlaySourceTexture: GpuTexture? = null
@@ -77,51 +81,15 @@ object SkijaRenderer {
         pending = null
         destroyOverlayTarget()
         SkijaDraw.cleanup()
-        colorSpace.close()
-    }
-
-    private val SCREENQUAD_SHADER = Identifier.withDefaultNamespace("core/screenquad")
-    private val BLIT_SCREEN_SHADER = Identifier.withDefaultNamespace("core/blit_screen")
-    private val COMPOSITE_VERTEX_SOURCE = """
-#version 330
-
-out vec2 texCoord;
-
-void main() {
-    vec2 uv = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
-    vec4 pos = vec4(uv * vec2(2, 2) + vec2(-1, -1), 0, 1);
-
-    gl_Position = pos;
-    texCoord = uv;
-}
-""".trimIndent()
-    private val COMPOSITE_FRAGMENT_SOURCE = """
-#version 330
-
-uniform sampler2D InSampler;
-
-in vec2 texCoord;
-
-out vec4 fragColor;
-
-void main() {
-    fragColor = texture(InSampler, texCoord);
-}
-""".trimIndent()
-    private val COMPOSITE_SHADER_SOURCE = ShaderSource { id, type ->
-        when {
-            type == ShaderType.VERTEX && id == SCREENQUAD_SHADER -> COMPOSITE_VERTEX_SOURCE
-            type == ShaderType.FRAGMENT && id == BLIT_SCREEN_SHADER -> COMPOSITE_FRAGMENT_SOURCE
-            else -> null
-        }
+        if (colorSpaceDelegate.isInitialized()) colorSpace.close()
     }
 
     @Suppress("deprecation")
     private val COMPOSITE_PIPELINE: RenderPipeline =
         RenderPipeline.builder(RenderPipelines.GLOBALS_SNIPPET)
             .withLocation(Identifier.fromNamespaceAndPath("kittycat", "pipeline/skija_gui_composite"))
-            .withVertexShader("core/screenquad")
-            .withFragmentShader("core/blit_screen")
+            .withVertexShader(Identifier.fromNamespaceAndPath("kittycat", "core/skija_gui"))
+            .withFragmentShader(Identifier.fromNamespaceAndPath("kittycat", "core/skija_gui"))
             .withBindGroupLayout(BindGroupLayouts.IN_SAMPLER)
             .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA))
             .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
@@ -152,9 +120,9 @@ void main() {
         val sampler = compositeSampler ?: return false
         val encoder = device.createCommandEncoder()
         encoder.createRenderPass({ "Kittycat Skija GUI Composite" }, outputView, Optional.empty()).use { renderPass ->
-            renderPass.setPipeline(COMPOSITE_PIPELINE)
+            renderPass.setPipeline(RenderSystem.getCompiledPipeline(COMPOSITE_PIPELINE))
             RenderSystem.bindDefaultUniforms(renderPass)
-            renderPass.bindTexture("InSampler", overlayView, sampler)
+            renderPass.setUniform("InSampler", overlayView, sampler)
             renderPass.draw(3, 1, 0, 0)
         }
         return true
@@ -180,7 +148,7 @@ void main() {
         }
 
         destroyOverlayTarget()
-        return TextureTarget(OVERLAY_LABEL, mainTarget.width, mainTarget.height, false, GpuFormat.RGBA8_UNORM)
+        return TextureTarget(OVERLAY_LABEL, mainTarget.width, mainTarget.height, GpuFormat.RGBA8_UNORM, null)
             .also {
                 overlayTarget = it
                 overlaySourceTexture = mainTexture
@@ -210,7 +178,7 @@ void main() {
             compositeSampler = null
         }
         if (!compositePipelineReady) {
-            if (!device.precompilePipeline(COMPOSITE_PIPELINE, COMPOSITE_SHADER_SOURCE).isValid()) {
+            if (RenderSystem.getCompiledPipelineNullable(COMPOSITE_PIPELINE) == null) {
                 return false
             }
             compositePipelineReady = true
@@ -285,7 +253,7 @@ void main() {
         private fun ensureContext(): DirectContext {
             directContext?.let { return it }
 
-            val backend = RenderSystem.getDevice().backend
+            val backend = (RenderSystem.getDevice() as FrontendGpuDevice).backend
             check(backend is VulkanDevice) {
                 "Kittycat Skija Vulkan backend requires Minecraft's Vulkan renderer"
             }

@@ -630,7 +630,7 @@ object EtherPath : Feature("Etherwarp Pathfinder", "Finds Etherwarp routes with 
         val passable = block is LiquidBlock || block is FlowerBlock || block is TallGrassBlock ||
             block is SaplingBlock || block is CropBlock || block is StemBlock || block is MushroomBlock ||
             block is TorchBlock || block is ButtonBlock || block is LeverBlock || block is RailBlock ||
-            block is RedStoneWireBlock || block is RepeaterBlock || block is ComparatorBlock ||
+            block is RedstoneWireBlock || block is RepeaterBlock || block is ComparatorBlock ||
             block is TripWireBlock || block is TripWireHookBlock || block is FireBlock ||
             block is SnowLayerBlock || block is SugarCaneBlock || block is NetherWartBlock ||
             block is SeagrassBlock || block is TallSeagrassBlock || block is DoublePlantBlock ||

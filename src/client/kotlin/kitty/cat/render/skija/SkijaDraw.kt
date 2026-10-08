@@ -103,6 +103,10 @@ class SkijaDraw(private val selectedFont: NVGFont = ClickGui.selectedFont) {
     }
 
     companion object {
+        init {
+            SkijaNativeLoader.load()
+        }
+
         private val paint = Paint().setAntiAlias(true)
         private val outline = Paint().setAntiAlias(true).setMode(PaintMode.STROKE)
         private val typefaces = mutableMapOf<NVGFont, Typeface>()

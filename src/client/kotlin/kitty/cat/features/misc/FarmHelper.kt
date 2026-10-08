@@ -17,7 +17,8 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket
 import net.minecraft.world.entity.decoration.ArmorStand
-import org.lwjgl.glfw.GLFW
+import org.lwjgl.sdl.SDLMouse
+import org.lwjgl.sdl.SDLVideo
 import kotlin.random.Random
 
 object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
@@ -153,8 +154,8 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
         if (shiftForced) {
             val key = InputConstants.getKey(mc.options.keyShift.saveString())
             mc.options.keyShift.isDown = when (key.type) {
-                InputConstants.Type.KEYSYM -> key.value >= 0 && InputConstants.isKeyDown(mc.window, key.value)
-                InputConstants.Type.MOUSE -> key.value >= 0 && GLFW.glfwGetMouseButton(mc.window.handle(), key.value) == GLFW.GLFW_PRESS
+                InputConstants.Type.KEYBOARD -> key.value >= 0 && InputConstants.isKeyDown(key.value)
+                InputConstants.Type.MOUSE -> key.value >= 0 && (SDLMouse.SDL_GetMouseState(null, null) and (1 shl (key.value - 1))) != 0
                 else -> false
             }
         }
@@ -194,10 +195,10 @@ object FarmHelper : Feature("Farm Helper", "", Categories.Category.MISC) {
             mc.execute {
                 if (enabled && focusOnPests.value && LocationManager.isCurrentArea(Island.Garden)) {
                     val window = mc.window.handle()
-                    if (GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_ICONIFIED) == GLFW.GLFW_TRUE) {
-                        GLFW.glfwRestoreWindow(window)
+                    if ((SDLVideo.SDL_GetWindowFlags(window) and SDLVideo.SDL_WINDOW_MINIMIZED) != 0L) {
+                        SDLVideo.SDL_RestoreWindow(window)
                     }
-                    GLFW.glfwFocusWindow(window)
+                    SDLVideo.SDL_RaiseWindow(window)
                 }
             }
         }

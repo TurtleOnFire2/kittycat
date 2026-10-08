@@ -39,8 +39,7 @@ class CatEarsLayer(
             LivingEntityRenderer.getOverlayCoords(state, 0.0f),
             tint,
             null,
-            state.outlineColor,
-            null
+            state.outlineColor
         )
     }
 }

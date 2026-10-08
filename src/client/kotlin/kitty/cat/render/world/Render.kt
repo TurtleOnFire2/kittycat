@@ -340,7 +340,7 @@ fun LevelRenderContext.text(
     val s = finalScale * 0.025f
     poseStack().poseScopeWithCamera { stack ->
         stack.translate(pos.x, pos.y, pos.z)
-        stack.mulPose(camera.rotation())
+        stack.rotate(camera.rotation())
         stack.scale(s, -s, s)
 
         client.font.let {

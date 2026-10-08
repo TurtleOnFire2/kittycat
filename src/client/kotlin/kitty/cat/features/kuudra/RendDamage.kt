@@ -31,7 +31,7 @@ object RendDamage : Feature("Rend Damage", "", Categories.Category.KUUDRA) {
             client++
 
             mc.level?.players()?.forEach { player ->
-                if (!player.swinging) return@forEach
+                if (!player.isSwinging) return@forEach
 
                 val item = player.mainHandItem.item
                 if (item != Items.BOW && item != Items.BONE) return@forEach

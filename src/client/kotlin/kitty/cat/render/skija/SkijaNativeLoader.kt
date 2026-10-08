@@ -22,8 +22,11 @@ object SkijaNativeLoader {
     private val logger = LoggerFactory.getLogger("Kittycat/Skija")
     private const val MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2"
     private const val GROUP_PATH = "io/github/humbleui"
+    private var loaded = false
 
+    @Synchronized
     fun load() {
+        if (loaded) return
         val platform = currentPlatform()
         val version = "0.143.17"
         val artifact = "skija-${platform.id}"
@@ -58,6 +61,7 @@ object SkijaNativeLoader {
         }
 
         Library.load()
+        loaded = true
         logger.info("Loaded Skija native jar {}", jar)
     }
 

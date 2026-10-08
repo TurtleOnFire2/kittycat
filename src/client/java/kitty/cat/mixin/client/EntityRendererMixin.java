@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EntityRenderer.class)
 public class EntityRendererMixin {
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
-    void shouldRender(Entity entity, Frustum culler, double camX, double camY, double camZ, CallbackInfoReturnable<Boolean> cir) {
+    void shouldRender(Entity entity, Frustum culler, double camX, double camY, double camZ, float partialTicks, CallbackInfoReturnable<Boolean> cir) {
         if (HideTags.INSTANCE.getEnabled() && HideTags.INSTANCE.cancel(entity)) cir.setReturnValue(false);
     }
 }

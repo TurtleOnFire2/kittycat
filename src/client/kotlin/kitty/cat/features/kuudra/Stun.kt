@@ -30,7 +30,7 @@ import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.phys.Vec3
-import org.lwjgl.glfw.GLFW
+import org.lwjgl.sdl.SDLMouse
 import java.awt.Color
 
 object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
@@ -274,7 +274,7 @@ object Stun : Feature("Stun", "", Categories.Category.KUUDRA) {
         val windowX = guiX * window.screenWidth / window.guiScaledWidth
         val windowY = guiY * window.screenHeight / window.guiScaledHeight
 
-        GLFW.glfwSetCursorPos(window.handle(), windowX, windowY)
+        SDLMouse.SDL_WarpMouseInWindow(window.handle(), windowX.toFloat(), windowY.toFloat())
     }
 
     private val SHOP_WAYPOINT = Vec3(-71.5, 79.0, -102.5)

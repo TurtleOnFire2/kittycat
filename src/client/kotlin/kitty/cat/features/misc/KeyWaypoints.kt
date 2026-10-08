@@ -22,7 +22,7 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
-import org.lwjgl.glfw.GLFW
+import org.lwjgl.sdl.SDLMouse
 import java.awt.Color
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -156,8 +156,8 @@ object KeyWaypoints : Feature("Key Waypoints", "Press or release movement keys i
         val key = InputConstants.getKey(mapping.saveString())
         if (key.value < 0) return false
         return when (key.type) {
-            InputConstants.Type.KEYSYM -> InputConstants.isKeyDown(mc.window, key.value)
-            InputConstants.Type.MOUSE -> GLFW.glfwGetMouseButton(mc.window.handle(), key.value) == GLFW.GLFW_PRESS
+            InputConstants.Type.KEYBOARD -> InputConstants.isKeyDown(key.value)
+            InputConstants.Type.MOUSE -> (SDLMouse.SDL_GetMouseState(null, null) and (1 shl (key.value - 1))) != 0
             else -> false
         }
     }

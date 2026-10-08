@@ -12,7 +12,6 @@ import net.minecraft.client.input.CharacterEvent
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
-import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import kotlin.math.abs
 
@@ -56,7 +55,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
 
         const val TITLE_SIZE = 13f
         const val TEXT_SIZE = 9f
-        const val LEFT_MOUSE_BUTTON = 0
+        const val LEFT_MOUSE_BUTTON = InputConstants.MOUSE_BUTTON_LEFT
     }
 
     private var selectedIndex = -1
@@ -223,19 +222,19 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
             val current = currentFieldValue(selectedMacro, activeField)
 
             when {
-                isControlKeyDown() && key == GLFW.GLFW_KEY_A -> {
+                isControlKeyDown() && key == InputConstants.KEY_A -> {
                     selectionAnchorIndex = 0
                     caretIndex = current.length
                     return true
                 }
-                isControlKeyDown() && key == GLFW.GLFW_KEY_C -> {
+                isControlKeyDown() && key == InputConstants.KEY_C -> {
                     val selectedText = selectionBounds(current)?.let { (start, end) ->
                         current.substring(start, end)
                     }
                     writeClipboardText(selectedText ?: current)
                     return true
                 }
-                isControlKeyDown() && key == GLFW.GLFW_KEY_V -> {
+                isControlKeyDown() && key == InputConstants.KEY_V -> {
                     val clipboard = readClipboardText()
                     if (clipboard.isNotEmpty()) {
                         val (nextText, nextCaret) = insertAtCaret(current, clipboard)
@@ -248,43 +247,43 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
             }
 
             when (key) {
-                GLFW.GLFW_KEY_BACKSPACE -> {
+                InputConstants.KEY_BACKSPACE -> {
                     val (nextText, nextCaret) = if (isControlKeyDown()) "" to 0 else backspaceAtCaret(current, deleteWord = false)
                     updateFocusedField(activeField, nextText)
                     caretIndex = nextCaret
                     selectionAnchorIndex = null
                     return true
                 }
-                GLFW.GLFW_KEY_DELETE -> {
+                InputConstants.KEY_DELETE -> {
                     val (nextText, nextCaret) = if (isControlKeyDown()) "" to 0 else deleteAtCaret(current)
                     updateFocusedField(activeField, nextText)
                     caretIndex = nextCaret
                     selectionAnchorIndex = null
                     return true
                 }
-                GLFW.GLFW_KEY_LEFT -> {
+                InputConstants.KEY_LEFT -> {
                     val selection = selectionBounds(current)
                     caretIndex = if (selection != null) selection.first else (caretIndex - 1).coerceAtLeast(0)
                     selectionAnchorIndex = null
                     return true
                 }
-                GLFW.GLFW_KEY_RIGHT -> {
+                InputConstants.KEY_RIGHT -> {
                     val selection = selectionBounds(current)
                     caretIndex = if (selection != null) selection.second else (caretIndex + 1).coerceAtMost(current.length)
                     selectionAnchorIndex = null
                     return true
                 }
-                GLFW.GLFW_KEY_HOME -> {
+                InputConstants.KEY_HOME -> {
                     caretIndex = 0
                     selectionAnchorIndex = null
                     return true
                 }
-                GLFW.GLFW_KEY_END -> {
+                InputConstants.KEY_END -> {
                     caretIndex = current.length
                     selectionAnchorIndex = null
                     return true
                 }
-                GLFW.GLFW_KEY_TAB -> {
+                InputConstants.KEY_TAB -> {
                     val nextField = when (activeField) {
                         InputField.TRIGGER -> InputField.COMMAND
                         InputField.COMMAND -> InputField.TEST
@@ -298,19 +297,19 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
                     focusField(nextField, nextValue)
                     return true
                 }
-                GLFW.GLFW_KEY_ENTER,
-                GLFW.GLFW_KEY_KP_ENTER -> {
+                InputConstants.KEY_RETURN,
+                InputConstants.KEY_NUMPADENTER -> {
                     clearFieldFocus()
                     return true
                 }
-                GLFW.GLFW_KEY_ESCAPE -> {
+                InputConstants.KEY_ESCAPE -> {
                     clearFieldFocus()
                     return true
                 }
             }
         }
 
-        if (key == GLFW.GLFW_KEY_ESCAPE) {
+        if (key == InputConstants.KEY_ESCAPE) {
             onClose()
             return true
         }
@@ -1016,13 +1015,13 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     }
 
     private fun isControlKeyDown(): Boolean {
-        return InputConstants.isKeyDown(minecraft.window, GLFW.GLFW_KEY_LEFT_CONTROL) ||
-            InputConstants.isKeyDown(minecraft.window, GLFW.GLFW_KEY_RIGHT_CONTROL)
+        return InputConstants.isKeyDown(InputConstants.KEY_LCONTROL) ||
+            InputConstants.isKeyDown(InputConstants.KEY_RCONTROL)
     }
 
     private fun readClipboardText(): String {
         val raw = runCatching {
-            GLFW.glfwGetClipboardString(minecraft.window.handle())
+            minecraft.keyboardHandler.clipboard
         }.getOrNull() ?: return ""
         return sanitizeClipboardText(raw)
     }
@@ -1030,7 +1029,7 @@ class ChatMacrosScreen(private val parent: Screen?) : Screen(Component.literal("
     private fun writeClipboardText(text: String) {
         if (text.isEmpty()) return
         runCatching {
-            GLFW.glfwSetClipboardString(minecraft.window.handle(), text)
+            minecraft.keyboardHandler.setClipboard(text)
         }
     }
 

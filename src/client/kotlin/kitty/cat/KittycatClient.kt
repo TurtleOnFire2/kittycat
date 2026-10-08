@@ -1,5 +1,7 @@
 package kitty.cat
 
+import kitty.cat.compat.LegacyKeyCodes
+
 import com.mojang.blaze3d.platform.InputConstants
 import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -68,15 +70,9 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.resources.Identifier
-import org.lwjgl.glfw.GLFW
 import org.reflections.Reflections
 
 object KittycatClient : ClientModInitializer {
-	init {
-		// Feature singletons below can initialize Skija, so load its natives first.
-		kitty.cat.render.skija.SkijaNativeLoader.load()
-	}
-
 	private val keybindPressedState = mutableMapOf<KeybindSetting, Boolean>()
 
 	private val featureList: List<Feature> =
@@ -115,8 +111,8 @@ object KittycatClient : ClientModInitializer {
 		keybindShowHud = KeyMappingHelper.registerKeyMapping(
 			KeyMapping(
 				"key.kittycat.hud_insight",
-				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_LEFT_ALT,
+				InputConstants.Type.KEYBOARD,
+				InputConstants.KEY_LALT,
 				keybindCategory
 			)
 		)
@@ -136,7 +132,6 @@ object KittycatClient : ClientModInitializer {
 
 			if (client.gui.screen() is ClickGui) return@register
 
-			val window = client.window
 			featureList.forEach { feature ->
 				feature.keybindSettings.forEach { setting ->
 					if (setting.keyCode == KeybindSetting.UNBOUND) {
@@ -144,7 +139,7 @@ object KittycatClient : ClientModInitializer {
 						return@forEach
 					}
 
-					val pressedNow = InputConstants.isKeyDown(window, setting.keyCode)
+					val pressedNow = LegacyKeyCodes.isDown(setting.keyCode)
 					val pressedBefore = keybindPressedState[setting] ?: false
 					keybindPressedState[setting] = pressedNow
 

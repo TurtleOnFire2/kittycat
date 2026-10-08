@@ -1,5 +1,7 @@
 package kitty.cat.gui.bestiaryesp
 
+import com.mojang.blaze3d.platform.InputConstants
+
 import kitty.cat.features.visual.BestiaryESP
 import kitty.cat.features.visual.ClickGui as ClickGuiFeature
 import kitty.cat.render.nanovg.NVGPIPRenderer
@@ -12,7 +14,6 @@ import net.minecraft.client.input.CharacterEvent
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
-import org.lwjgl.glfw.GLFW
 import java.awt.Color
 
 class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal("Bestiary ESP")) {
@@ -41,7 +42,7 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
         const val BTN_W = 56;  const val BTN_H = 18;  const val BTN_GAP = 6
         const val SW = 14;     const val SW_GAP = 4
         const val TITLE_SZ = 13f; const val TEXT_SZ = 9f
-        const val LMB = 0
+        const val LMB = InputConstants.MOUSE_BUTTON_LEFT
         const val PICKER_W = 120; const val PICKER_PAD = 6
         const val PICKER_SB_H = 60; const val PICKER_SL_H = 8; const val PICKER_STEP = 2
     }
@@ -194,32 +195,32 @@ class BestiaryESPScreen(private val parent: Screen?) : Screen(Component.literal(
     override fun keyPressed(event: KeyEvent): Boolean {
         val key = event.key()
         if (searchFocused) {
-            val controlDown = GLFW.glfwGetKey(minecraft.window.handle(), GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
-                GLFW.glfwGetKey(minecraft.window.handle(), GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS
-            if (controlDown && key == GLFW.GLFW_KEY_V) {
-                val pasted = runCatching { GLFW.glfwGetClipboardString(minecraft.window.handle()).orEmpty() }.getOrDefault("")
+            val controlDown = InputConstants.isKeyDown(InputConstants.KEY_LCONTROL) ||
+                InputConstants.isKeyDown(InputConstants.KEY_RCONTROL)
+            if (controlDown && key == InputConstants.KEY_V) {
+                val pasted = runCatching { minecraft.keyboardHandler.clipboard.orEmpty() }.getOrDefault("")
                     .replace('\r', ' ').replace('\n', ' ').filter { it.code in 32..126 }
                 searchQuery = (searchQuery.substring(0, caretPos) + pasted + searchQuery.substring(caretPos)).take(128)
                 caretPos = (caretPos + pasted.length).coerceAtMost(searchQuery.length)
                 scrollRows = 0
                 return true
             }
-            if (controlDown && (key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_DELETE)) {
+            if (controlDown && (key == InputConstants.KEY_BACKSPACE || key == InputConstants.KEY_DELETE)) {
                 searchQuery = ""; caretPos = 0; scrollRows = 0
                 return true
             }
             when (key) {
-                GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> { searchFocused = false; return true }
-                GLFW.GLFW_KEY_BACKSPACE -> { if (caretPos > 0) { searchQuery = searchQuery.removeRange(caretPos - 1, caretPos); caretPos--; scrollRows = 0 }; return true }
-                GLFW.GLFW_KEY_DELETE    -> { if (caretPos < searchQuery.length) { searchQuery = searchQuery.removeRange(caretPos, caretPos + 1); scrollRows = 0 }; return true }
-                GLFW.GLFW_KEY_LEFT      -> { caretPos = (caretPos - 1).coerceAtLeast(0); return true }
-                GLFW.GLFW_KEY_RIGHT     -> { caretPos = (caretPos + 1).coerceAtMost(searchQuery.length); return true }
-                GLFW.GLFW_KEY_HOME      -> { caretPos = 0; return true }
-                GLFW.GLFW_KEY_END       -> { caretPos = searchQuery.length; return true }
+                InputConstants.KEY_ESCAPE, InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> { searchFocused = false; return true }
+                InputConstants.KEY_BACKSPACE -> { if (caretPos > 0) { searchQuery = searchQuery.removeRange(caretPos - 1, caretPos); caretPos--; scrollRows = 0 }; return true }
+                InputConstants.KEY_DELETE    -> { if (caretPos < searchQuery.length) { searchQuery = searchQuery.removeRange(caretPos, caretPos + 1); scrollRows = 0 }; return true }
+                InputConstants.KEY_LEFT      -> { caretPos = (caretPos - 1).coerceAtLeast(0); return true }
+                InputConstants.KEY_RIGHT     -> { caretPos = (caretPos + 1).coerceAtMost(searchQuery.length); return true }
+                InputConstants.KEY_HOME      -> { caretPos = 0; return true }
+                InputConstants.KEY_END       -> { caretPos = searchQuery.length; return true }
             }
             return true
         }
-        if (key == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true }
+        if (key == InputConstants.KEY_ESCAPE) { onClose(); return true }
         return super.keyPressed(event)
     }
 

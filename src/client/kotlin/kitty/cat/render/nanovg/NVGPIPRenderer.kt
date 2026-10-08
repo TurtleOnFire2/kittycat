@@ -1,8 +1,8 @@
 package kitty.cat.render.nanovg
 
-import com.mojang.blaze3d.opengl.GlConst
-import com.mojang.blaze3d.opengl.GlStateManager
-import com.mojang.blaze3d.opengl.GlTexture
+import com.mojang.renderpearl.backend.opengl.GlConst
+import com.mojang.renderpearl.backend.opengl.GlStateManager
+import com.mojang.renderpearl.backend.opengl.GlTexture
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import kitty.cat.mixin.client.gui.GuiGraphicsAccessor
@@ -20,9 +20,9 @@ class NVGPIPRenderer : PictureInPictureRenderer<NVGPIPRenderer.NVGRenderState>()
     private var framebuffer = 0
 
     override fun renderToTexture(state: NVGRenderState, poseStack: PoseStack, submitNodeCollector: SubmitNodeCollector) {
-        val colorTex = RenderSystem.outputColorTextureOverride ?: return
+        val colorTex = textureView ?: return
         val glColorTex = colorTex.texture() as? GlTexture ?: return
-        val glDepthTex = RenderSystem.outputDepthTextureOverride?.texture() as? GlTexture ?: return
+        val glDepthTex = depthTextureView?.texture() as? GlTexture ?: return
         val (width, height) = colorTex.let { it.getWidth(0) to it.getHeight(0) }
         if (framebuffer == 0) framebuffer = GlStateManager.glGenFramebuffers()
         GlStateManager._glBindFramebuffer(GlConst.GL_FRAMEBUFFER, framebuffer)

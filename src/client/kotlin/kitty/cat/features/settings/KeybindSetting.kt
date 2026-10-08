@@ -1,7 +1,8 @@
 package kitty.cat.features.settings
 
 import kitty.cat.config.ConfigManager
-import org.lwjgl.glfw.GLFW
+import kitty.cat.compat.LegacyKeyCodes
+import org.lwjgl.sdl.SDLKeyboard
 
 class KeybindSetting(
     override val name: String,
@@ -30,68 +31,68 @@ class KeybindSetting(
     }
 
     private fun normalize(raw: Int): Int {
-        return if (raw < GLFW.GLFW_KEY_SPACE || raw > GLFW.GLFW_KEY_LAST) UNBOUND else raw
+        return if (raw == UNBOUND || raw < -1 || raw in 32..348) raw else UNBOUND
     }
 
     private fun keyName(keyCode: Int): String {
-        val localized = GLFW.glfwGetKeyName(keyCode, 0)
+        val localized = SDLKeyboard.SDL_GetKeyName(SDLKeyboard.SDL_GetKeyFromScancode(LegacyKeyCodes.toScanCode(keyCode), 0, false))
             ?.takeIf { it.isNotBlank() }
             ?.uppercase()
         if (localized != null) return localized
 
         return when {
-            keyCode in GLFW.GLFW_KEY_F1..GLFW.GLFW_KEY_F25 -> "F${keyCode - GLFW.GLFW_KEY_F1 + 1}"
+            keyCode in 290..314 -> "F${keyCode - 290 + 1}"
             else -> when (keyCode) {
-                GLFW.GLFW_KEY_SPACE -> "Space"
-                GLFW.GLFW_KEY_TAB -> "Tab"
-                GLFW.GLFW_KEY_ENTER -> "Enter"
-                GLFW.GLFW_KEY_KP_ENTER -> "Num Enter"
-                GLFW.GLFW_KEY_BACKSPACE -> "Backspace"
-                GLFW.GLFW_KEY_ESCAPE -> "Esc"
-                GLFW.GLFW_KEY_LEFT_SHIFT -> "L Shift"
-                GLFW.GLFW_KEY_RIGHT_SHIFT -> "R Shift"
-                GLFW.GLFW_KEY_LEFT_CONTROL -> "L Ctrl"
-                GLFW.GLFW_KEY_RIGHT_CONTROL -> "R Ctrl"
-                GLFW.GLFW_KEY_LEFT_ALT -> "L Alt"
-                GLFW.GLFW_KEY_RIGHT_ALT -> "R Alt"
-                GLFW.GLFW_KEY_LEFT_SUPER -> "L Win"
-                GLFW.GLFW_KEY_RIGHT_SUPER -> "R Win"
-                GLFW.GLFW_KEY_UP -> "Up"
-                GLFW.GLFW_KEY_DOWN -> "Down"
-                GLFW.GLFW_KEY_LEFT -> "Left"
-                GLFW.GLFW_KEY_RIGHT -> "Right"
-                GLFW.GLFW_KEY_INSERT -> "Insert"
-                GLFW.GLFW_KEY_DELETE -> "Delete"
-                GLFW.GLFW_KEY_HOME -> "Home"
-                GLFW.GLFW_KEY_END -> "End"
-                GLFW.GLFW_KEY_PAGE_UP -> "Page Up"
-                GLFW.GLFW_KEY_PAGE_DOWN -> "Page Down"
-                GLFW.GLFW_KEY_CAPS_LOCK -> "Caps Lock"
-                GLFW.GLFW_KEY_SCROLL_LOCK -> "Scroll Lock"
-                GLFW.GLFW_KEY_NUM_LOCK -> "Num Lock"
-                GLFW.GLFW_KEY_PRINT_SCREEN -> "Print Screen"
-                GLFW.GLFW_KEY_PAUSE -> "Pause"
-                GLFW.GLFW_KEY_KP_0 -> "Num 0"
-                GLFW.GLFW_KEY_KP_1 -> "Num 1"
-                GLFW.GLFW_KEY_KP_2 -> "Num 2"
-                GLFW.GLFW_KEY_KP_3 -> "Num 3"
-                GLFW.GLFW_KEY_KP_4 -> "Num 4"
-                GLFW.GLFW_KEY_KP_5 -> "Num 5"
-                GLFW.GLFW_KEY_KP_6 -> "Num 6"
-                GLFW.GLFW_KEY_KP_7 -> "Num 7"
-                GLFW.GLFW_KEY_KP_8 -> "Num 8"
-                GLFW.GLFW_KEY_KP_9 -> "Num 9"
-                GLFW.GLFW_KEY_KP_DECIMAL -> "Num ."
-                GLFW.GLFW_KEY_KP_DIVIDE -> "Num /"
-                GLFW.GLFW_KEY_KP_MULTIPLY -> "Num *"
-                GLFW.GLFW_KEY_KP_SUBTRACT -> "Num -"
-                GLFW.GLFW_KEY_KP_ADD -> "Num +"
+                32 -> "Space"
+                258 -> "Tab"
+                257 -> "Enter"
+                335 -> "Num Enter"
+                259 -> "Backspace"
+                256 -> "Esc"
+                340 -> "L Shift"
+                344 -> "R Shift"
+                341 -> "L Ctrl"
+                345 -> "R Ctrl"
+                342 -> "L Alt"
+                346 -> "R Alt"
+                343 -> "L Win"
+                347 -> "R Win"
+                265 -> "Up"
+                264 -> "Down"
+                263 -> "Left"
+                262 -> "Right"
+                260 -> "Insert"
+                261 -> "Delete"
+                268 -> "Home"
+                269 -> "End"
+                266 -> "Page Up"
+                267 -> "Page Down"
+                280 -> "Caps Lock"
+                281 -> "Scroll Lock"
+                282 -> "Num Lock"
+                283 -> "Print Screen"
+                284 -> "Pause"
+                320 -> "Num 0"
+                321 -> "Num 1"
+                322 -> "Num 2"
+                323 -> "Num 3"
+                324 -> "Num 4"
+                325 -> "Num 5"
+                326 -> "Num 6"
+                327 -> "Num 7"
+                328 -> "Num 8"
+                329 -> "Num 9"
+                330 -> "Num ."
+                331 -> "Num /"
+                332 -> "Num *"
+                333 -> "Num -"
+                334 -> "Num +"
                 else -> "Key $keyCode"
             }
         }
     }
 
     companion object {
-        const val UNBOUND = GLFW.GLFW_KEY_UNKNOWN
+        const val UNBOUND = -1
     }
 }
